@@ -1,0 +1,5 @@
+{
+    "database_path": "./database/RomCurator.db",
+    "importer_scripts_directory": "./scripts/seeders/"
+}
+
