@@ -1,0 +1,800 @@
+<game name="Final Fantasy III Rev 0 (1994)(Square)(US)">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US).bin" size="3145728" crc="a27f1c7a" md5="e986575b98300f721ce27c180264d890" sha1="4f37e4274ac3b2ea1bedb08aa149d8fc5bb676e7"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[a]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[a]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[a].bin" size="3145728" crc="a83522c8" md5="e36dbbb12fc8b7317709f0878839ec0f" sha1="cc69cd6b966ba9c6a212e930209bbcdd75c96578"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[b]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[b]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[b].bin" size="3145728" crc="61b174e1" md5="4784ad648bfb0fd09d161bf9cc3c290e" sha1="1ed062744e9e2c0b7720e292d87fca3a822105ee"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[f PAL]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[f PAL]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[f PAL].bin" size="3145728" crc="01d1dae7" md5="55b2d084dba6f2a681f1925023be1109" sha1="2b87e9c717ee38c9c50cd017ac075777e5da184c"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[h10]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[h10]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[h10].bin" size="3670016" crc="c8110259" md5="07e086f516144eec9f0e4f58e1f52659" sha1="e58339f844273c63e91ec5b154ea7beb5ca2a883"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[h11]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[h11]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[h11].bin" size="3145728" crc="57b04431" md5="65f878020e022c7f7ff35ba7b3b51800" sha1="5b481cfb4a3f8605c4821feacbf2d4719dcd50f7"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[h2]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[h2]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[h2].bin" size="4194304" crc="bfca9ff7" md5="193aaa67e3fa97035a724d942fe061f1" sha1="4583a8484b21ff19ed7b047c0d12fd8319538781"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[h3]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[h3]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[h3].bin" size="3145728" crc="90f9d06e" md5="fad0dde68e008dab99cba8f19efcdce9" sha1="2df1046216917fe5c14417e475b716a33150dbba"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[h4]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[h4]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[h4].bin" size="3145728" crc="b83567ae" md5="3466f9d473078436dcdf5bc610843689" sha1="a2b6b7dcb3042b22d8592a28180096296a7b5c0f"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[h5]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[h5]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[h5].bin" size="3145728" crc="5715afae" md5="355a59e275bab7180123ec33ee4ba76a" sha1="47dfe91a07bade1d31f1a64d79fa4e481bbd081d"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[h6]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[h6]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[h6].bin" size="3145728" crc="453a4c8c" md5="d08d7f55f7123545ff00137503d2baa3" sha1="e0e0e6cd4e4319e8aaeff3ed3c6e1414675a4674"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[h7]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[h7]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[h7].bin" size="3145728" crc="1669405f" md5="4c2f987ca73ce02c1ecf6f39625541e4" sha1="ad6607c8736d5b1575d326195ba40842502f0221"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[h8]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[h8]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[h8].bin" size="3145728" crc="917d5b47" md5="379cb9d5922655f488cf73a44b7612e1" sha1="1cd0280267d13d0025c78f67b7dc37171dc2e74a"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[h9]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[h9]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[h9].bin" size="4194304" crc="5fcc5e3a" md5="ec3475075eeb29e129f933dd75419cd1" sha1="452df8502252cd5acd2a8d05396e04329b40d864"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[h]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[h]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[h].bin" size="4194304" crc="41936355" md5="0a628d29b62b7238986b45a4de593097" sha1="0b4fa7792cdc4a6fe2b9b02f916bfecc7a8a4ff8"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr da]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr da]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr da].bin" size="4194304" crc="56b98332" md5="61b383947bc035ff4315bfd4c08746c2" sha1="a803734e40d1218ef5db24fe16d439d750037c62"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr de]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr de]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr de].bin" size="3145728" crc="1c3da0eb" md5="543cc5f6166a894d4dfb97ea602a5849" sha1="0e96a180b653603bd254bb01f6a259e7a65bc554"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr es]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr es]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr es].bin" size="3145728" crc="a56c28af" md5="51e04beb1da74c53eee6e913e991d998" sha1="31d7fce24df46e01a226f4db13b1b449f9f5523e"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr es][a2]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr es][a2]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr es][a2].bin" size="4194304" crc="de044f4a" md5="67a457aed80efe22971b391ce8424bbc" sha1="6f4c119b5f9cc2937d8a7009da054859207fe6ea"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr es][a3]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr es][a3]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr es][a3].bin" size="4194304" crc="ec7e8542" md5="1cc997e4b40f07a349c5670853a514ae" sha1="88c4ef8a31415e0cb3aa07b5dab31a93199fb2ea"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr es][a4]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr es][a4]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr es][a4].bin" size="3145728" crc="bf1d4c26" md5="a50dbc9359b35465e9ac8e88c05403bf" sha1="10b0b53e69e76a8b69214a7d8d6f49ac4f4dc113"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr es][a5]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr es][a5]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr es][a5].bin" size="3145728" crc="da2449a3" md5="4e1615cb27105ba3b7412a4b4c50cf18" sha1="a5f650df77a1b3d37e0ca618930b78c1d4f46acf"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr es][a]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr es][a]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr es][a].bin" size="4194304" crc="51423853" md5="062ec2147045597aceec6bcef94ac4fd" sha1="e5ada164df1e46c2a64aad1fbb15a510328d1ad7"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr fi]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr fi]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr fi].bin" size="3145728" crc="71097f60" md5="36022cb9a44c7a062ae3335483452d23" sha1="f9fd0fd495274fae45b104d57a5b7986e3512cde"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr fr]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr fr]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr fr].bin" size="3145728" crc="3710d4e5" md5="259489618007bcb69b05ad0272bf223a" sha1="67ceb69ea6700f271123f891b6cf095ee1ac433b"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr fr][a2]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr fr][a2]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr fr][a2].bin" size="3145728" crc="5595ccfb" md5="06959e2f32d079ebedad54a9ce8d79d3" sha1="3c7e91811477349e08be576884caaee2df128fc2"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr fr][a]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr fr][a]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr fr][a].bin" size="4194304" crc="dc577774" md5="8c6fe3f193d2c8ccdb02474f3bcb0e14" sha1="3c77e4d48cec7cf490fc1fd141806ebb56327664"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr it]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr it]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr it].bin" size="3145728" crc="cf380a27" md5="8b449c1a94ea898f5c33ccac4cda432d" sha1="ca6bf16ec8fe20de4a72a7976383f4459c3c3b69"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr it][a]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr it][a]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr it][a].bin" size="3145728" crc="156cb537" md5="96bca55f5ff82842a343dae23983cb6f" sha1="2625c1a6f222a70a50d69e32257e8569bae80ff2"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr lv]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr lv]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr lv].bin" size="4194304" crc="e797a07c" md5="e31679873418ff72a468c980170f6887" sha1="eb5a61354ad4d345d907865a84328f7aebec2da1"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr pl]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr pl]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr pl].bin" size="3145728" crc="1bbe42f3" md5="9e1baa81fbc03b0ea697bba47ea26eb3" sha1="ed24740e4de9422b2e0c1c089b5eaaf8208e96f4"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr pt]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr pt]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr pt].bin" size="4194304" crc="eb9debfe" md5="4881cead960e7307f30e561cf689e517" sha1="4137d87ab6c25af370795a87834dfbe59e9c00e5"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr pt][a2]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr pt][a2]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr pt][a2].bin" size="4194304" crc="fa8235e3" md5="ea12d01beeb8bc3376d0a91a80fdc201" sha1="4fe43a414b6f30f129f6dc19c38bc7a5340f3aaf"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr pt][a3]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr pt][a3]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr pt][a3].bin" size="4194304" crc="ffa09ee1" md5="ba82b297cd3def7ca39b0b15ab385ec1" sha1="f18f95ae21bafc3396698aac4a9f36765d6ffdd1"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr pt][a4]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr pt][a4]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr pt][a4].bin" size="3145728" crc="40b27919" md5="7b794832055583144ff3e0edcca0e7f1" sha1="2032b5924b04648955c681acdda71b21b66b602b"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr pt][a5]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr pt][a5]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr pt][a5].bin" size="3145728" crc="98b68c25" md5="952aa7e9c07fd366f0b3ebd34590dd7f" sha1="fd73198a8ad02ecfb1e770d9f8b20ba372d98e99"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr pt][a]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr pt][a]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr pt][a].bin" size="4194304" crc="cf1c71d3" md5="362963eb774c0103418b521baf483c8a" sha1="08a8e055e9a8cc26e90a8090cce1e4dbebc33e7d"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr sv]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr sv]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr sv].bin" size="3145728" crc="9762ea81" md5="a1e75375569df36009dc0e569afe258d" sha1="763e86c4a28d10d7822ace1141646947063e7784"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr th]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr th]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr th].bin" size="4194304" crc="189597c3" md5="2d066b54e175d2628cec87664451c23e" sha1="72746f99b04b732f77edd5ac7ad498d817a87f3d"/>
+	</game>
+	<game name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr zh]">
+		<description>Final Fantasy III Rev 0 (1994)(Square)(US)[tr zh]</description>
+		<rom name="Final Fantasy III Rev 0 (1994)(Square)(US)[tr zh].bin" size="3670016" crc="d40d517f" md5="dac6c18aaf093df8c7cdfcde5fbc1995" sha1="fa41e5b7f073bb05d6a182177e1ff92b0a5f75c8"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US).bin" size="3145728" crc="c0fa0464" md5="544311e104805e926083acf29ec664da" sha1="057ada1c641e3e0b3ca34e6e4f4eb1b05a87143a"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[f PAL]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[f PAL]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[f PAL].bin" size="3145728" crc="6354c2f9" md5="1bf8eb31cc96ebc1867bef9f2490972e" sha1="e2de230f9311c91b9111e1d39194d3598c626209"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[h2]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[h2]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[h2].bin" size="3145728" crc="74ec5841" md5="c009047bf6fa8ccae78f1bb09cc6c476" sha1="292ec374d4bfcd5ce5034b1cead8b1323ea47543"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[h3]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[h3]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[h3].bin" size="4194304" crc="6cbd4650" md5="3b35b2507a3cf64065e4189b367211b1" sha1="708ea9cdebba1e803aae4c28dc3968cef8981976"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[h4]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[h4]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[h4].bin" size="3145728" crc="35355c2f" md5="d6ecb73f02c06e55525fdf334f7cd357" sha1="99397d40e19e1bc051c7f25cae0ff5336b340916"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[h]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[h]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[h].bin" size="3145728" crc="dab07fb0" md5="8d0ccaa7e0053a1cfe4de80a6b69eb48" sha1="b080d67bd67f7c7d9d43520073bf100cb56cc863"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr de]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr de]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr de].bin" size="3145728" crc="7eb8b8f5" md5="f5e7576ca977cb0964b1bd067e15be89" sha1="55f6adf63604f500be9fee705655a16ec473339a"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr de][a2]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr de][a2]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr de][a2].bin" size="3145728" crc="f88efbf6" md5="545ee5bc55c266a652865e45e2d19b54" sha1="68c57b4d721fbc99af247663d2f41ffb9bd98ec7"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr de][a3]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr de][a3]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr de][a3].bin" size="3145728" crc="a767924f" md5="2713b700489f4b1f6163bb9f1df6fded" sha1="3454a9e72608f74165d563ab479aed4a35e7e843"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr de][a4]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr de][a4]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr de][a4].bin" size="3145728" crc="f856a651" md5="c168716b824031282c61011476363629" sha1="b538ca922374885acf2bf95d3d54194c93ff45ac"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr de][a5]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr de][a5]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr de][a5].bin" size="3145728" crc="676377d5" md5="2d1271fe0e456dd8a753e9a4b7d48da4" sha1="15c3b89fd31595643c65c93caa13a8f4d774f01b"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr de][a6]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr de][a6]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr de][a6].bin" size="3145728" crc="31a3693f" md5="a3c8c2df65ea5c596caa3c30f97925e9" sha1="55a35226e10a7cf8de61ea85613a6102df4333c2"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr de][a]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr de][a]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr de][a].bin" size="3145728" crc="385f3363" md5="1ee124cc600e46d52808b968f59483c6" sha1="f97ca08133ac3bd0a047fd07e28b9b8e963b84ed"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr es]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr es]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr es].bin" size="4194304" crc="62332039" md5="aad61f72f56198a3c982293d0f43b363" sha1="d2649c5a0e5d5e665a86ebdd0dec1aeb3332b229"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr es][a]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr es][a]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr es][a].bin" size="4194304" crc="ed755720" md5="c594ca4378bca017f792fa441b8df48c" sha1="6ccb513dbc08e21612818c0b0d8c345ea5fa9a53"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fi]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr fi]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fi].bin" size="3145728" crc="138c677e" md5="f233fb0301520464f3ef8e4ea67ae789" sha1="a8f648b09bab0a4cb13d679f242e458a252afd67"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus].bin" size="4194304" crc="296549cf" md5="7c21370c60858da8189b6c1b46d045c2" sha1="b03eb4989b348b519cf9cb5591207954164119dc"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a2]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a2]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a2].bin" size="4194304" crc="b985c6fc" md5="da7828b70757e6014dc57373c20fee5f" sha1="5bd919de238a5136a2361db478f5392e83a45f24"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a3]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a3]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a3].bin" size="4194304" crc="d4a8495e" md5="4be029bce1cb138723824097e131b757" sha1="1d26f7979dcc345bf4829122bea081fea1894fbf"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a4]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a4]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a4].bin" size="4194304" crc="e4847ee5" md5="a652a99b1cf65814e6fe5eb995d81216" sha1="9104941f148ed66daa7a9d89b7406d393dd69046"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a5]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a5]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a5].bin" size="4194304" crc="1305bd55" md5="d7696e58af2d8124b7f7fece804ea645" sha1="7544af611f643624b7dfbf5c16e9804bc2ca5ca1"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a6]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a6]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a6].bin" size="4194304" crc="7408fbf9" md5="3fc65037afb6c3da6f88bda65acf8f8d" sha1="307808a171f3c0df4ea044bd20501cb84fe9ba4d"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a7]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a7]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a7].bin" size="4194304" crc="d8f4a0e0" md5="34e711004bc78c019d89612f974f4d67" sha1="d8149de7dcb54eb9dc9a3c5170cbee24bfc8a72e"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a8]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a8]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a8].bin" size="4194304" crc="2641aad1" md5="a5463a3d64833792db1efdb480e8aa41" sha1="5ce8b7db3165fd281d87d730a1f6bcc946498ba2"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a9]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a9]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a9].bin" size="4194304" crc="9c691a65" md5="eff7a695c2a61b82a41ca18b88573b02" sha1="12ee14c583d3bbd652003e3b73c1cc73490b18a2"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr Terminus][a].bin" size="4194304" crc="cee13e08" md5="f3334df6425f78c34bef9afbc8118150" sha1="1fc22c8516c66148688787f6cbd92742878e93e2"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr].bin" size="4194304" crc="b2366092" md5="52a06bd28098c8b17f4db9d331bc5d8f" sha1="e97fdee5470b8331a4ed2ad557ff93c14d86904d"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr][a2]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr][a2]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr][a2].bin" size="3145728" crc="e93b37e4" md5="cae22fdd3b80e753a54985cd8049c0e5" sha1="f5d499c2c30470698d0a12390445e77a2853f414"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr][a3]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr][a3]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr][a3].bin" size="3670016" crc="525c9045" md5="2404d91abf39c482fc2851897d02c4b2" sha1="bb554b58bf1ef9d50d4e8db3e964963f0038e265"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr][a4]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr][a4]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr][a4].bin" size="3670016" crc="84046e84" md5="c0ec1db1ff8b58098db14c52db5612fb" sha1="b3b3555b99d0fdd88876e3b2481dcfeb405cb5b2"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr][a5]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr][a5]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr][a5].bin" size="3145728" crc="5eb8fcf5" md5="accba67bfef7924c7833284842e9ee0b" sha1="9edf29ad21ba029706c59762d153614de1d7fec0"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr][a6]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr][a6]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr][a6].bin" size="3670016" crc="90aa5f4c" md5="970c748fcc647de9e2b62754f03b5300" sha1="08394c5ca66d2a60f48d179d9f9c487049f9b155"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr][a]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr][a]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr fr][a].bin" size="3670016" crc="d71775e2" md5="ebe87b92541faba8adf921a846bf90c1" sha1="aefab5cbaf85d3ed04a8f250758b7779585f9f52"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr it]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr it]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr it].bin" size="3145728" crc="0f384c7c" md5="0e0ca42b67f3dea7716ed8365dc078c9" sha1="fa6ed3a9c414797ab2d696b596d355cbfac1ee99"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr it][a]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr it][a]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr it][a].bin" size="4194304" crc="f35bdfe4" md5="308f50b92892fc5dbe996b486327802a" sha1="cc1293ef96c460fa6006d087cb0f6bcdefa29a9f"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr pl]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr pl]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr pl].bin" size="3145728" crc="793b5aed" md5="f078910504d05fc7fef1e8df91c5f9df" sha1="a224fcac5f5605929b36e237324c2e6d7e4fc8c4"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr pt]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr pt]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr pt].bin" size="3145728" crc="22376107" md5="0a3a63b523a4b4078ed8b6624f8f4455" sha1="1bc6c2c47a5e7679b3c6bfee9253ba8303ef8080"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr pt][a2]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr pt][a2]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr pt][a2].bin" size="3145728" crc="fa33943b" md5="97f40a07b51688ef90291266ecb96451" sha1="6bc0a028b2640f622c1ee4032d1ab82980262598"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr pt][a3]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr pt][a3]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr pt][a3].bin" size="4194304" crc="33a31d94" md5="2d4e28b3585e55d3f12f64a090c022bc" sha1="5ab5c122f3b2c437d14168bd59ccea346a021178"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr pt][a]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr pt][a]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr pt][a].bin" size="3145728" crc="c0aea56d" md5="245ed5ca67f02c9f2a1eec409e768e80" sha1="8ab9dc1ba3cb52566d33b3f8217c64fe1a31ae6d"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr sv]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr sv]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr sv].bin" size="3145728" crc="f5e7f29f" md5="5ff93d4729a1dc5db6a138f334c6de50" sha1="a484684e6ed1b13a15f79b02f8f68a71925cd466"/>
+	</game>
+	<game name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr th]">
+		<description>Final Fantasy III Rev 1 (1994)(Square)(US)[tr th]</description>
+		<rom name="Final Fantasy III Rev 1 (1994)(Square)(US)[tr th].bin" size="4194304" crc="2be48fa9" md5="6346a596a52e9e8d1416cc06fe58adcc" sha1="c16598a5efb6444b7175585b53772147070577a3"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)">
+		<description>Final Fantasy IV (1991)(Square)(JP)</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP).bin" size="1048576" crc="caa15e97" md5="a2959ad8c1ff5f2719264ab4c7e40464" sha1="eac14578b3465ffce874119005f9b244e8565a79"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)[a]">
+		<description>Final Fantasy IV (1991)(Square)(JP)[a]</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP)[a].bin" size="1048576" crc="21027c5d" md5="5cdc56ba9f5f23e412af09f11ed47f83" sha1="7502ed13fe969b294aab9ea3600dd8341713cd03"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)[b2]">
+		<description>Final Fantasy IV (1991)(Square)(JP)[b2]</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP)[b2].bin" size="1048576" crc="6a98e42c" md5="122c9137cc467f57d221c1bd4a30a783" sha1="39ac428e3efc6a420857e5d68ad74ff66fdd357c"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)[b]">
+		<description>Final Fantasy IV (1991)(Square)(JP)[b]</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP)[b].bin" size="1048576" crc="f577646f" md5="a50e48574d4288006edaf3934cda0b65" sha1="6b40840e32604e8b5300f187c6e93f0d82f67377"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)[h2]">
+		<description>Final Fantasy IV (1991)(Square)(JP)[h2]</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP)[h2].bin" size="1572864" crc="6977d79a" md5="53e5ad301bcb30c435d3ea2137dfa88c" sha1="891ba9b70b00e7775779623bb6393de5b1cb9c48"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)[h3]">
+		<description>Final Fantasy IV (1991)(Square)(JP)[h3]</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP)[h3].bin" size="1605632" crc="d9170e5f" md5="2485580589657ebba4760cd9a9d37916" sha1="c84c36179827b5704362a1bd2683d666e16d1364"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)[h4]">
+		<description>Final Fantasy IV (1991)(Square)(JP)[h4]</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP)[h4].bin" size="1572864" crc="505402ca" md5="da8fca4f84cbb8e7e3c3dc81f40ba422" sha1="9cfe3878263f35fd027f45cbd0cfa49bd2988414"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)[h]">
+		<description>Final Fantasy IV (1991)(Square)(JP)[h]</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP)[h].bin" size="1048576" crc="ba20343e" md5="32bd662d627fd8a23006fd148a8ce755" sha1="27691986a0c9e1125918a2878bac053b5306242b"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)[tr en]">
+		<description>Final Fantasy IV (1991)(Square)(JP)[tr en]</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP)[tr en].bin" size="1572864" crc="3b97b364" md5="84a1f4488f5b56f8793a0e12fdcff4b9" sha1="26a860bf54534c2d72668d726d3d7f22037878a3"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)[tr en][a10]">
+		<description>Final Fantasy IV (1991)(Square)(JP)[tr en][a10]</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP)[tr en][a10].bin" size="1572864" crc="abde692f" md5="9fbb6d38c72ec140261c176a495cf442" sha1="4bd29939387b5af93e05a2374eb54e024b3a9237"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)[tr en][a11]">
+		<description>Final Fantasy IV (1991)(Square)(JP)[tr en][a11]</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP)[tr en][a11].bin" size="1572864" crc="0f36c4a5" md5="167256fb8099d141336a8feb6d0c8db0" sha1="81dc34504f9738c4d8a4237c3b9c3610e907830f"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)[tr en][a12]">
+		<description>Final Fantasy IV (1991)(Square)(JP)[tr en][a12]</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP)[tr en][a12].bin" size="1572864" crc="77835805" md5="2c513c3fa9b1c43db25cd44de014935e" sha1="a4458ba3b8b9577d934e6e433b27fef04b70dbb5"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)[tr en][a2]">
+		<description>Final Fantasy IV (1991)(Square)(JP)[tr en][a2]</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP)[tr en][a2].bin" size="1572864" crc="e7ca824e" md5="0a962e595b36288037871de022806f3d" sha1="8dce793dc888f13e7bf27813d1100f096ab198d4"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)[tr en][a3]">
+		<description>Final Fantasy IV (1991)(Square)(JP)[tr en][a3]</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP)[tr en][a3].bin" size="1048576" crc="2a205a1a" md5="5ab77f5cb7f90a125ee173b919cbc7c7" sha1="d4733ebda6f976676c14b59e4f26fb65309fd632"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)[tr en][a4]">
+		<description>Final Fantasy IV (1991)(Square)(JP)[tr en][a4]</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP)[tr en][a4].bin" size="1572864" crc="d5cc300e" md5="b8be149f0b036698c57191ee0fb99dd8" sha1="edc9cd31cfc670febaec323a770553a85e1ce765"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)[tr en][a5]">
+		<description>Final Fantasy IV (1991)(Square)(JP)[tr en][a5]</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP)[tr en][a5].bin" size="1572864" crc="bed6eb11" md5="3b3e6eb0e6129aba441a2c156b208b15" sha1="1587968f72e4ba7b6f0faf945fd67dd47e23cff7"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)[tr en][a6]">
+		<description>Final Fantasy IV (1991)(Square)(JP)[tr en][a6]</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP)[tr en][a6].bin" size="1572864" crc="07a2f252" md5="700c1bc208a4eac953d1fcc45ad2ab44" sha1="eec1d461bdd4fcc6b266485f538be41529b15932"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)[tr en][a7]">
+		<description>Final Fantasy IV (1991)(Square)(JP)[tr en][a7]</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP)[tr en][a7].bin" size="1572864" crc="44ab8900" md5="36bdd112cee75e857690d89e03b8e035" sha1="0788654005624d79b06a33fedaedd22f16d64b2d"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)[tr en][a8]">
+		<description>Final Fantasy IV (1991)(Square)(JP)[tr en][a8]</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP)[tr en][a8].bin" size="1048576" crc="0fbe91e9" md5="0e142b775a84f90b90eb3f628e33cd05" sha1="f7f5ff53ad54d2cc29786ac7703d309ddf6ecf16"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)[tr en][a9]">
+		<description>Final Fantasy IV (1991)(Square)(JP)[tr en][a9]</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP)[tr en][a9].bin" size="1048576" crc="20ba88ac" md5="c2154fb91e772c167f6ee0cae1b39be5" sha1="72fe8b7b55c5b8c69d1a8e4b72593afeb60a4495"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)[tr en][a]">
+		<description>Final Fantasy IV (1991)(Square)(JP)[tr en][a]</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP)[tr en][a].bin" size="1572864" crc="bfee6fa9" md5="1c1682b54a0e7213dd6b3422751b8298" sha1="24b6840f840e4b7a83a487db559c730d39257f0e"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)[tr es]">
+		<description>Final Fantasy IV (1991)(Square)(JP)[tr es]</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP)[tr es].bin" size="1572864" crc="788f7636" md5="a80eccd353d29f40dbcd39ef0cb9f681" sha1="7cd7eede8b891e4a6e84b16df3c8a2a1409e7590"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)[tr it]">
+		<description>Final Fantasy IV (1991)(Square)(JP)[tr it]</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP)[tr it].bin" size="1572864" crc="962294a8" md5="405d82b50d8a6eb65395018a8878d908" sha1="3c6da3965b91b5a1edae2b9d76ece6bcd7c382c4"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)[tr ko]">
+		<description>Final Fantasy IV (1991)(Square)(JP)[tr ko]</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP)[tr ko].bin" size="1048576" crc="87123ba9" md5="4fb7dec639ac18fdd6e5bf8c0000e035" sha1="f89cf53da3bea4324c206858c1a11e5c34ab73ad"/>
+	</game>
+	<game name="Final Fantasy IV (1991)(Square)(JP)[tr ko][a]">
+		<description>Final Fantasy IV (1991)(Square)(JP)[tr ko][a]</description>
+		<rom name="Final Fantasy IV (1991)(Square)(JP)[tr ko][a].bin" size="1572864" crc="22edff37" md5="84640874f1ea0c8539a8a9d11aed2788" sha1="21897a394b93e5924bc2d9a07b12ed8829f8c9ad"/>
+	</game>
+	<game name="Final Fantasy IV - Easy Type (1991)(Square)(JP)">
+		<description>Final Fantasy IV - Easy Type (1991)(Square)(JP)</description>
+		<rom name="Final Fantasy IV - Easy Type (1991)(Square)(JP).bin" size="1048576" crc="6cda700c" md5="87ad91e3000895ba53956b3bd021717d" sha1="a2d04c5f3948ca930d2c0bc4e6f34d62f06a9fa5"/>
+	</game>
+	<game name="Final Fantasy IV - Easy Type (1991)(Square)(JP)[h]">
+		<description>Final Fantasy IV - Easy Type (1991)(Square)(JP)[h]</description>
+		<rom name="Final Fantasy IV - Easy Type (1991)(Square)(JP)[h].bin" size="1048576" crc="026d32cc" md5="b899e02610e02590822a1a50ecf477c3" sha1="029f40fd4f19f0722c21eff639f148ba68027fd7"/>
+	</game>
+	<game name="Final Fantasy IV - Easy Type (1991)(Square)(JP)[tr en]">
+		<description>Final Fantasy IV - Easy Type (1991)(Square)(JP)[tr en]</description>
+		<rom name="Final Fantasy IV - Easy Type (1991)(Square)(JP)[tr en].bin" size="1048576" crc="2e1a9d2b" md5="c22fca3d7554af4771772a7875b71277" sha1="bae580d665d5d8b08e23a041d93a57b4765d5119"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)">
+		<description>Final Fantasy V (1992)(Square)(JP)</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP).bin" size="2097152" crc="c1bc267d" md5="d69b2115e17d1cf2cb3590d3f75febb9" sha1="e937b54fff99838e2e853697e4f559359aa91fd6"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[b2]">
+		<description>Final Fantasy V (1992)(Square)(JP)[b2]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[b2].bin" size="2621440" crc="378edc7b" md5="0aef2c2b579aec11a7a21c00c00451db" sha1="e3f6e49714f6c7e9e34fb584cda55319a8800fa3"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[b3]">
+		<description>Final Fantasy V (1992)(Square)(JP)[b3]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[b3].bin" size="2097153" crc="3784c19f" md5="f0ca98dfe324445930b56e47cf4fceaa" sha1="3871fb99854a4fd7408b7bb38657c61e2649f4b1"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[b4]">
+		<description>Final Fantasy V (1992)(Square)(JP)[b4]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[b4].bin" size="2621440" crc="951b5cbd" md5="1cec5bfcb3dc49f0dbed79ff411dc7ed" sha1="23a7ed71751a6275cb75d94bf60dabc132c4d7b6"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[b]">
+		<description>Final Fantasy V (1992)(Square)(JP)[b]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[b].bin" size="2359328" crc="2663d0d3" md5="09609dd040fb0fa8b47838c7faaca567" sha1="edd59f35f9124f85d9515661ab5e972610488ec3"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[h10]">
+		<description>Final Fantasy V (1992)(Square)(JP)[h10]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[h10].bin" size="2621440" crc="e359e16c" md5="4a3d68f9585f8d9aa1a92a18283e4802" sha1="201c97d09363b273051dcb457d08500dcf5b5e04"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[h2]">
+		<description>Final Fantasy V (1992)(Square)(JP)[h2]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[h2].bin" size="2621440" crc="dacdb14a" md5="578a280f5f4ef144867a703db4a7ddee" sha1="a8bcd00272864f35e10c8598c8c5a3609c4fa907"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[h3]">
+		<description>Final Fantasy V (1992)(Square)(JP)[h3]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[h3].bin" size="2621440" crc="56d77ddf" md5="adcb58af7ffaaeffef545060d4bc7222" sha1="9bd8de6719a672728e56135846f3a9ec49c3eebb"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[h4]">
+		<description>Final Fantasy V (1992)(Square)(JP)[h4]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[h4].bin" size="2097153" crc="e962d15a" md5="53833e18825ce4810155a09449baa39a" sha1="483ea630d4f5ecc2e9fafb5054611f9e4408bfd9"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[h5]">
+		<description>Final Fantasy V (1992)(Square)(JP)[h5]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[h5].bin" size="2097152" crc="3d52fe4b" md5="6449e51b8bd5d65e7f1cf110bcfa1861" sha1="ff5f88707e99b34ee27c5fa172f7794f07ccffdb"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[h6]">
+		<description>Final Fantasy V (1992)(Square)(JP)[h6]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[h6].bin" size="2097152" crc="84cc8dbe" md5="663f7765d9e6f859fa569e172136685e" sha1="be135640af4660fde9397e506481cb2f5a53308c"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[h7]">
+		<description>Final Fantasy V (1992)(Square)(JP)[h7]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[h7].bin" size="2097152" crc="f392d5cc" md5="d7c12cb50d7573fad8c17924b5ff58f8" sha1="9ba305e4b7f40d7c032d9e4fee4bcb035dbcee97"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[h8]">
+		<description>Final Fantasy V (1992)(Square)(JP)[h8]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[h8].bin" size="2621440" crc="32f1d6fa" md5="bdd67b24168ecffbf5c9f549f5818a8a" sha1="248b5c6c0ec750e72af5eef90a101c39a59561ae"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[h9]">
+		<description>Final Fantasy V (1992)(Square)(JP)[h9]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[h9].bin" size="2621440" crc="d19f6cb5" md5="f44c4c39e44a11222318a20e72dd4cff" sha1="f57c711acbcf187dc6583529c73e2e2f72185ae6"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[h]">
+		<description>Final Fantasy V (1992)(Square)(JP)[h]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[h].bin" size="2097152" crc="fca7abd4" md5="c08ce35b0946969908dc6fc7481c54a0" sha1="2e32d8986bda9ec5ee21c40635866abed7200a06"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr en]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr en]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr en].bin" size="2621440" crc="17444605" md5="5245a6ed780d896f416cc8824aa36182" sha1="8d5a83770c3d6f2b29b7825b5a17434616ec1c60"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr en][a2]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr en][a2]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr en][a2].bin" size="2621440" crc="8d66f796" md5="43c5a6197afff5ed9205e3677199e9fe" sha1="50c38b0c8d2bc1008a7f9fe6388fb879608f6584"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr en][a3]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr en][a3]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr en][a3].bin" size="2097152" crc="295af98d" md5="6f3291104c155db80e17265af27d52d3" sha1="1ae55ae3e6a2011718388d62e6b334761aad21f3"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr en][a4]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr en][a4]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr en][a4].bin" size="2621440" crc="ad0ab846" md5="29665f931095295e5b25153918e1e3fc" sha1="8ba459a7fb1af64ddbfa921aefdb585ccb86068a"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr en][a5]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr en][a5]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr en][a5].bin" size="2621440" crc="22aee723" md5="db6a1a9322c0a59c9b45a4c59e22e89a" sha1="ad7f8d9dda17cade2a5630674532f372c7ed7af1"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr en][a6]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr en][a6]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr en][a6].bin" size="2621440" crc="e6ebf451" md5="c35c7353a2cb21428adaa766864b6cb5" sha1="b1ee6783c7c78b0befb6070b9ec04a349be8eb28"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr en][a7]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr en][a7]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr en][a7].bin" size="2621440" crc="adbfe210" md5="81fe306a03caeea61fa124c53b0e5e58" sha1="18ae36404d0cc5cf8a2520ac2bbebc8d3bb86649"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr en][a8]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr en][a8]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr en][a8].bin" size="2621440" crc="892e44be" md5="e72522bdb7e0442469737b314557a0b8" sha1="b23a2d12ef971b701a6e049bff6d0a6c1aeb27fc"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr en][a]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr en][a]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr en][a].bin" size="2621440" crc="fe3b6d9a" md5="187b0b35abb1d07539a410ac703043cd" sha1="9ed4bd9ea3484c6f10e32c107bfa55081124e0f2"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr es]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr es]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr es].bin" size="2621440" crc="4b81ea73" md5="4589125a7286c9f9c94fce5e3e8b0c47" sha1="40ded3555445734ff9ce1aedadb5bfd5fe00a7cc"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr es][a2]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr es][a2]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr es][a2].bin" size="2621440" crc="75a04886" md5="4ccdb9af55f594f0ce1147707d48c5d6" sha1="0cae44d9ddbc283b71c9ec7b4c29e3280e372262"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr es][a]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr es][a]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr es][a].bin" size="2621440" crc="da68bf47" md5="885b9d9b2756fc5b12108b10df7182b0" sha1="f7789faacafc5fdca7d311bfb11f5ef7bb449028"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr fr]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr fr]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr fr].bin" size="2621440" crc="05c16d41" md5="d1b8daf2581fad24eeb5b7cceef5b4dd" sha1="e4a62c5dd0c5fcc0e135c4ee76b38a472236f39d"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr fr][a2]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr fr][a2]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr fr][a2].bin" size="2621440" crc="707e821e" md5="15a69d3d19dac723c932c5dc2d299ad3" sha1="ff44cace8d83ce92cbaafc9bf38c6610322477d1"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr fr][a3]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr fr][a3]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr fr][a3].bin" size="2621440" crc="3ad31e3e" md5="2f7cb07dd8f10ce5cdad02080f978b9a" sha1="67b492262546542b6c3c46096595a6d105eef8e5"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr fr][a4]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr fr][a4]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr fr][a4].bin" size="2621440" crc="cef65022" md5="3dc9026c8fba9e534d71c59ab723716b" sha1="584db11f4eeced7d77914e37469bb7bb07d26a76"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr fr][a5]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr fr][a5]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr fr][a5].bin" size="2621440" crc="f9308de1" md5="3c23730b2f61423b4da91aa6e51e3fde" sha1="e2f25b081be2fdf3001824f196cfd9e1a3214590"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr fr][a6]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr fr][a6]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr fr][a6].bin" size="2621440" crc="bf1042d3" md5="6fda0f7b498713befd74856e534bb128" sha1="962f20b69d33a90ac192a3e9230fee2bd7ed4a51"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr fr][a]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr fr][a]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr fr][a].bin" size="2621440" crc="e05588d9" md5="8bd9f299ad307d8ae8264133d3aeaf95" sha1="831b4295addb1abd5bf8d01c05ec8cf8fe77f947"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr it]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr it]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr it].bin" size="2621440" crc="00ac2382" md5="860831c89fe730a7cf54f130ac34f7f9" sha1="c30effc3b5aca09e05170b256c991ca8f1458e88"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr pt]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr pt]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr pt].bin" size="2621440" crc="a03ef9b3" md5="08388e4f59ca8ec1ef2114f5e5b53e85" sha1="18ea044b48329f5c80563770ea1e7d5dd93b00bf"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr pt][a2]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr pt][a2]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr pt][a2].bin" size="2621440" crc="e27a9b6e" md5="2e3e9b62733b692652304e4e1a63f015" sha1="f251359ba7537d241d6e8e24292f0ac12596448b"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr pt][a]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr pt][a]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr pt][a].bin" size="2621440" crc="8579bf1b" md5="0cba7da1f0347af9b3fe5dcf6ef708ca" sha1="adbd2aa47d2d0d85b2509cd3d60e07279e3a639e"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr ru]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr ru]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr ru].bin" size="2621440" crc="b87451ac" md5="c26cf10e75020b14e3f7c07dc1cb199a" sha1="b6fe23196db4bc3b555b0339a154bffd4b95cf51"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr sv]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr sv]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr sv].bin" size="2621440" crc="cbb37b16" md5="1402c44a52c6369afc6d13545f5c5522" sha1="d68129fa212f12d664984e19f07834484bee9ddf"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr zh]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr zh]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr zh].bin" size="2621440" crc="f994306e" md5="c7f21c65b81ac6e3be6b14ab7f4c88d4" sha1="877eca985bfab7dec8fb405912736e86be8ad8a7"/>
+	</game>
+	<game name="Final Fantasy V (1992)(Square)(JP)[tr zh][a]">
+		<description>Final Fantasy V (1992)(Square)(JP)[tr zh][a]</description>
+		<rom name="Final Fantasy V (1992)(Square)(JP)[tr zh][a].bin" size="2621440" crc="1988c0b1" md5="5c244ea4e343bb77d41304932da4eb0a" sha1="554619b61ddcacb747c39d5af7be5d867a6f0c56"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)">
+		<description>Final Fantasy VI (1994)(Square)(JP)</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP).bin" size="3145728" crc="45ef5ac8" md5="97bf78e916b80f47cf35edf502be34dc" sha1="1c6a6dd90d3463f4532202199885a2c0e9a485f6"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[b]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[b]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[b].bin" size="3145728" crc="c4861b7f" md5="4aba60173513a3cc88e701bc0f7c3edc" sha1="33b9d638f205773ae61241f0fe8eb7a14036ad84"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h10]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h10]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h10].bin" size="3258939" crc="a4856ea3" md5="4170a338a6703303148232d44487f2ec" sha1="6d7f5791c5b35803d15ca5d4cba28e1290e51253"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h11]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h11]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h11].bin" size="3258939" crc="5ac7535a" md5="04c53fce0cee10d683c06ff3acbfd829" sha1="d69a6dee9e5bba58407f9b260a431635771ba7a2"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h12]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h12]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h12].bin" size="3145728" crc="bd095029" md5="9f3466eac0ce51bcb0c5dbef49074187" sha1="5210e6d56398ea06077ce8182f1cbfaa956c9cda"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h13]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h13]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h13].bin" size="3145728" crc="284ca344" md5="ad683def1424a502013fd75a7d66c144" sha1="a02491334e50f4f40aabba7dd8582d066466ea9b"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h14]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h14]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h14].bin" size="3145728" crc="863e78f1" md5="954468ff4b8c9738f2bfe1f885c5773b" sha1="90a95ac806771f64a029169dd0c455467a443026"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h15]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h15]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h15].bin" size="3145728" crc="7ed87210" md5="37c8fdd47136e6ed3a9ea3d7c6427a90" sha1="14ec5f364dd6ed9d31a929a73903466f71a54bc3"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h16]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h16]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h16].bin" size="4194304" crc="bd1c727b" md5="1f6d1dda72adfd5b00cb7a67645a02f7" sha1="52334f91292410d49e4dc8242c2b3d5559983e84"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h17]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h17]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h17].bin" size="4194304" crc="c2fc86c2" md5="5f31a6be7ab010d227227c14a7029da1" sha1="b5b3109bf0978a9b8c7de906e8b10c9081c0cf7d"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h18]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h18]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h18].bin" size="4194304" crc="8733f166" md5="f853b2df280afcce36a29c8aa661ac7f" sha1="a7b862f50989488a0af2565b653b073ba1b1a359"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h19]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h19]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h19].bin" size="4194304" crc="72bf55ca" md5="a0a34534d19ad3ad3664f75259233012" sha1="58d187e83f8022f79c3b9645dff32cbf6b4945a2"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h20]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h20]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h20].bin" size="4194304" crc="27f9379b" md5="112fdbe5956528f3f83e60ae258eb89c" sha1="089437fb87e203f81ac917ebf7feb27b6e657871"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h21]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h21]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h21].bin" size="4194304" crc="ad95678e" md5="f81d09532cefcaff5882dae539091d0c" sha1="5a3fa631996895a2b56e20831db7cd2441aa6193"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h22]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h22]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h22].bin" size="3670016" crc="e559d63a" md5="d0bc90f605ed464982cedb5a47057796" sha1="83074dca487c711ff46a7ffa453d86421dd59b1e"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h23]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h23]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h23].bin" size="3145728" crc="262916c9" md5="fe47aa2d240337ef80676b9152f4c7f9" sha1="02ea97563e8af2a958003729f94cc91ab6d07353"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h24]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h24]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h24].bin" size="3145728" crc="e70bcffe" md5="e6a9639304a6a4ea8fa0337626406807" sha1="e3fbbb48eee272e860bfdca8cc0c8a78898c5d08"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h25]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h25]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h25].bin" size="3145728" crc="0157c44a" md5="42938cc98a447ddd166fb60b43b994cb" sha1="36b77e2eb3248901ee0da860d23c679136a884b0"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h26]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h26]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h26].bin" size="3145728" crc="21ec67e3" md5="63dcc54768469249d1bfc05501922c12" sha1="e90c4d11d55be5adb914babebcb657540fd33278"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h27]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h27]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h27].bin" size="3145728" crc="9d71de12" md5="01bdec0b4210679737534b8a32d42b4d" sha1="8ed4347e2ed511b8144220ca157ae07f50af3890"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h28]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h28]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h28].bin" size="3145728" crc="137b8b9c" md5="4e3426704c2aa811153eab97baa44e38" sha1="d7480fe0d7fe7e6dedd999c88165dd30879b094e"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h29]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h29]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h29].bin" size="3145728" crc="eb9d817d" md5="36fa619715998145470c52477d488390" sha1="12dfa36f890f5c6226fa188dda36f47a4d1c4930"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h2]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h2]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h2].bin" size="3258939" crc="e0274bf5" md5="612bb1c1e9e28270bd21de6123957e08" sha1="2cc1164c3ec7bd6ca192f08c2f0cce1de68b3dc1"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h30]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h30]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h30].bin" size="3145728" crc="d0aaa9a5" md5="4dbbd4f3495343243c87f93011b5babc" sha1="787a97581403f22cb56cb063cdbf2f42d8c19d64"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h31]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h31]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h31].bin" size="4194304" crc="d1278296" md5="a3217ef0bdb956da283b084ead05cfc4" sha1="6f9c976dde94a166838e4c7cc2e8b241e4724357"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h32]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h32]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h32].bin" size="3145728" crc="e42b0e04" md5="08d01118e6ee5afb0ada67be0793c663" sha1="16712f0acdee42f3c2cdf58abdf4474ce2ab78a6"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h33]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h33]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h33].bin" size="4194304" crc="aaaf407d" md5="18860a2b7471b2e7f43360154c4b525d" sha1="14fe029507696f5ad5694d9b798de9c83b91c5cc"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h3]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h3]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h3].bin" size="3258939" crc="0924dbc1" md5="02ef5ef1f467266ca3a99d22595dc2eb" sha1="c5a24fc2d71caef11013de281a7c718aa5d484b5"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h4]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h4]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h4].bin" size="3258939" crc="f766e638" md5="612d226f2b6c237e05e63b3b3ba107e7" sha1="59a2e369f58ab4df5f7f56330327348fa1f27f0e"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h5]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h5]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h5].bin" size="3145728" crc="cbe50f46" md5="85301f61c8ebc23527ad573ba46d944c" sha1="af27cbb22ee0220de4c5d5cc3a876f0bb9cb6b08"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h6]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h6]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h6].bin" size="3145728" crc="330305a7" md5="92d72b185242f0b19b8fe283cac05ab9" sha1="1a053877d90538076d537b5a24a37b4ccdf180dc"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h7]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h7]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h7].bin" size="3145728" crc="08342d7f" md5="273b1a7e97968a5b41b8ee8436f1d21c" sha1="550a1d9f9c0855a087fa625e090e6e6f7fb9cc78"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h8]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h8]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h8].bin" size="3258939" crc="4d86fe97" md5="3609851d5ed9322bd80e6ab76d70eda2" sha1="e28b5ffefe0d55aa23fc511d9b0132a2467942ac"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h9]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h9]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h9].bin" size="3258939" crc="694e16de" md5="0d0c3c581f90be67b07f238c0c22ba86" sha1="73281cdf7a9f79ba65bd3270f7f8ae0ce803147f"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[h]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[h]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[h].bin" size="3258939" crc="c4efa3bc" md5="852c50be6b1f8f1d4e240a0348fdd49c" sha1="f2aa1f8d0b0984ddfd7a4b18c0731be854d0f1b6"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[tr de]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[tr de]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[tr de].bin" size="3145728" crc="d8f50641" md5="0dca477f29edd9bc000c55a0714b3e4e" sha1="eba018a00666e0889cc960e74a81619be2ca90a2"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[tr en]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[tr en]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[tr en].bin" size="4194304" crc="785bfa64" md5="38da426c7e185fc170fe84b717bda08f" sha1="fd7f8938c259692b2b782fbb9f62f8f3231638d3"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[tr en][a2]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[tr en][a2]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[tr en][a2].bin" size="4194305" crc="51e5f84f" md5="cc011d318a80124e5e71cd5e9d131aa6" sha1="8e166403c8e3f21343f65a61174ccf2f1be138cd"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[tr en][a3]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[tr en][a3]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[tr en][a3].bin" size="4194304" crc="14600a89" md5="ae19a77a60c1e30a204d413195a254f2" sha1="7307b8b53b19e334e563d25a77abb45ce05be9ed"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[tr en][a4]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[tr en][a4]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[tr en][a4].bin" size="3670016" crc="c938f5c7" md5="47b0d84df179e11801b066053a40906c" sha1="a399567ee082cf25593519e62244b000a7e1cde6"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[tr en][a]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[tr en][a]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[tr en][a].bin" size="4194304" crc="8ebcb901" md5="42e44a403894f30501758cedfb8e3608" sha1="44b2e7ac4a4493c4cd91bd06cfd401a86e5c7c52"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[tr fr]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[tr fr]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[tr fr].bin" size="3670016" crc="ee67330f" md5="67b3112d37ffffbbd94863496e1c15ad" sha1="e3ac077d46ba64efc4359a99169f5fdc7f71a081"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[tr ko]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[tr ko]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[tr ko].bin" size="3145728" crc="cfe2197b" md5="c0852b2ae294f82a33c921982cfac3e8" sha1="d83636e68f8fc8a46cd43eb80bdf6d371ff942ee"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[tr zh]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[tr zh]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[tr zh].bin" size="3670016" crc="6184ac3c" md5="0ce26a197ea93ee532485b43de64e624" sha1="2463b3b582c91708231e0617b25f269e3df854fb"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[tr zh][a2]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[tr zh][a2]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[tr zh][a2].bin" size="3670016" crc="324fe6c5" md5="b26ccee340a5a36b49af70bb63309579" sha1="abfffaee0edc0a692bd32ee065d5fccb2b1c5fb6"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[tr zh][a3]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[tr zh][a3]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[tr zh][a3].bin" size="3145728" crc="d9d60879" md5="c3eb371fdeb766bb78572c80e2501d4a" sha1="ce1edabd8b6fcf3d42632951d86d2a15328b4c4f"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[tr zh][a4]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[tr zh][a4]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[tr zh][a4].bin" size="3670016" crc="943aad3e" md5="c72c99f0c6c9c40411f409361bfa5009" sha1="e040465013d86b6d9d61f4f314faf0fee0444547"/>
+	</game>
+	<game name="Final Fantasy VI (1994)(Square)(JP)[tr zh][a]">
+		<description>Final Fantasy VI (1994)(Square)(JP)[tr zh][a]</description>
+		<rom name="Final Fantasy VI (1994)(Square)(JP)[tr zh][a].bin" size="3670016" crc="ce5394fb" md5="c39dc644c499cda06b1005382307bbe7" sha1="964b974f433d448c62cb4305ff2b14905e0f5730"/>
+	</game>

@@ -1,0 +1,257 @@
+[
+  {
+    "developers": [
+      "Nintendo Co., Ltd."
+    ],
+    "genres": [
+      "Action",
+      "Side view",
+      "Platform",
+      "Compilation",
+      "2D scrolling",
+      "Direct control"
+    ],
+    "id": 6613,
+    "moby_score": 8.76,
+    "moby_url": "https://www.mobygames.com/game/6613/super-mario-all-stars/",
+    "platforms": [
+      "SNES",
+      "Nintendo Switch"
+    ],
+    "publishers": [
+      "Nintendo Co., Ltd."
+    ],
+    "release_date": "1993-07-14",
+    "title": "Super Mario All-Stars"
+  },
+  {
+    "developers": [
+      "Square Co., Ltd."
+    ],
+    "genres": [
+      "Sci-fi / futuristic",
+      "Top-down",
+      "Role-playing (RPG)",
+      "Anime / Manga",
+      "Fantasy",
+      "Turn-based",
+      "Japanese-style RPG (JRPG)",
+      "Steampunk"
+    ],
+    "id": 4501,
+    "moby_score": 8.54,
+    "moby_url": "https://www.mobygames.com/game/4501/chrono-trigger/",
+    "platforms": [
+      "PlayStation",
+      "SNES",
+      "Nintendo DS",
+      "PSP",
+      "PlayStation 3",
+      "Wii",
+      "iPhone",
+      "Android",
+      "PS Vita",
+      "tvOS",
+      "iPad",
+      "DoJa"
+    ],
+    "publishers": [
+      "Square Co., Ltd.",
+      "Square Enix Co., Ltd.",
+      "Square Enix Limited",
+      "Square Enix Ltd",
+      "Square Enix, Inc.",
+      "Square Enix Co., Ltd.",
+      "Square Soft, Inc.",
+      "Sony Computer Entertainment America LLC"
+    ],
+    "release_date": "1995-03-11",
+    "title": "Chrono Trigger"
+  },
+  {
+    "developers": [
+      "Nintendo R&D1",
+      "Intelligent Systems Co., Ltd."
+    ],
+    "genres": [
+      "Action",
+      "Sci-fi / futuristic",
+      "Side view",
+      "Platform",
+      "Shooter",
+      "Metroidvania",
+      "2D scrolling"
+    ],
+    "id": 6627,
+    "moby_score": 8.81,
+    "moby_url": "https://www.mobygames.com/game/6627/super-metroid/",
+    "platforms": [
+      "SNES",
+      "Wii",
+      "Wii U",
+      "New Nintendo 3DS",
+      "Nintendo Switch"
+    ],
+    "publishers": [
+      "Nintendo Co., Ltd."
+    ],
+    "release_date": "1994",
+    "title": "Super Metroid"
+  },
+  {
+    "developers": [
+      "Nintendo Co., Ltd."
+    ],
+    "genres": [
+      "Action",
+      "Side view",
+      "Platform",
+      "2D scrolling",
+      "Direct control",
+      "Regional differences"
+    ],
+    "id": 6591,
+    "moby_score": 8.68,
+    "moby_url": "https://www.mobygames.com/game/6591/super-mario-world/",
+    "platforms": [
+      "SNES",
+      "Wii",
+      "Wii U",
+      "Arcade",
+      "New Nintendo 3DS",
+      "Nintendo Switch"
+    ],
+    "publishers": [
+      "Nintendo Co., Ltd."
+    ],
+    "release_date": "1990-11-21",
+    "title": "Super Mario World"
+  },
+  {
+    "developers": [
+      "Nintendo EAD"
+    ],
+    "genres": [
+      "Action",
+      "Metroidvania",
+      "Puzzle elements",
+      "Anime / Manga",
+      "Fantasy",
+      "Diagonal-down",
+      "Direct control",
+      "Regional differences"
+    ],
+    "id": 6608,
+    "moby_score": 8.55,
+    "moby_url": "https://www.mobygames.com/game/6608/the-legend-of-zelda-a-link-to-the-past/",
+    "platforms": [
+      "SNES",
+      "Wii",
+      "Wii U",
+      "New Nintendo 3DS",
+      "Nintendo Switch"
+    ],
+    "publishers": [
+      "Nintendo Co., Ltd."
+    ],
+    "release_date": "1991-11-21",
+    "title": "The Legend of Zelda: A Link to the Past"
+  },
+  {
+    "developers": [
+      "Nintendo Co., Ltd."
+    ],
+    "genres": [
+      "Compilation"
+    ],
+    "id": 12679,
+    "moby_score": 8.64,
+    "moby_url": "https://www.mobygames.com/game/12679/super-mario-all-stars-super-mario-world/",
+    "platforms": [
+      "SNES"
+    ],
+    "publishers": [
+      "Nintendo Co., Ltd."
+    ],
+    "release_date": "1994-12",
+    "title": "Super Mario All-Stars + Super Mario World"
+  },
+  {
+    "developers": [
+      "Square Co., Ltd.",
+      "Square Enix Co., Ltd."
+    ],
+    "genres": [
+      "Sci-fi / futuristic",
+      "Real-time",
+      "Role-playing (RPG)",
+      "Anime / Manga",
+      "Fantasy",
+      "Turn-based",
+      "Diagonal-down",
+      "2D scrolling",
+      "Japanese-style RPG (JRPG)",
+      "Direct control",
+      "Menu structures",
+      "Steampunk",
+      "Regional differences"
+    ],
+    "id": 5202,
+    "moby_score": 8.38,
+    "moby_url": "https://www.mobygames.com/game/5202/final-fantasy-iii/",
+    "platforms": [
+      "Windows",
+      "PlayStation",
+      "Game Boy Advance",
+      "SNES",
+      "PSP",
+      "PlayStation 3",
+      "Wii",
+      "iPhone",
+      "Android",
+      "iPad",
+      "PS Vita",
+      "Wii U",
+      "Fire OS"
+    ],
+    "publishers": [
+      "Nintendo of America Inc.",
+      "Square Soft, Inc.",
+      "Square Enix Limited",
+      "Sony Computer Entertainment America LLC",
+      "Square Enix, Inc.",
+      "Square Enix Co., Ltd.",
+      "Nintendo of Europe GmbH",
+      "Square Co., Ltd.",
+      "Sony Computer Entertainment Europe Ltd.",
+      "Square Enix Co., Ltd."
+    ],
+    "release_date": "1994-04-02",
+    "title": "Final Fantasy III"
+  },
+  {
+    "developers": [
+      "Nintendo Co., Ltd.",
+      "Nintendo EAD"
+    ],
+    "genres": [
+      "Action",
+      "Side view",
+      "Platform",
+      "Anime / Manga",
+      "2D scrolling"
+    ],
+    "id": 6602,
+    "moby_score": 8.6,
+    "moby_url": "https://www.mobygames.com/game/6602/super-mario-world-2-yoshis-island/",
+    "platforms": [
+      "SNES",
+      "Nintendo Switch"
+    ],
+    "publishers": [
+      "Nintendo Co., Ltd."
+    ],
+    "release_date": "1995",
+    "title": "Super Mario World 2: Yoshi's Island"
+  },
+ ]

@@ -1,0 +1,386 @@
+	<game name="Final Fantasy - Mystic Quest (USA)">
+		<archive number="0792" clone="1719" name="Final Fantasy - Mystic Quest" region="USA" languages="En" langchecked="yes" categories="Games"/>
+		<source>
+			<details id="4917" section="Trusted Dump" d_date="2008-05-26" r_date="2008-05-26" r_date_info="0" region="USA" dumper="hydr0x" project="No-Intro" originalformat="Default" link1="http://forum.no-intro.org/viewtopic.php?f=7&amp;t=30"/>
+			<serials media_serial1="SNS-MQ-USA"/>
+			<file id="2942" extension="sfc" size="524288" crc32="6b19a2c6" md5="da08f0559fade06f37d5fdf1b6a6d92e" sha1="787c535aaca7b57f6b85fc02ceef106f7fe5ea59" sha256="6151389f33ce2e53db3cd99592440c0020f5f4668f581ce3bd615bc92077f255" format="Default"/>
+		</source>
+		<source>
+			<details id="15" section="Trusted Dump" d_date="2010-07-20" r_date="2010-07-20" r_date_info="0" region="USA" dumper="Zidanax" project="No-Intro" originalformat="Default" link1="http://forum.no-intro.org/viewtopic.php?f=40&amp;t=1786"/>
+			<serials media_serial1="SNS-MQ-USA" pcb_serial="SHVC-1A3B-13" romchip_serial1="SNS-MQ-0"/>
+			<file id="2942" extension="sfc" size="524288" crc32="6b19a2c6" md5="da08f0559fade06f37d5fdf1b6a6d92e" sha1="787c535aaca7b57f6b85fc02ceef106f7fe5ea59" sha256="6151389f33ce2e53db3cd99592440c0020f5f4668f581ce3bd615bc92077f255" format="Default"/>
+		</source>
+		<source>
+			<details id="598" section="Trusted Dump" d_date="2011-12-21" r_date="2011-12-21" r_date_info="0" region="USA" dumper="badinsults" project="No-Intro" originalformat="Default"/>
+			<serials media_serial1="SNS-MQ-USA" romchip_serial1="SNS-MQ-0"/>
+			<file id="2942" extension="sfc" size="524288" crc32="6b19a2c6" md5="da08f0559fade06f37d5fdf1b6a6d92e" sha1="787c535aaca7b57f6b85fc02ceef106f7fe5ea59" sha256="6151389f33ce2e53db3cd99592440c0020f5f4668f581ce3bd615bc92077f255" format="Default"/>
+		</source>
+		<source>
+			<details id="904" section="Trusted Dump" d_date="2013-01-13" r_date="2013-01-13" r_date_info="0" region="USA" dumper="byuu" project="SNES Preservation" originalformat="Default"/>
+			<serials media_serial1="SNS-MQ-USA" pcb_serial="SHVC-1A3B-13" romchip_serial1="SNS-MQ-0 (9238)"/>
+			<file id="2942" extension="sfc" size="524288" crc32="6b19a2c6" md5="da08f0559fade06f37d5fdf1b6a6d92e" sha1="787c535aaca7b57f6b85fc02ceef106f7fe5ea59" sha256="6151389f33ce2e53db3cd99592440c0020f5f4668f581ce3bd615bc92077f255" format="Default"/>
+		</source>
+		<source>
+			<details id="2234" section="Trusted Dump" d_date="2014-02-02" r_date="2014-02-02" r_date_info="0" region="USA" dumper="KingMike" project="No-Intro" originalformat="Default" link1="https://forum.no-intro.org/viewtopic.php?f=7&amp;t=2486"/>
+			<serials/>
+			<file id="2942" extension="sfc" size="524288" crc32="6b19a2c6" md5="da08f0559fade06f37d5fdf1b6a6d92e" sha1="787c535aaca7b57f6b85fc02ceef106f7fe5ea59" sha256="6151389f33ce2e53db3cd99592440c0020f5f4668f581ce3bd615bc92077f255" format="Default"/>
+		</source>
+		<source>
+			<details id="8357" section="Trusted Dump" d_date="2019-05-04" r_date="2019-05-04" r_date_info="0" region="USA" dumper="bikerspade" project="!unknown" originalformat="Default" tool="Analogue Super Nt - jailbreak firmware JB6.6 - CopySNES"/>
+			<serials media_serial1="SNS-MQ-USA" pcb_serial="SHVC-1A3B-13" romchip_serial1="SNS-MQ-0 (9236)"/>
+			<file id="2942" extension="sfc" size="524288" crc32="6b19a2c6" md5="da08f0559fade06f37d5fdf1b6a6d92e" sha1="787c535aaca7b57f6b85fc02ceef106f7fe5ea59" sha256="6151389f33ce2e53db3cd99592440c0020f5f4668f581ce3bd615bc92077f255" format="Default"/>
+		</source>
+		<source>
+			<details id="10213" section="Trusted Dump" d_date="2022-10-21" region="USA" dumper="psykopat" project="No-Intro" originalformat="Default" tool="OSCR HW3 V10.3" link1="https://forum.no-intro.org/viewtopic.php?p=31468#p31468"/>
+			<serials media_serial1="SNS-MQ-USA" pcb_serial="SHVC-1A3B-13" romchip_serial1="SNS-MQ-0 (9236)"/>
+			<file id="2942" extension="sfc" size="524288" crc32="6b19a2c6" md5="da08f0559fade06f37d5fdf1b6a6d92e" sha1="787c535aaca7b57f6b85fc02ceef106f7fe5ea59" sha256="6151389f33ce2e53db3cd99592440c0020f5f4668f581ce3bd615bc92077f255" format="Default"/>
+		</source>
+		<release>
+			<details id="445" dirname="Final_Fantasy_3_Mystic_Quest_USA_BETA_SNES-PONG" nfoname="RELEASE.TXT" nfosize="1305" nfocrc="65a6b1e9" archivename="MYSQUEST" originalformat="Default" date="1992-09-03" group="Pong" region="Unknown" origin="Scene"/>
+			<serials/>
+			<file id="2942" extension="sfc" size="524288" crc32="6b19a2c6" md5="da08f0559fade06f37d5fdf1b6a6d92e" sha1="787c535aaca7b57f6b85fc02ceef106f7fe5ea59" sha256="6151389f33ce2e53db3cd99592440c0020f5f4668f581ce3bd615bc92077f255" format="Default"/>
+		</release>
+		<release>
+			<details id="446" dirname="Final_Fantasy_Mystic_Quest_USA_FINAL_SNES-TRSI" category="Dupe" nfoname="TRSI.TXT" nfosize="615" nfocrc="445cca6e" archivename="TRSIMQ" originalformat="Default" date="1992-10-22" group="Tristar &amp; Red Sector Inc." region="Unknown" origin="Scene"/>
+			<serials/>
+			<file id="2942" extension="sfc" size="524288" crc32="6b19a2c6" md5="da08f0559fade06f37d5fdf1b6a6d92e" sha1="787c535aaca7b57f6b85fc02ceef106f7fe5ea59" sha256="6151389f33ce2e53db3cd99592440c0020f5f4668f581ce3bd615bc92077f255" format="Default"/>
+		</release>
+		<release>
+			<details id="2768" dirname="Mystic_Quest_SNES-iND" category="Dupe" nfoname="file_id.diz" nfosize="117" nfocrc="cb1a14d2" archivename="SNES-MYQ" originalformat="Default" date="1998-05-27" group="Independent" region="USA" origin="Scene"/>
+			<serials/>
+			<file id="2942" extension="sfc" size="524288" crc32="6b19a2c6" md5="da08f0559fade06f37d5fdf1b6a6d92e" sha1="787c535aaca7b57f6b85fc02ceef106f7fe5ea59" sha256="6151389f33ce2e53db3cd99592440c0020f5f4668f581ce3bd615bc92077f255" format="Default"/>
+		</release>
+	</game>
+	<game name="Final Fantasy - Mystic Quest (USA) (Rev 1)">
+		<archive number="0793" clone="1719" regparent="(USA PARENT)" name="Final Fantasy - Mystic Quest" region="USA" languages="En" langchecked="yes" version1="Rev 1" categories="Games"/>
+		<source>
+			<details id="9250" section="Third Party" d_date="1999-07-17" r_date="1999-07-17" r_date_info="0" region="USA" dumper="!unknown" project="GoodTools" originalformat="Default" comment1="Not verified according to GoodSNES V3.27"/>
+			<serials/>
+			<file id="3345" extension="sfc" size="524288" crc32="2c52c792" md5="f7faeae5a847c098d677070920769ca2" sha1="6be74b73b736bc6027c0e92619874da7c498bed0" sha256="f71817f55febd32fd1dce617a326a77b6b062dd0d4058ecd289f64af1b7a1d05" format="Default"/>
+		</source>
+		<release>
+			<details id="448" dirname="Final_Fantasy_Mystic_Quest_USA_SNES-PARADOX" rominfo="Bad" nfoname="PARADOX" nfosize="1884" nfocrc="f5479499" archivename="PDX-FFMQ" originalformat="Default" date="1993-09-02" group="Paradox" comment="[Introed]" region="Unknown" origin="Scene"/>
+			<serials/>
+			<file id="4801" extension="sfc" size="540672" crc32="250b44ba" md5="d62821abc49eef8feb1b5b3e2c9ececd" sha1="5f0a00c3bcce055d255a119ccaba1eaf62311a5e" sha256="a140dafb29e46ed9bc498b57e02b291ef86240946ac8c2546ea1ffb9615c01b6" bad="1" format="Default"/>
+		</release>
+	</game>
+	<game name="Final Fantasy II (USA)">
+		<archive number="0794" clone="0795" name="Final Fantasy II" region="USA" languages="En" langchecked="yes" categories="Games"/>
+		<source>
+			<details id="5032" section="Trusted Dump" d_date="2007-05-27" r_date="2007-05-27" r_date_info="0" region="USA" dumper="Yakushi~Kabuto" project="No-Intro" originalformat="Default" link1="http://forum.no-intro.org/viewtopic.php?f=7&amp;t=659"/>
+			<serials media_serial1="SNS-F4-USA"/>
+			<file id="1074" extension="sfc" size="1048576" crc32="65d0a825" md5="4fa9e542b954dcb954d5ce38188d9d41" sha1="2fa447e3e010ce8ba5b4e746f6609aa0e324d947" sha256="680535dc1c4196c53b40dc9c2c9bc159a77802ab8d4b474bef5dc0281c15ad06" format="Default"/>
+		</source>
+		<source>
+			<details id="567" section="Trusted Dump" d_date="2011-12-21" r_date="2011-12-21" r_date_info="0" region="USA" dumper="badinsults" project="No-Intro" originalformat="Default"/>
+			<serials media_serial1="SNS-F4-USA" romchip_serial1="SNS-F4-0"/>
+			<file id="1074" extension="sfc" size="1048576" crc32="65d0a825" md5="4fa9e542b954dcb954d5ce38188d9d41" sha1="2fa447e3e010ce8ba5b4e746f6609aa0e324d947" sha256="680535dc1c4196c53b40dc9c2c9bc159a77802ab8d4b474bef5dc0281c15ad06" format="Default"/>
+		</source>
+		<source>
+			<details id="905" section="Trusted Dump" d_date="2013-01-13" r_date="2013-01-13" r_date_info="0" region="USA" dumper="byuu" project="SNES Preservation" originalformat="Default"/>
+			<serials media_serial1="SNS-F4-USA" pcb_serial="SHVC-1A3B-12" romchip_serial1="SNS-F4-0 (9141)"/>
+			<file id="1074" extension="sfc" size="1048576" crc32="65d0a825" md5="4fa9e542b954dcb954d5ce38188d9d41" sha1="2fa447e3e010ce8ba5b4e746f6609aa0e324d947" sha256="680535dc1c4196c53b40dc9c2c9bc159a77802ab8d4b474bef5dc0281c15ad06" format="Default"/>
+		</source>
+		<source>
+			<details id="2043" section="Trusted Dump" d_date="2013-06-23" r_date="2013-06-23" r_date_info="0" region="USA" dumper="MikeHaggar" project="No-Intro" originalformat="Default" tool="Retrode" link1="http://forum.no-intro.org/viewtopic.php?f=40&amp;t=1306"/>
+			<serials media_serial1="SNS-F4-USA"/>
+			<file id="1074" extension="sfc" size="1048576" crc32="65d0a825" md5="4fa9e542b954dcb954d5ce38188d9d41" sha1="2fa447e3e010ce8ba5b4e746f6609aa0e324d947" sha256="680535dc1c4196c53b40dc9c2c9bc159a77802ab8d4b474bef5dc0281c15ad06" format="Default"/>
+		</source>
+		<source>
+			<details id="2235" section="Trusted Dump" d_date="2014-02-02" r_date="2014-02-02" r_date_info="0" region="USA" dumper="KingMike" project="No-Intro" originalformat="Default" link1="https://forum.no-intro.org/viewtopic.php?f=7&amp;t=2486"/>
+			<serials/>
+			<file id="1074" extension="sfc" size="1048576" crc32="65d0a825" md5="4fa9e542b954dcb954d5ce38188d9d41" sha1="2fa447e3e010ce8ba5b4e746f6609aa0e324d947" sha256="680535dc1c4196c53b40dc9c2c9bc159a77802ab8d4b474bef5dc0281c15ad06" format="Default"/>
+		</source>
+		<source>
+			<details id="8359" section="Trusted Dump" d_date="2019-05-04" r_date="2019-05-04" r_date_info="0" region="USA" dumper="bikerspade" project="!unknown" originalformat="Default" tool="Analogue Super Nt - jailbreak firmware JB6.6 - CopySNES"/>
+			<serials media_serial1="SNS-F4-USA" pcb_serial="SHVC-1A3B-12" romchip_serial1="SNS-F4-0 (9142)"/>
+			<file id="1074" extension="sfc" size="1048576" crc32="65d0a825" md5="4fa9e542b954dcb954d5ce38188d9d41" sha1="2fa447e3e010ce8ba5b4e746f6609aa0e324d947" sha256="680535dc1c4196c53b40dc9c2c9bc159a77802ab8d4b474bef5dc0281c15ad06" format="Default"/>
+		</source>
+		<release>
+			<details id="442" dirname="Final_Fantasy_II_USA_SNES-iND_[001]" nfoname="?missing" nfosize="0" nfocrc="00000000" archivename="FANTASY2" originalformat="Default" date="1992-07-22" group="Independent" region="Unknown" origin="Scene"/>
+			<serials/>
+			<file id="1074" extension="sfc" size="1048576" crc32="65d0a825" md5="4fa9e542b954dcb954d5ce38188d9d41" sha1="2fa447e3e010ce8ba5b4e746f6609aa0e324d947" sha256="680535dc1c4196c53b40dc9c2c9bc159a77802ab8d4b474bef5dc0281c15ad06" format="Default"/>
+		</release>
+		<release>
+			<details id="2758" dirname="Final_Fantasy_II_USA_SNES-iND_[002]" category="Dupe" nfoname="?missing" nfosize="0" nfocrc="00000000" archivename="FF2" originalformat="Default" date="1993-08-03" group="Independent" region="USA" origin="Scene"/>
+			<serials/>
+			<file id="1074" extension="sfc" size="1048576" crc32="65d0a825" md5="4fa9e542b954dcb954d5ce38188d9d41" sha1="2fa447e3e010ce8ba5b4e746f6609aa0e324d947" sha256="680535dc1c4196c53b40dc9c2c9bc159a77802ab8d4b474bef5dc0281c15ad06" format="Default"/>
+		</release>
+	</game>
+	<game name="Final Fantasy II (USA) (Rev 1)">
+		<archive number="0795" clone="P" regparent="(USA PARENT)" name="Final Fantasy II" region="USA" languages="En" langchecked="yes" version1="Rev 1" categories="Games"/>
+		<source>
+			<details id="9253" section="Third Party" d_date="1999-06-01" r_date="1999-06-01" r_date_info="0" region="USA" dumper="!unknown" project="GoodTools" originalformat="Default" comment1="Verified according to GoodSNES V3.27"/>
+			<serials/>
+			<file id="549" extension="sfc" size="1048576" crc32="23084fcd" md5="27d02a4f03e172e029c9b82ac3db79f7" sha1="41a74eb369a7a91815529ef99ab1b20e2bdf3e26" sha256="414bacc05a18a6137c0de060b4094ab6d1b75105342b0bb36a42e45d945a0e4d" format="Default"/>
+		</source>
+		<source>
+			<details id="1473" section="Trusted Dump" d_date="2011-01-02" r_date="2011-01-02" r_date_info="0" region="USA" dumper="BigFred" project="No-Intro" originalformat="Default" link1="http://forum.no-intro.org/viewtopic.php?f=40&amp;t=1931"/>
+			<serials media_serial1="SNS-F4-USA" pcb_serial="SHVC-1A3B-13" romchip_serial1="SNS-F4-1 (9314)"/>
+			<file id="549" extension="sfc" size="1048576" crc32="23084fcd" md5="27d02a4f03e172e029c9b82ac3db79f7" sha1="41a74eb369a7a91815529ef99ab1b20e2bdf3e26" sha256="414bacc05a18a6137c0de060b4094ab6d1b75105342b0bb36a42e45d945a0e4d" format="Default"/>
+		</source>
+		<source>
+			<details id="1964" section="Trusted Dump" d_date="2013-05-11" r_date="2013-05-11" r_date_info="0" region="USA" dumper="Zerker" project="No-Intro" originalformat="Default"/>
+			<serials media_serial1="SNS-F4-USA"/>
+			<file id="549" extension="sfc" size="1048576" crc32="23084fcd" md5="27d02a4f03e172e029c9b82ac3db79f7" sha1="41a74eb369a7a91815529ef99ab1b20e2bdf3e26" sha256="414bacc05a18a6137c0de060b4094ab6d1b75105342b0bb36a42e45d945a0e4d" format="Default"/>
+		</source>
+	</game>
+	<game name="Final Fantasy III (USA)">
+		<archive number="0796" clone="0797" name="Final Fantasy III" region="USA" languages="En" langchecked="yes" categories="Games"/>
+		<source>
+			<details id="568" section="Trusted Dump" d_date="2011-12-21" r_date="2011-12-21" r_date_info="0" region="USA" dumper="badinsults" project="!unknown" originalformat="Default"/>
+			<serials media_serial1="SNS-F6-USA" romchip_serial1="SNS-F6-0"/>
+			<file id="3156" extension="sfc" size="3145728" crc32="a27f1c7a" md5="e986575b98300f721ce27c180264d890" sha1="4f37e4274ac3b2ea1bedb08aa149d8fc5bb676e7" sha256="0f51b4fca41b7fd509e4b8f9d543151f68efa5e97b08493e4b2a0c06f5d8d5e2" format="Default"/>
+		</source>
+		<source>
+			<details id="906" section="Trusted Dump" d_date="2013-01-13" r_date="2013-01-13" r_date_info="0" region="USA" dumper="byuu" project="SNES Preservation" originalformat="Default"/>
+			<serials media_serial1="SNS-F6-USA" pcb_serial="SHVC-BJ3M-10" romchip_serial1="SNS-F6-0 P0 (9437)" romchip_serial2="SNS-F6-0 P3 (9436)"/>
+			<file id="3156" extension="sfc" size="3145728" crc32="a27f1c7a" md5="e986575b98300f721ce27c180264d890" sha1="4f37e4274ac3b2ea1bedb08aa149d8fc5bb676e7" sha256="0f51b4fca41b7fd509e4b8f9d543151f68efa5e97b08493e4b2a0c06f5d8d5e2" format="Default"/>
+		</source>
+		<source>
+			<details id="1474" section="Trusted Dump" d_date="2013-02-01" r_date="2013-02-01" r_date_info="0" region="USA" dumper="BigFred" project="No-Intro" originalformat="Default" tool="retrode"/>
+			<serials media_serial1="SNS-F6-USA" pcb_serial="SHVC-BJ3M-10" romchip_serial1="SNS-F6-0 P0 (9437)" romchip_serial2="SNS-F6-0 P3 (9436)"/>
+			<file id="3156" extension="sfc" size="3145728" crc32="a27f1c7a" md5="e986575b98300f721ce27c180264d890" sha1="4f37e4274ac3b2ea1bedb08aa149d8fc5bb676e7" sha256="0f51b4fca41b7fd509e4b8f9d543151f68efa5e97b08493e4b2a0c06f5d8d5e2" format="Default"/>
+		</source>
+		<source>
+			<details id="2236" section="Trusted Dump" d_date="2014-02-02" r_date="2014-02-02" r_date_info="0" region="USA" dumper="KingMike" project="No-Intro" originalformat="Default" link1="https://forum.no-intro.org/viewtopic.php?f=7&amp;t=2486"/>
+			<serials/>
+			<file id="3156" extension="sfc" size="3145728" crc32="a27f1c7a" md5="e986575b98300f721ce27c180264d890" sha1="4f37e4274ac3b2ea1bedb08aa149d8fc5bb676e7" sha256="0f51b4fca41b7fd509e4b8f9d543151f68efa5e97b08493e4b2a0c06f5d8d5e2" format="Default"/>
+		</source>
+		<source>
+			<details id="6790" section="Trusted Dump" d_date="2018-11-22" r_date="2018-11-22" r_date_info="0" region="USA" dumper="ClaudeSpeed" project="No-Intro" originalformat="Default" tool="Retrode 2" link1="http://forum.no-intro.org/viewtopic.php?f=7&amp;t=3209"/>
+			<serials media_serial1="SNS-F6-USA"/>
+			<file id="3156" extension="sfc" size="3145728" crc32="a27f1c7a" md5="e986575b98300f721ce27c180264d890" sha1="4f37e4274ac3b2ea1bedb08aa149d8fc5bb676e7" sha256="0f51b4fca41b7fd509e4b8f9d543151f68efa5e97b08493e4b2a0c06f5d8d5e2" format="Default"/>
+		</source>
+		<source>
+			<details id="8358" section="Trusted Dump" d_date="2019-05-04" r_date="2019-05-04" r_date_info="0" region="USA" dumper="bikerspade" project="!unknown" originalformat="Default" tool="Analogue Super Nt - jailbreak firmware JB6.6 - CopySNES"/>
+			<serials media_serial1="SNS-F6-USA" pcb_serial="SHVC-BJ3M-10" romchip_serial1="SNS-F6-0 P0 (9436)" romchip_serial2="SNS-F6-0 P3 (9435)"/>
+			<file id="3156" extension="sfc" size="3145728" crc32="a27f1c7a" md5="e986575b98300f721ce27c180264d890" sha1="4f37e4274ac3b2ea1bedb08aa149d8fc5bb676e7" sha256="0f51b4fca41b7fd509e4b8f9d543151f68efa5e97b08493e4b2a0c06f5d8d5e2" format="Default"/>
+		</source>
+		<release>
+			<details id="449" dirname="Final_Fantasy_III_USA_SNES-SNEAKERS" nfoname="SNK-FAN3" nfosize="1468" nfocrc="65405c8d" archivename="SNK-FAN3" originalformat="Default" date="1994-10-07" group="Sneakers" region="Unknown" origin="Scene"/>
+			<serials/>
+			<file id="3156" extension="sfc" size="3145728" crc32="a27f1c7a" md5="e986575b98300f721ce27c180264d890" sha1="4f37e4274ac3b2ea1bedb08aa149d8fc5bb676e7" sha256="0f51b4fca41b7fd509e4b8f9d543151f68efa5e97b08493e4b2a0c06f5d8d5e2" format="Default"/>
+		</release>
+	</game>
+	<game name="Final Fantasy III (USA) (Rev 1)">
+		<archive number="0797" clone="P" regparent="(USA PARENT)" name="Final Fantasy III" region="USA" languages="En" langchecked="yes" version1="Rev 1" categories="Games"/>
+		<source>
+			<details id="9254" section="Third Party" d_date="2000-03-14" r_date="2000-03-14" r_date_info="0" region="USA" dumper="!unknown" project="GoodTools" originalformat="Default" comment1="Verified according to GoodSNES V3.27"/>
+			<serials/>
+			<file id="1129" extension="sfc" size="3145728" crc32="c0fa0464" md5="544311e104805e926083acf29ec664da" sha1="057ada1c641e3e0b3ca34e6e4f4eb1b05a87143a" sha256="10eccc5d2fab81346dd759f6be478dcb682eef981e8d3d662da176e1f9a996bc" format="Default"/>
+		</source>
+		<source>
+			<details id="4918" section="Trusted Dump" d_date="2008-05-26" r_date="2008-05-26" r_date_info="0" region="USA" dumper="hydr0x" project="No-Intro" originalformat="Default" link1="http://forum.no-intro.org/viewtopic.php?f=7&amp;t=30"/>
+			<serials media_serial1="SNS-F6-USA"/>
+			<file id="1129" extension="sfc" size="3145728" crc32="c0fa0464" md5="544311e104805e926083acf29ec664da" sha1="057ada1c641e3e0b3ca34e6e4f4eb1b05a87143a" sha256="10eccc5d2fab81346dd759f6be478dcb682eef981e8d3d662da176e1f9a996bc" format="Default"/>
+		</source>
+		<source>
+			<details id="2017" section="Trusted Dump" d_date="2013-05-11" r_date="2013-05-11" r_date_info="0" region="USA" dumper="Zerker" project="!unknown" originalformat="Default"/>
+			<serials media_serial1="SNS-F6-USA"/>
+			<file id="1129" extension="sfc" size="3145728" crc32="c0fa0464" md5="544311e104805e926083acf29ec664da" sha1="057ada1c641e3e0b3ca34e6e4f4eb1b05a87143a" sha256="10eccc5d2fab81346dd759f6be478dcb682eef981e8d3d662da176e1f9a996bc" format="Default"/>
+		</source>
+		<source>
+			<details id="2042" section="Trusted Dump" d_date="2013-06-23" r_date="2013-06-23" r_date_info="0" region="USA" dumper="MikeHaggar" project="No-Intro" originalformat="Default" tool="Retrode" link1="https://forum.no-intro.org/viewtopic.php?p=13233#p13233"/>
+			<serials media_serial1="SNS-F6-USA"/>
+			<file id="1129" extension="sfc" size="3145728" crc32="c0fa0464" md5="544311e104805e926083acf29ec664da" sha1="057ada1c641e3e0b3ca34e6e4f4eb1b05a87143a" sha256="10eccc5d2fab81346dd759f6be478dcb682eef981e8d3d662da176e1f9a996bc" format="Default"/>
+		</source>
+	</game>
+	<game name="Final Fantasy IV (Japan)">
+		<archive number="0798" clone="0795" name="Final Fantasy IV" name_alt="ファイナルファンタジーIV" region="Japan" languages="Ja" langchecked="yes" categories="Games"/>
+		<source>
+			<details id="4959" section="Trusted Dump" d_date="2007-12-30" r_date="2007-12-30" r_date_info="0" region="Japan" dumper="Yakushi~Kabuto" project="No-Intro" originalformat="Default" link1="http://forum.no-intro.org/viewtopic.php?f=7&amp;t=658"/>
+			<serials media_serial1="SHVC-F4"/>
+			<file id="1257" extension="sfc" size="1048576" crc32="21027c5d" md5="5cdc56ba9f5f23e412af09f11ed47f83" sha1="7502ed13fe969b294aab9ea3600dd8341713cd03" sha256="74aa3a26b66f34819fbbdcdb2475cf9161cc2590fb1ec89fb24940ef10e44332" format="Default"/>
+		</source>
+		<source>
+			<details id="9252" section="Third Party" d_date="2008-02-04" r_date="2008-02-04" r_date_info="0" region="Japan" dumper="!unknown" project="GoodTools" originalformat="Default" comment1="Verified according to GoodSNES V3.27"/>
+			<serials/>
+			<file id="1257" extension="sfc" size="1048576" crc32="21027c5d" md5="5cdc56ba9f5f23e412af09f11ed47f83" sha1="7502ed13fe969b294aab9ea3600dd8341713cd03" sha256="74aa3a26b66f34819fbbdcdb2475cf9161cc2590fb1ec89fb24940ef10e44332" format="Default"/>
+		</source>
+		<source>
+			<details id="11008" section="Trusted Dump" d_date="2025-03-07" region="Japan" dumper="Nanakix" project="No-Intro" originalformat="Default" tool="OSCR HW3 V14.3" link1="https://forum.no-intro.org/viewtopic.php?p=38735#p38735"/>
+			<serials media_serial1="SHVC-F4" pcb_serial="SHVC-1A3B-11" romchip_serial1="SHVC-F4-0 (9121)" mediastamp="19"/>
+			<file id="1257" extension="sfc" size="1048576" crc32="21027c5d" md5="5cdc56ba9f5f23e412af09f11ed47f83" sha1="7502ed13fe969b294aab9ea3600dd8341713cd03" sha256="74aa3a26b66f34819fbbdcdb2475cf9161cc2590fb1ec89fb24940ef10e44332" format="Default"/>
+		</source>
+	</game>
+	<game name="Final Fantasy IV (Japan) (Rev 1)">
+		<archive number="0799" clone="0795" regparent="(JPN PARENT)" name="Final Fantasy IV" name_alt="ファイナルファンタジーIV" region="Japan" languages="Ja" langchecked="yes" version1="Rev 1" categories="Games"/>
+		<source>
+			<details id="138" section="Trusted Dump" d_date="2007-11-06" r_date="2007-11-06" r_date_info="0" region="Japan" dumper="MatthewCallis" project="No-Intro" originalformat="Default" link1="http://forum.no-intro.org/viewtopic.php?f=7&amp;t=621"/>
+			<serials media_serial1="SHVC-F4"/>
+			<file id="2193" extension="sfc" size="1048576" crc32="caa15e97" md5="a2959ad8c1ff5f2719264ab4c7e40464" sha1="eac14578b3465ffce874119005f9b244e8565a79" sha256="9ab77350f2090ab310e1ad4398f9aa15c63b1aa5af0f59131094715aec3ff207" format="Default"/>
+		</source>
+		<source>
+			<details id="4804" section="Trusted Dump" d_date="2007-11-17" r_date="2007-11-17" r_date_info="0" region="Japan" dumper="Yakushi~Kabuto" project="No-Intro" originalformat="Default" comment1="#1 dump" link1="http://forum.no-intro.org/viewtopic.php?f=7&amp;t=659"/>
+			<serials media_serial1="SHVC-F4"/>
+			<file id="2193" extension="sfc" size="1048576" crc32="caa15e97" md5="a2959ad8c1ff5f2719264ab4c7e40464" sha1="eac14578b3465ffce874119005f9b244e8565a79" sha256="9ab77350f2090ab310e1ad4398f9aa15c63b1aa5af0f59131094715aec3ff207" format="Default"/>
+		</source>
+		<source>
+			<details id="5893" section="Trusted Dump" d_date="2007-11-17" r_date="2007-11-17" r_date_info="0" region="Japan" dumper="Yakushi~Kabuto" project="No-Intro" originalformat="Default" comment1="#2 dump" link1="http://forum.no-intro.org/viewtopic.php?f=7&amp;t=659"/>
+			<serials media_serial1="SHVC-F4"/>
+			<file id="2193" extension="sfc" size="1048576" crc32="caa15e97" md5="a2959ad8c1ff5f2719264ab4c7e40464" sha1="eac14578b3465ffce874119005f9b244e8565a79" sha256="9ab77350f2090ab310e1ad4398f9aa15c63b1aa5af0f59131094715aec3ff207" format="Default"/>
+		</source>
+		<source>
+			<details id="5894" section="Trusted Dump" d_date="2007-11-17" r_date="2007-11-17" r_date_info="0" region="Japan" dumper="Yakushi~Kabuto" project="No-Intro" originalformat="Default" comment1="#3 dump" link1="http://forum.no-intro.org/viewtopic.php?f=7&amp;t=659"/>
+			<serials media_serial1="SHVC-F4"/>
+			<file id="2193" extension="sfc" size="1048576" crc32="caa15e97" md5="a2959ad8c1ff5f2719264ab4c7e40464" sha1="eac14578b3465ffce874119005f9b244e8565a79" sha256="9ab77350f2090ab310e1ad4398f9aa15c63b1aa5af0f59131094715aec3ff207" format="Default"/>
+		</source>
+		<source>
+			<details id="389" section="Trusted Dump" d_date="2011-12-14" r_date="2011-12-14" r_date_info="0" region="Japan" dumper="badinsults" project="No-Intro" originalformat="Default" tool="Retrode"/>
+			<serials media_serial1="SHVC-F4" romchip_serial1="SHVC-F4-1"/>
+			<file id="2193" extension="sfc" size="1048576" crc32="caa15e97" md5="a2959ad8c1ff5f2719264ab4c7e40464" sha1="eac14578b3465ffce874119005f9b244e8565a79" sha256="9ab77350f2090ab310e1ad4398f9aa15c63b1aa5af0f59131094715aec3ff207" format="Default"/>
+		</source>
+		<release>
+			<details id="444" dirname="Final_Fantasy_IV_JAP_SNES-iND" nfoname="?missing" nfosize="0" nfocrc="00000000" archivename="FFANTSY4" originalformat="Default" date="1992-06-30" group="Independent" region="Unknown" origin="Scene"/>
+			<serials/>
+			<file id="2193" extension="sfc" size="1048576" crc32="caa15e97" md5="a2959ad8c1ff5f2719264ab4c7e40464" sha1="eac14578b3465ffce874119005f9b244e8565a79" sha256="9ab77350f2090ab310e1ad4398f9aa15c63b1aa5af0f59131094715aec3ff207" format="Default"/>
+		</release>
+	</game>
+	<game name="Final Fantasy IV - Easy Type (Japan)">
+		<archive number="0800" clone="P" regparent="(JPN PARENT)" name="Final Fantasy IV - Easy Type" name_alt="ファイナルファンタジーIV イージータイプ" region="Japan" languages="Ja" langchecked="yes" categories="Games"/>
+		<source>
+			<details id="5902" section="Trusted Dump" d_date="2007-11-17" r_date="2007-11-17" r_date_info="0" region="Japan" dumper="Yakushi~Kabuto" project="No-Intro" originalformat="Default" link1="http://forum.no-intro.org/viewtopic.php?f=7&amp;t=659"/>
+			<serials media_serial1="SHVC-FE"/>
+			<file id="1810" extension="sfc" size="1048576" crc32="6cda700c" md5="87ad91e3000895ba53956b3bd021717d" sha1="a2d04c5f3948ca930d2c0bc4e6f34d62f06a9fa5" sha256="0e7ef033b982f961ee087ab1c347dd0b359767cd38a59cd4722c72b11138006e" format="Default"/>
+		</source>
+		<source>
+			<details id="7975" section="Trusted Dump" d_date="2019-04-16" r_date="2019-04-16" r_date_info="0" region="Japan" dumper="wherewilf" project="No-Intro" originalformat="Default" tool="Sanni Cart Reader" link1="http://forum.no-intro.org/viewtopic.php?f=7&amp;t=3465"/>
+			<serials media_serial1="SHVC-FE" pcb_serial="SHVC-1A3B-12" romchip_serial1="SHVC-FE-0 (9139)"/>
+			<file id="1810" extension="sfc" size="1048576" crc32="6cda700c" md5="87ad91e3000895ba53956b3bd021717d" sha1="a2d04c5f3948ca930d2c0bc4e6f34d62f06a9fa5" sha256="0e7ef033b982f961ee087ab1c347dd0b359767cd38a59cd4722c72b11138006e" format="Default"/>
+		</source>
+		<release>
+			<details id="443" dirname="Final_Fantasy_IV_Easy_Type_JAP_SNES-iND" nfoname="?missing" nfosize="0" nfocrc="00000000" archivename="FFANT4ET" originalformat="Default" date="1992-06-30" group="Independent" region="Unknown" origin="Scene"/>
+			<serials/>
+			<file id="1810" extension="sfc" size="1048576" crc32="6cda700c" md5="87ad91e3000895ba53956b3bd021717d" sha1="a2d04c5f3948ca930d2c0bc4e6f34d62f06a9fa5" sha256="0e7ef033b982f961ee087ab1c347dd0b359767cd38a59cd4722c72b11138006e" format="Default"/>
+		</release>
+	</game>
+	<game name="Final Fantasy USA - Mystic Quest (Japan)">
+		<archive number="0801" clone="1719" regparent="(JPN PARENT)" name="Final Fantasy USA - Mystic Quest" name_alt="ファイナルファンタジーUSA ミスティッククエスト" region="Japan" languages="Ja" langchecked="yes" categories="Games"/>
+		<source>
+			<details id="6044" section="Trusted Dump" d_date="2008-02-20" r_date="2008-02-20" r_date_info="0" region="Japan" dumper="Yakushi~Kabuto" project="No-Intro" originalformat="Default" link1="http://forum.no-intro.org/viewtopic.php?f=7&amp;t=659"/>
+			<serials media_serial1="SHVC-MQ"/>
+			<file id="1092" extension="sfc" size="524288" crc32="1da17f0c" md5="5164060bd3350d7a6325ec8ae80bba54" sha1="ffc05a65ef43fa5c56c9930af1af527509c1ae05" sha256="0460ef66212da9164155ad2a31180dd2bd962c1d3997995af0d18f6a129d3d55" format="Default"/>
+		</source>
+		<source>
+			<details id="7976" section="Trusted Dump" d_date="2019-04-16" r_date="2019-04-16" r_date_info="0" region="Japan" dumper="wherewilf" project="No-Intro" originalformat="Default" tool="Sanni Cart Reader" link1="http://forum.no-intro.org/viewtopic.php?f=7&amp;t=3465"/>
+			<serials media_serial1="SHVC-MQ" pcb_serial="SHVC-1A3M-10" romchip_serial1="SHVC-MQ-0 (93xx)"/>
+			<file id="1092" extension="sfc" size="524288" crc32="1da17f0c" md5="5164060bd3350d7a6325ec8ae80bba54" sha1="ffc05a65ef43fa5c56c9930af1af527509c1ae05" sha256="0460ef66212da9164155ad2a31180dd2bd962c1d3997995af0d18f6a129d3d55" format="Default"/>
+		</source>
+		<release>
+			<details id="447" dirname="Mystic_Quest_JAP_SNES-iND" nfoname="?missing" nfosize="0" nfocrc="00000000" archivename="MYSQUEST" originalformat="Default" date="1994-01-08" group="Independent" region="Unknown" origin="Scene"/>
+			<serials/>
+			<file id="1092" extension="sfc" size="524288" crc32="1da17f0c" md5="5164060bd3350d7a6325ec8ae80bba54" sha1="ffc05a65ef43fa5c56c9930af1af527509c1ae05" sha256="0460ef66212da9164155ad2a31180dd2bd962c1d3997995af0d18f6a129d3d55" format="Default"/>
+		</release>
+	</game>
+	<game name="Final Fantasy V (Japan)">
+		<archive number="0802" clone="P" regparent="(JPN PARENT)" name="Final Fantasy V" name_alt="ファイナルファンタジーV" region="Japan" languages="Ja" langchecked="yes" categories="Games"/>
+		<source>
+			<details id="4805" section="Trusted Dump" d_date="2007-11-17" r_date="2007-11-17" r_date_info="0" region="Japan" dumper="Yakushi~Kabuto" project="No-Intro" originalformat="Default" comment1="#1 dump" link1="http://forum.no-intro.org/viewtopic.php?f=7&amp;t=659"/>
+			<serials media_serial1="SHVC-F5"/>
+			<file id="2903" extension="sfc" size="2097152" crc32="c1bc267d" md5="d69b2115e17d1cf2cb3590d3f75febb9" sha1="e937b54fff99838e2e853697e4f559359aa91fd6" sha256="c6858d5c02894a6cc71f4dd452c7f288b319d1952ca56fdb185b4bf5e26244a2" format="Default"/>
+		</source>
+		<source>
+			<details id="5895" section="Trusted Dump" d_date="2007-11-17" r_date="2007-11-17" r_date_info="0" region="Japan" dumper="Yakushi~Kabuto" project="No-Intro" originalformat="Default" comment1="#2 dump" link1="http://forum.no-intro.org/viewtopic.php?f=7&amp;t=659"/>
+			<serials media_serial1="SHVC-F5"/>
+			<file id="2903" extension="sfc" size="2097152" crc32="c1bc267d" md5="d69b2115e17d1cf2cb3590d3f75febb9" sha1="e937b54fff99838e2e853697e4f559359aa91fd6" sha256="c6858d5c02894a6cc71f4dd452c7f288b319d1952ca56fdb185b4bf5e26244a2" format="Default"/>
+		</source>
+		<source>
+			<details id="5896" section="Trusted Dump" d_date="2007-11-17" r_date="2007-11-17" r_date_info="0" region="Japan" dumper="Yakushi~Kabuto" project="No-Intro" originalformat="Default" comment1="#3 dump" link1="http://forum.no-intro.org/viewtopic.php?f=7&amp;t=659"/>
+			<serials media_serial1="SHVC-F5"/>
+			<file id="2903" extension="sfc" size="2097152" crc32="c1bc267d" md5="d69b2115e17d1cf2cb3590d3f75febb9" sha1="e937b54fff99838e2e853697e4f559359aa91fd6" sha256="c6858d5c02894a6cc71f4dd452c7f288b319d1952ca56fdb185b4bf5e26244a2" format="Default"/>
+		</source>
+		<source>
+			<details id="4919" section="Trusted Dump" d_date="2008-05-26" r_date="2008-05-26" r_date_info="0" region="Japan" dumper="hydr0x" project="No-Intro" originalformat="Default" link1="http://forum.no-intro.org/viewtopic.php?f=7&amp;t=30"/>
+			<serials media_serial1="SHVC-F5"/>
+			<file id="2903" extension="sfc" size="2097152" crc32="c1bc267d" md5="d69b2115e17d1cf2cb3590d3f75febb9" sha1="e937b54fff99838e2e853697e4f559359aa91fd6" sha256="c6858d5c02894a6cc71f4dd452c7f288b319d1952ca56fdb185b4bf5e26244a2" format="Default"/>
+		</source>
+		<source>
+			<details id="77" section="Trusted Dump" d_date="2011-11-20" r_date="2011-11-20" r_date_info="0" region="Japan" dumper="MatthewCallis" project="No-Intro" originalformat="Default"/>
+			<serials media_serial1="SHVC-F5"/>
+			<file id="2903" extension="sfc" size="2097152" crc32="c1bc267d" md5="d69b2115e17d1cf2cb3590d3f75febb9" sha1="e937b54fff99838e2e853697e4f559359aa91fd6" sha256="c6858d5c02894a6cc71f4dd452c7f288b319d1952ca56fdb185b4bf5e26244a2" format="Default"/>
+		</source>
+		<source>
+			<details id="175" section="Trusted Dump" d_date="2011-11-21" r_date="2011-11-21" r_date_info="0" region="Japan" dumper="MatthewCallis" project="No-Intro" originalformat="Default"/>
+			<serials media_serial1="SHVC-F5"/>
+			<file id="2903" extension="sfc" size="2097152" crc32="c1bc267d" md5="d69b2115e17d1cf2cb3590d3f75febb9" sha1="e937b54fff99838e2e853697e4f559359aa91fd6" sha256="c6858d5c02894a6cc71f4dd452c7f288b319d1952ca56fdb185b4bf5e26244a2" format="Default"/>
+		</source>
+		<source>
+			<details id="390" section="Trusted Dump" d_date="2011-12-14" r_date="2011-12-14" r_date_info="0" region="Japan" dumper="badinsults" project="!unknown" originalformat="Default" tool="Retrode"/>
+			<serials media_serial1="SHVC-F5" romchip_serial1="SHVC-F5-0"/>
+			<file id="2903" extension="sfc" size="2097152" crc32="c1bc267d" md5="d69b2115e17d1cf2cb3590d3f75febb9" sha1="e937b54fff99838e2e853697e4f559359aa91fd6" sha256="c6858d5c02894a6cc71f4dd452c7f288b319d1952ca56fdb185b4bf5e26244a2" format="Default"/>
+		</source>
+		<source>
+			<details id="2237" section="Trusted Dump" d_date="2014-02-02" r_date="2014-02-02" r_date_info="0" region="Japan" dumper="KingMike" project="No-Intro" originalformat="Default" tool="Retrode 2" link1="https://forum.no-intro.org/viewtopic.php?p=15553#p15553" link2="https://forum.no-intro.org/viewtopic.php?p=25706#p25706"/>
+			<serials media_serial1="SHVC-F5" pcb_serial="SHVC-1J3B-01" romchip_serial1="SHVC-F5-0 (9247)" mediastamp="19"/>
+			<file id="2903" extension="sfc" size="2097152" crc32="c1bc267d" md5="d69b2115e17d1cf2cb3590d3f75febb9" sha1="e937b54fff99838e2e853697e4f559359aa91fd6" sha256="c6858d5c02894a6cc71f4dd452c7f288b319d1952ca56fdb185b4bf5e26244a2" format="Default"/>
+		</source>
+		<source>
+			<details id="6652" section="Trusted Dump" d_date="2018-11-20" r_date="2018-11-20" r_date_info="0" region="Japan" dumper="dreimer" project="No-Intro" originalformat="Default" tool="Super NT Jailbreak" link1="http://forum.no-intro.org/viewtopic.php?f=7&amp;t=3051"/>
+			<serials media_serial1="SHVC-F5" pcb_serial="SHVC-2J3B-01" romchip_serial1="SHVC-F5-0 P0 (9243)" romchip_serial2="SHVC-F5-0 P1 (9242)"/>
+			<file id="2903" extension="sfc" size="2097152" crc32="c1bc267d" md5="d69b2115e17d1cf2cb3590d3f75febb9" sha1="e937b54fff99838e2e853697e4f559359aa91fd6" sha256="c6858d5c02894a6cc71f4dd452c7f288b319d1952ca56fdb185b4bf5e26244a2" format="Default"/>
+		</source>
+		<source>
+			<details id="8014" section="Trusted Dump" d_date="2019-07-30" r_date="2019-07-30" r_date_info="0" region="Japan" dumper="Hubz" project="Gaming Alexandria" originalformat="Default" link2="http://forum.no-intro.org/viewtopic.php?f=6&amp;t=3533"/>
+			<serials media_serial1="SHVC-F5" pcb_serial="SHVC-2J3B-01" romchip_serial1="SHVC-F5-0 P0 (92xx)" romchip_serial2="SHVC-F5-0 P1 (92xx)"/>
+			<file id="2903" extension="sfc" size="2097152" crc32="c1bc267d" md5="d69b2115e17d1cf2cb3590d3f75febb9" sha1="e937b54fff99838e2e853697e4f559359aa91fd6" sha256="c6858d5c02894a6cc71f4dd452c7f288b319d1952ca56fdb185b4bf5e26244a2" format="Default"/>
+		</source>
+		<source>
+			<details id="10551" section="Trusted Dump" d_date="2023-03-28" region="Japan" dumper="psykopat" project="No-Intro" originalformat="Default" tool="OSCR hw5 v12.4" link1="https://forum.no-intro.org/viewtopic.php?p=32950#p32950"/>
+			<serials media_serial1="SHVC-F5" pcb_serial="SHVC-2J3B-01" romchip_serial1="SHVC-F5-0 P0 (9244)" romchip_serial2="SHVC-F5-0 P1 (9244)"/>
+			<file id="2903" extension="sfc" size="2097152" crc32="c1bc267d" md5="d69b2115e17d1cf2cb3590d3f75febb9" sha1="e937b54fff99838e2e853697e4f559359aa91fd6" sha256="c6858d5c02894a6cc71f4dd452c7f288b319d1952ca56fdb185b4bf5e26244a2" format="Default"/>
+		</source>
+		<release>
+			<details id="450" dirname="Final_Fantasy_V_JAP_SNES-MAGICAL" nfoname="MAGICAL" nfosize="1262" nfocrc="0e7b0352" archivename="M-FF5" originalformat="Default" date="1993-01-08" group="Magical" region="Unknown" origin="Scene"/>
+			<serials/>
+			<file id="2903" extension="sfc" size="2097152" crc32="c1bc267d" md5="d69b2115e17d1cf2cb3590d3f75febb9" sha1="e937b54fff99838e2e853697e4f559359aa91fd6" sha256="c6858d5c02894a6cc71f4dd452c7f288b319d1952ca56fdb185b4bf5e26244a2" format="Default"/>
+		</release>
+	</game>
+	<game name="Final Fantasy VI (Japan)">
+		<archive number="0803" clone="0797" regparent="(JPN PARENT)" name="Final Fantasy VI" name_alt="ファイナルファンタジーVI" region="Japan" languages="Ja" langchecked="yes" categories="Games"/>
+		<source>
+			<details id="4806" section="Trusted Dump" d_date="2007-11-17" r_date="2007-11-17" r_date_info="0" region="Japan" dumper="Yakushi~Kabuto" project="No-Intro" originalformat="Default" comment1="#1 dump" link1="http://forum.no-intro.org/viewtopic.php?f=7&amp;t=659"/>
+			<serials media_serial1="SHVC-F6"/>
+			<file id="2046" extension="sfc" size="3145728" crc32="45ef5ac8" md5="97bf78e916b80f47cf35edf502be34dc" sha1="1c6a6dd90d3463f4532202199885a2c0e9a485f6" sha256="7187333502021addc80ce27d5b0b4316dcac9318871e1c3ed5ed474b10177b65" format="Default"/>
+		</source>
+		<source>
+			<details id="5897" section="Trusted Dump" d_date="2007-11-17" r_date="2007-11-17" r_date_info="0" region="Japan" dumper="Yakushi~Kabuto" project="No-Intro" originalformat="Default" comment1="#2 dump" link1="http://forum.no-intro.org/viewtopic.php?f=7&amp;t=659"/>
+			<serials media_serial1="SHVC-F6"/>
+			<file id="2046" extension="sfc" size="3145728" crc32="45ef5ac8" md5="97bf78e916b80f47cf35edf502be34dc" sha1="1c6a6dd90d3463f4532202199885a2c0e9a485f6" sha256="7187333502021addc80ce27d5b0b4316dcac9318871e1c3ed5ed474b10177b65" format="Default"/>
+		</source>
+		<source>
+			<details id="5898" section="Trusted Dump" d_date="2007-11-17" r_date="2007-11-17" r_date_info="0" region="Japan" dumper="Yakushi~Kabuto" project="No-Intro" originalformat="Default" comment1="#3 dump" link1="http://forum.no-intro.org/viewtopic.php?f=7&amp;t=659"/>
+			<serials media_serial1="SHVC-F6"/>
+			<file id="2046" extension="sfc" size="3145728" crc32="45ef5ac8" md5="97bf78e916b80f47cf35edf502be34dc" sha1="1c6a6dd90d3463f4532202199885a2c0e9a485f6" sha256="7187333502021addc80ce27d5b0b4316dcac9318871e1c3ed5ed474b10177b65" format="Default"/>
+		</source>
+		<source>
+			<details id="167" section="Trusted Dump" d_date="2009-07-05" r_date="2009-07-05" r_date_info="0" region="Japan" dumper="MatthewCallis" project="No-Intro" originalformat="Default" link1="http://forum.no-intro.org/viewtopic.php?f=7&amp;t=1499"/>
+			<serials media_serial1="SHVC-F6"/>
+			<file id="2046" extension="sfc" size="3145728" crc32="45ef5ac8" md5="97bf78e916b80f47cf35edf502be34dc" sha1="1c6a6dd90d3463f4532202199885a2c0e9a485f6" sha256="7187333502021addc80ce27d5b0b4316dcac9318871e1c3ed5ed474b10177b65" format="Default"/>
+		</source>
+		<source>
+			<details id="139" section="Trusted Dump" d_date="2011-11-20" r_date="2011-11-20" r_date_info="0" region="Japan" dumper="MatthewCallis" project="No-Intro" originalformat="Default"/>
+			<serials media_serial1="SHVC-F6"/>
+			<file id="2046" extension="sfc" size="3145728" crc32="45ef5ac8" md5="97bf78e916b80f47cf35edf502be34dc" sha1="1c6a6dd90d3463f4532202199885a2c0e9a485f6" sha256="7187333502021addc80ce27d5b0b4316dcac9318871e1c3ed5ed474b10177b65" format="Default"/>
+		</source>
+		<source>
+			<details id="6653" section="Trusted Dump" d_date="2018-11-20" r_date="2018-11-20" r_date_info="0" region="Japan" dumper="!unknown" project="No-Intro" originalformat="Default"/>
+			<serials media_serial1="SHVC-F6" pcb_serial="SHVC-BJ3M-10" romchip_serial1="SHVC-F6-0 P0 (9409)" romchip_serial2="SHVC-F6-0 P3 (9410)"/>
+			<file id="2046" extension="sfc" size="3145728" crc32="45ef5ac8" md5="97bf78e916b80f47cf35edf502be34dc" sha1="1c6a6dd90d3463f4532202199885a2c0e9a485f6" sha256="7187333502021addc80ce27d5b0b4316dcac9318871e1c3ed5ed474b10177b65" format="Default"/>
+		</source>
+		<source>
+			<details id="8015" section="Trusted Dump" d_date="2019-08-22" r_date="2019-08-22" r_date_info="0" region="Japan" dumper="Hubz" project="Gaming Alexandria" originalformat="Default" link2="http://forum.no-intro.org/viewtopic.php?f=6&amp;t=3533"/>
+			<serials media_serial1="SHVC-F6" pcb_serial="SHVC-BJ3M-10" romchip_serial1="SHVC-F6-0 P0 (9410)" romchip_serial2="SHVC-F6-0 P3 (94xx)"/>
+			<file id="2046" extension="sfc" size="3145728" crc32="45ef5ac8" md5="97bf78e916b80f47cf35edf502be34dc" sha1="1c6a6dd90d3463f4532202199885a2c0e9a485f6" sha256="7187333502021addc80ce27d5b0b4316dcac9318871e1c3ed5ed474b10177b65" format="Default"/>
+		</source>
+		<source>
+			<details id="10900" section="Trusted Dump" d_date="2024-10-30" region="Japan" dumper="Nanakix" project="No-Intro" originalformat="Default" tool="OSCR HW3 V14.3" link1="https://forum.no-intro.org/viewtopic.php?p=37898#p37898"/>
+			<serials media_serial1="SHVC-F6" pcb_serial="SHVC-BJ3M-10" romchip_serial1="SHVC-F6-0 P0 (9414)" romchip_serial2="SHVC-F6-0 P3 (9410)"/>
+			<file id="2046" extension="sfc" size="3145728" crc32="45ef5ac8" md5="97bf78e916b80f47cf35edf502be34dc" sha1="1c6a6dd90d3463f4532202199885a2c0e9a485f6" sha256="7187333502021addc80ce27d5b0b4316dcac9318871e1c3ed5ed474b10177b65" format="Default"/>
+		</source>
+		<release>
+			<details id="1932" dirname="Final_Fantasy_6_JAP_SNES-MYSTIC" nfoname="mst-final" nfosize="1692" nfocrc="172c9ed3" archivename="MST-FIN6" originalformat="Default" date="1994-03-31" group="Mystic" region="Unknown" origin="Scene"/>
+			<serials/>
+			<file id="2046" extension="sfc" size="3145728" crc32="45ef5ac8" md5="97bf78e916b80f47cf35edf502be34dc" sha1="1c6a6dd90d3463f4532202199885a2c0e9a485f6" sha256="7187333502021addc80ce27d5b0b4316dcac9318871e1c3ed5ed474b10177b65" format="Default"/>
+		</release>
+	</game>
