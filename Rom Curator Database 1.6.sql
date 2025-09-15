@@ -135,7 +135,8 @@ CREATE TABLE IF NOT EXISTS metadata_source (
     name TEXT NOT NULL UNIQUE,
     -- Path to the python script that can parse this source's files.
     -- e.g., 'scripts/seeders/1_import_dat_files.py'
-    importer_script TEXT
+    importer_script TEXT,
+	schema_file_path TEXT
 );
 
 -- This table is the single source of truth for all file import events.

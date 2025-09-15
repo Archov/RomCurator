@@ -49,9 +49,9 @@ This section models a specific, shippable product and precisely links it to its 
 
 ### **Section 3: Import & Validation Model**
 
-These tables provide a unified, auditable log for all import activities and a staging area for DAT file contents.
+These tables provide a unified, auditable log for all import activiti es and a staging area for DAT file contents.
 
-* **`metadata_source`**: A simple lookup for data providers, also provides the path to where their import script is located (e.g., "MobyGames", "No-Intro").  
+* **`metadata_source`**: A simple lookup for data providers, also provides the path to where their import script is located and the location of a schema file to validate files against.  
 * **`import_log`**: A master log for every import job. It records the source file's name and hash, providing a single source of truth for all ingestions, an "undo" button for bad imports, and a mechanism to prevent processing the same file twice.  
 * **`dat_entry`**: Stores a single, raw entry from a DAT file import, including the release title, SHA1 hash, and any parent/clone information. Each entry is linked directly to the `import_log` record for the DAT file it came from.
 
