@@ -8,8 +8,8 @@ from PyQt5.QtWidgets import (
     QPushButton, QFileDialog, QListWidget, QMessageBox, QInputDialog,
     QLabel, QLineEdit, QDialog, QDialogButtonBox, QFormLayout, QAbstractItemView
 )
-# Import the new theme library
-import pyqtdarktheme
+# Import the new, final theme library
+import qdarkstyle
 
 
 # --- Configuration Loader ---
@@ -364,8 +364,8 @@ class ImporterApp(QWidget):
 def main():
     app = QApplication(sys.argv)
     
-    # Apply the pyqtdarktheme. This is much simpler.
-    app.setStyleSheet(pyqtdarktheme.load_stylesheet())
+    # Apply the qdarkstyle theme. This is simple and reliable.
+    app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     
     ex = ImporterApp()
 
