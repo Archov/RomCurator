@@ -80,7 +80,7 @@ class DatabaseManager:
         conn = self.get_connection()
         if not conn: return []
         cursor = conn.cursor()
-        cursor.execute("SELECT source_id, name, importer_script FROM metadata_source ORDER BY name")
+        cursor.execute("SELECT source_id, name, importer_script, schema_file_path FROM metadata_source ORDER BY name")
         sources = cursor.fetchall()
         conn.close()
         return sources
@@ -95,13 +95,14 @@ class DatabaseManager:
         conn.close()
         return [f[0] for f in files]
 
-    def add_metadata_source(self, name, script_path):
+    def add_metadata_source(self, name, script_path, schema_path=None):
         """Adds a new metadata source."""
         conn = self.get_connection()
         if not conn: return False
         cursor = conn.cursor()
         try:
-            cursor.execute("INSERT INTO metadata_source (name, importer_script) VALUES (?, ?)", (name, script_path))
+            cursor.execute("INSERT INTO metadata_source (name, importer_script, schema_file_path) VALUES (?, ?, ?)", 
+                          (name, script_path, schema_path))
             conn.commit()
         except sqlite3.IntegrityError:
             return False
@@ -109,12 +110,13 @@ class DatabaseManager:
             conn.close()
         return True
 
-    def update_metadata_source(self, source_id, name, script_path):
+    def update_metadata_source(self, source_id, name, script_path, schema_path=None):
         """Updates an existing metadata source."""
         conn = self.get_connection()
         if not conn: return
         cursor = conn.cursor()
-        cursor.execute("UPDATE metadata_source SET name = ?, importer_script = ? WHERE source_id = ?", (name, script_path, source_id))
+        cursor.execute("UPDATE metadata_source SET name = ?, importer_script = ?, schema_file_path = ? WHERE source_id = ?", 
+                      (name, script_path, schema_path, source_id))
         conn.commit()
         conn.close()
 
@@ -141,7 +143,7 @@ class SourceManagerDialog(QDialog):
     def __init__(self, db_manager, source_data=None, parent=None):
         super().__init__(parent)
         self.db_manager = db_manager
-        self.source_data = source_data # (source_id, name, script_path)
+        self.source_data = source_data # (source_id, name, script_path, schema_path)
 
         self.setWindowTitle("Manage Metadata Source")
         
@@ -149,9 +151,13 @@ class SourceManagerDialog(QDialog):
         
         self.name_input = QLineEdit(self.source_data[1] if self.source_data else "")
         self.script_path_input = QLineEdit(self.source_data[2] if self.source_data else "")
+        self.schema_path_input = QLineEdit(self.source_data[3] if self.source_data and len(self.source_data) > 3 and self.source_data[3] else "")
         
         script_button = QPushButton("Browse...")
         script_button.clicked.connect(self.browse_for_script)
+        
+        schema_button = QPushButton("Browse...")
+        schema_button.clicked.connect(self.browse_for_schema)
 
         layout.addRow("Source Name:", self.name_input)
         
@@ -159,6 +165,11 @@ class SourceManagerDialog(QDialog):
         script_layout.addWidget(self.script_path_input)
         script_layout.addWidget(script_button)
         layout.addRow("Importer Script:", script_layout)
+        
+        schema_layout = QHBoxLayout()
+        schema_layout.addWidget(self.schema_path_input)
+        schema_layout.addWidget(schema_button)
+        layout.addRow("Schema File (Optional):", schema_layout)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
         buttons.accepted.connect(self.accept)
@@ -175,18 +186,31 @@ class SourceManagerDialog(QDialog):
                 self.script_path_input.setText(str(relative_path).replace('\\', '/'))
             except ValueError:
                 self.script_path_input.setText(file_path)
+    
+    def browse_for_schema(self):
+        initial_dir = str(Path.cwd())
+        file_path, _ = QFileDialog.getOpenFileName(self, "Select Schema File", initial_dir, "All Files (*);;JSON Files (*.json);;XSD Files (*.xsd);;XML Files (*.xml)")
+        if file_path:
+            try:
+                base_path = Path.cwd()
+                relative_path = Path(file_path).relative_to(base_path)
+                self.schema_path_input.setText(str(relative_path).replace('\\', '/'))
+            except ValueError:
+                self.schema_path_input.setText(file_path)
 
     def accept(self):
         name = self.name_input.text().strip()
         script = self.script_path_input.text().strip()
+        schema = self.schema_path_input.text().strip() or None
+        
         if not name or not script:
             QMessageBox.warning(self, "Input Error", "Both name and script path are required.")
             return
 
         if self.source_data: # Editing existing
-            self.db_manager.update_metadata_source(self.source_data[0], name, script)
+            self.db_manager.update_metadata_source(self.source_data[0], name, script, schema)
         else: # Adding new
-            if not self.db_manager.add_metadata_source(name, script):
+            if not self.db_manager.add_metadata_source(name, script, schema):
                 QMessageBox.critical(self, "Database Error", f"A source with the name '{name}' already exists.")
                 return
 
@@ -249,7 +273,8 @@ class ImporterApp(QWidget):
         if not sources:
             self.source_combo.addItem("No sources configured. Please add one.", None)
         else:
-            for source_id, name, script_path in sources:
+            for source_row in sources:
+                source_id, name, script_path = source_row[:3]  # Handle both 3 and 4 column results
                 self.source_combo.addItem(name, (source_id, script_path))
 
     def on_source_changed(self, index):
@@ -269,7 +294,20 @@ class ImporterApp(QWidget):
             self.imported_list_widget.addItems(files)
 
     def select_files(self):
-        files, _ = QFileDialog.getOpenFileNames(self, "Select Source Data Files", "", "All Files (*)")
+        # Determine file filter based on schema file extension
+        file_filter = "All Files (*)"
+        if self.current_source_id:
+            sources = self.db.get_metadata_sources()
+            for source_row in sources:
+                if source_row[0] == self.current_source_id and len(source_row) > 3 and source_row[3]:
+                    schema_path = source_row[3].lower()
+                    if schema_path.endswith('.json'):
+                        file_filter = "JSON Files (*.json);;All Files (*)"
+                    elif schema_path.endswith('.xsd'):
+                        file_filter = "DAT Files (*.dat);;XML Files (*.xml);;All Files (*)"
+                    break
+        
+        files, _ = QFileDialog.getOpenFileNames(self, "Select Source Data Files", "", file_filter)
         if files:
             self.selected_files = files
             self.file_list_widget.clear()
@@ -311,7 +349,8 @@ class ImporterApp(QWidget):
             QMessageBox.information(self, "Info", "Please select a source to delete.")
             return
 
-        source_id, name, _ = sources[index]
+        source_row = sources[index]
+        source_id, name = source_row[0], source_row[1]
         reply = QMessageBox.question(self, "Confirm Deletion",
                                      f"Are you sure you want to delete the source '{name}'?\nThis cannot be undone.",
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)

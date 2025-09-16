@@ -1,0 +1,22 @@
+# RomCurator Dependencies
+
+# Core GUI framework
+PyQt5>=5.15.0
+
+# Dark theme for GUI
+qdarkstyle>=3.0.0
+
+# JSON schema validation for metadata importers
+jsonschema>=4.0.0
+
+# XML processing and XSD validation for DAT file importers
+lxml>=4.6.0
+
+# Standard library dependencies (included with Python)
+# - sqlite3
+# - json
+# - hashlib
+# - pathlib
+# - datetime
+# - argparse
+# - subprocess

@@ -1,0 +1,68 @@
+-- Debug queries to understand clone data structure
+-- Run these to see what's actually in the dat_entry table
+
+-- 1. Check basic clone statistics
+SELECT 
+    COUNT(*) as total_entries,
+    COUNT(CASE WHEN is_clone = 1 THEN 1 END) as clone_entries,
+    COUNT(CASE WHEN is_clone = 0 THEN 1 END) as parent_entries,
+    COUNT(CASE WHEN clone_of IS NOT NULL AND clone_of != '' THEN 1 END) as has_clone_of_value
+FROM dat_entry;
+
+-- 2. Sample clone entries to see the data structure
+SELECT 
+    dat_entry_id,
+    release_title,
+    is_clone,
+    clone_of,
+    rom_sha1,
+    platform_id
+FROM dat_entry 
+WHERE is_clone = 1 
+LIMIT 10;
+
+-- 3. Sample parent entries
+SELECT 
+    dat_entry_id,
+    release_title,
+    is_clone,
+    clone_of,
+    rom_sha1,
+    platform_id
+FROM dat_entry 
+WHERE is_clone = 0 
+LIMIT 10;
+
+-- 4. Check if clone_of values match any release_title values
+SELECT 
+    clone.release_title as clone_title,
+    clone.clone_of,
+    COUNT(parent.release_title) as potential_parents
+FROM dat_entry clone
+LEFT JOIN dat_entry parent ON clone.clone_of = parent.release_title 
+    AND clone.platform_id = parent.platform_id
+    AND clone.log_id = parent.log_id
+WHERE clone.is_clone = 1 
+    AND clone.clone_of IS NOT NULL 
+    AND clone.clone_of != ''
+GROUP BY clone.dat_entry_id, clone.release_title, clone.clone_of
+LIMIT 20;
+
+-- 5. Look for pattern differences in clone_of vs release_title
+SELECT DISTINCT
+    clone.clone_of,
+    GROUP_CONCAT(DISTINCT parent.release_title) as potential_matches
+FROM dat_entry clone
+LEFT JOIN dat_entry parent ON clone.platform_id = parent.platform_id
+    AND clone.log_id = parent.log_id
+    AND parent.is_clone = 0
+    AND (
+        parent.release_title = clone.clone_of
+        OR parent.release_title LIKE '%' || clone.clone_of || '%'
+        OR clone.clone_of LIKE '%' || parent.release_title || '%'
+    )
+WHERE clone.is_clone = 1 
+    AND clone.clone_of IS NOT NULL 
+    AND clone.clone_of != ''
+GROUP BY clone.clone_of
+LIMIT 15;
