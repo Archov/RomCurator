@@ -35,7 +35,7 @@ chmod +x seed-scripts/seed_database.sh
 ### Option 3: Manual SQLite Commands
 ```bash
 # Create fresh database with schema
-sqlite3 database/RomCurator.db < "Rom Curator Database 1.7.sql"
+sqlite3 database/RomCurator.db < "Rom Curator Database.sql"
 
 # Apply seed data
 sqlite3 database/RomCurator.db < seed-scripts/run_all_seeds.sql
@@ -81,7 +81,7 @@ The seed scripts preserve:
 - Try running as administrator (Windows) or with sudo (Linux/Mac)
 
 **Schema mismatches**:
-- Ensure you're using the latest "Rom Curator Database 1.7.sql" schema
+- Ensure you're using the latest "Rom Curator Database.sql" schema
 - The seed data was exported from v1.7 schema structures
 
 ## Regenerating Seed Scripts

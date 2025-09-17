@@ -6,7 +6,7 @@
 
 param(
     [string]$DatabasePath = ".\database\RomCurator.db",
-    [string]$SchemaFile = ".\Rom Curator Database 1.7.sql"
+    [string]$SchemaFile = ".\Rom Curator Database.sql"
 )
 
 Write-Host "ROM Curator Database Seeding Script" -ForegroundColor Green

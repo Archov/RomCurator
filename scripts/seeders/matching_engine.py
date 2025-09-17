@@ -109,49 +109,68 @@ class GameMatcher:
         
         atomic_title = atomic_row['canonical_title']
         
-        # Find DAT entries across ALL platforms (not just same platform)
-        # This allows matching games that exist on different platform naming conventions
+        # Get all platforms this atomic game has releases for
         cursor.execute("""
-            SELECT de.dat_entry_id, de.release_title, de.base_title, de.platform_id, p.name as platform_name
-            FROM dat_entry de
-            JOIN platform p ON de.platform_id = p.platform_id
-            WHERE de.base_title IS NOT NULL
-            AND de.base_title != ''
-        """)
+            SELECT DISTINCT gr.platform_id, p.name as platform_name
+            FROM game_release gr
+            JOIN platform p ON gr.platform_id = p.platform_id
+            WHERE gr.atomic_id = ?
+        """, (atomic_id,))
+        platforms = cursor.fetchall()
         
-        dat_entries = cursor.fetchall()
         matches = []
         
-        for dat_row in dat_entries:
-            # Calculate similarity between atomic title and DAT base title
-            base_similarity = self.calculate_similarity(atomic_title, dat_row['base_title'])
+        for platform_row in platforms:
+            platform_id = platform_row['platform_id']
+            platform_name = platform_row['platform_name']
             
-            # Also check similarity with full release title
-            full_similarity = self.calculate_similarity(atomic_title, dat_row['release_title'])
+            # Find DAT entries for this platform AND linked platforms
+            # First get the platform and any linked platforms
+            linked_platform_ids = self.get_linked_platform_ids(platform_id)
             
-            # Use the higher similarity score
-            confidence = max(base_similarity, full_similarity)
+            # Find DAT entries for this platform and linked platforms
+            placeholders = ','.join(['?' for _ in linked_platform_ids])
+            cursor.execute(f"""
+                SELECT de.dat_entry_id, de.release_title, de.base_title, de.platform_id, p.name as platform_name
+                FROM dat_entry de
+                JOIN platform p ON de.platform_id = p.platform_id
+                WHERE de.platform_id IN ({placeholders})
+                AND de.base_title IS NOT NULL
+                AND de.base_title != ''
+            """, linked_platform_ids)
             
-            if confidence >= min_confidence:
-                # Determine match reasons
-                reasons = []
-                if base_similarity >= min_confidence:
-                    reasons.append(f"Base title match ({base_similarity:.2f})")
-                if full_similarity >= min_confidence:
-                    reasons.append(f"Full title match ({full_similarity:.2f})")
+            dat_entries = cursor.fetchall()
+            
+            for dat_row in dat_entries:
+                # Calculate similarity between atomic title and DAT base title
+                base_similarity = self.calculate_similarity(atomic_title, dat_row['base_title'])
                 
-                match = MatchCandidate(
-                    atomic_id=atomic_id,
-                    atomic_title=atomic_title,
-                    dat_entry_id=dat_row['dat_entry_id'],
-                    dat_title=dat_row['release_title'],
-                    base_title=dat_row['base_title'],
-                    platform_id=dat_row['platform_id'],
-                    platform_name=dat_row['platform_name'],
-                    confidence=confidence,
-                    match_reasons=reasons
-                )
-                matches.append(match)
+                # Also check similarity with full release title
+                full_similarity = self.calculate_similarity(atomic_title, dat_row['release_title'])
+                
+                # Use the higher similarity score
+                confidence = max(base_similarity, full_similarity)
+                
+                if confidence >= min_confidence:
+                    # Determine match reasons
+                    reasons = []
+                    if base_similarity >= min_confidence:
+                        reasons.append(f"Base title match ({base_similarity:.2f})")
+                    if full_similarity >= min_confidence:
+                        reasons.append(f"Full title match ({full_similarity:.2f})")
+                    
+                    match = MatchCandidate(
+                        atomic_id=atomic_id,
+                        atomic_title=atomic_title,
+                        dat_entry_id=dat_row['dat_entry_id'],
+                        dat_title=dat_row['release_title'],
+                        base_title=dat_row['base_title'],
+                        platform_id=platform_id,  # Use original platform, not DAT platform
+                        platform_name=platform_name,
+                        confidence=confidence,
+                        match_reasons=reasons
+                    )
+                    matches.append(match)
         
         # Sort by confidence (highest first)
         matches.sort(key=lambda x: x.confidence, reverse=True)
@@ -268,6 +287,98 @@ class GameMatcher:
                 })
         
         return curation_queue
+
+
+    def get_linked_platform_ids(self, platform_id: int) -> List[int]:
+        """Get all platform IDs linked to the given platform (including itself)."""
+        cursor = self.conn.cursor()
+        
+        # Get direct links (both directions)
+        cursor.execute("""
+            SELECT DISTINCT dat_platform_id as linked_id FROM platform_links WHERE atomic_platform_id = ?
+            UNION
+            SELECT DISTINCT atomic_platform_id as linked_id FROM platform_links WHERE dat_platform_id = ?
+            UNION
+            SELECT ? as linked_id  -- Include the platform itself
+        """, (platform_id, platform_id, platform_id))
+        
+        return [row['linked_id'] for row in cursor.fetchall()]
+
+    def create_platform_link(self, atomic_platform_id: int, dat_platform_id: int, confidence: float = 1.0) -> bool:
+        """Create a link between atomic and DAT platforms."""
+        if atomic_platform_id == dat_platform_id:
+            return True  # Same platform, no link needed
+            
+        cursor = self.conn.cursor()
+        try:
+            cursor.execute("""
+                INSERT OR REPLACE INTO platform_links 
+                (atomic_platform_id, dat_platform_id, confidence)
+                VALUES (?, ?, ?)
+            """, (atomic_platform_id, dat_platform_id, confidence))
+            self.conn.commit()
+            return True
+        except Exception as e:
+            print(f"Error creating platform link: {e}")
+            return False
+
+    def auto_link_platforms(self) -> Dict[str, int]:
+        """Automatically link platforms based on name similarity."""
+        cursor = self.conn.cursor()
+        
+        # Get all platforms
+        cursor.execute("SELECT platform_id, name FROM platform ORDER BY name")
+        platforms = cursor.fetchall()
+        
+        stats = {'linked': 0, 'skipped': 0, 'errors': 0}
+        
+        # Platform name mappings for common variations
+        platform_mappings = {
+            'NES': ['Nintendo Entertainment System', 'Nintendo Famicom & Entertainment System'],
+            'SNES': ['Super Nintendo Entertainment System', 'Super Famicom'],
+            'Genesis': ['Sega Genesis', 'Mega Drive'],
+            'Game Boy': ['Nintendo Game Boy'],
+            'Game Boy Color': ['Nintendo Game Boy Color'],
+            'Game Boy Advance': ['Nintendo Game Boy Advance'],
+            'Nintendo 64': ['Nintendo 64'],
+            'PlayStation': ['Sony PlayStation'],
+            'PlayStation 2': ['Sony PlayStation 2'],
+            'PlayStation 3': ['Sony PlayStation 3'],
+            'Xbox': ['Microsoft Xbox'],
+            'Xbox 360': ['Microsoft Xbox 360'],
+            'Arcade': ['Arcade'],
+            'DOS': ['MS-DOS', 'PC DOS'],
+            'Windows': ['Microsoft Windows'],
+            'Mac': ['Apple Macintosh', 'macOS'],
+            'Linux': ['GNU/Linux']
+        }
+        
+        for atomic_platform in platforms:
+            atomic_id = atomic_platform['platform_id']
+            atomic_name = atomic_platform['name']
+            
+            # Check if we have a mapping for this platform
+            if atomic_name in platform_mappings:
+                target_names = platform_mappings[atomic_name]
+                
+                for target_name in target_names:
+                    # Find DAT platform with this name
+                    cursor.execute("""
+                        SELECT platform_id FROM platform WHERE name = ?
+                    """, (target_name,))
+                    dat_platform = cursor.fetchone()
+                    
+                    if dat_platform:
+                        if self.create_platform_link(atomic_id, dat_platform['platform_id']):
+                            stats['linked'] += 1
+                            print(f"Linked: {atomic_name} -> {target_name}")
+                        else:
+                            stats['errors'] += 1
+                    else:
+                        stats['skipped'] += 1
+                        print(f"No DAT platform found for: {target_name}")
+        
+        return stats
 
 
 # Database schema updates needed for linking

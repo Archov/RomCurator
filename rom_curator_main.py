@@ -21,6 +21,7 @@ import qdarkstyle
 # Import our modules
 from enhanced_importer_gui import ImporterApp
 from curation_gui import CurationMainWindow
+from platform_linking_gui import PlatformLinkingDialog
 
 
 class ConfigManager:
@@ -209,6 +210,9 @@ class RomCuratorMainWindow(QMainWindow):
         self.config.ensure_directories()
         self.logging_manager = LoggingManager(self.config)
         
+        # Apply dark theme to main window
+        self.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+        
         # Initialize UI
         self.init_ui()
         
@@ -283,14 +287,19 @@ class RomCuratorMainWindow(QMainWindow):
         db_menu = tools_menu.addMenu('&Database')
         
         setup_action = QAction('&Setup Matching System...', self)
-        setup_action.setStatusTip('Initialize database for metadata-DAT matching')
-        setup_action.triggered.connect(self.setup_matching_system)
         db_menu.addAction(setup_action)
         
         validate_action = QAction('&Validate Matching...', self)
         validate_action.setStatusTip('Run validation tests on the matching system')
         validate_action.triggered.connect(self.validate_matching_system)
         db_menu.addAction(validate_action)
+        
+        db_menu.addSeparator()
+        
+        platform_linking_action = QAction('&Platform Linking...', self)
+        platform_linking_action.setStatusTip('Manage platform links for accurate matching')
+        platform_linking_action.triggered.connect(self.open_platform_linking)
+        db_menu.addAction(platform_linking_action)
         
         # View Menu
         view_menu = menubar.addMenu('&View')
@@ -376,28 +385,49 @@ class RomCuratorMainWindow(QMainWindow):
                 f"Failed to open curation interface:\n{e}"
             )
     
-    def setup_matching_system(self):
-        """Run the matching system setup."""
+    def open_platform_linking(self):
+        """Open the platform linking dialog."""
         try:
-            from setup_matching_system import main as setup_main
+            db_path = self.config.get('database_path')
             
-            # Show progress
-            self.status_bar.showMessage("Setting up matching system...")
-            self.progress_bar.setVisible(True)
-            self.progress_bar.setRange(0, 0)  # Indeterminate progress
+            # Check if database exists
+            if not Path(db_path).exists():
+                QMessageBox.warning(
+                    self, "Database Required",
+                    "Please import some data first using File → Import Data."
+                )
+                return
             
-            # Run setup (this should be converted to not use command line args)
-            # For now, we'll simulate success
-            QTimer.singleShot(1000, self._setup_complete)
+            # Check if platform_links table exists (v1.8+)
+            import sqlite3
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name='platform_links'
+            """)
             
-            logging.info("Matching system setup initiated")
+            if not cursor.fetchone():
+                QMessageBox.warning(
+                    self, "Schema Update Required",
+                    "Platform linking requires database schema v1.8 or later.\n"
+                    "Please run Tools → Database → Setup Matching System first."
+                )
+                conn.close()
+                return
+            
+            conn.close()
+            
+            self.platform_linking_dialog = PlatformLinkingDialog(db_path, self)
+            self.platform_linking_dialog.show()
+            
+            logging.info("Platform linking dialog opened")
             
         except Exception as e:
-            logging.error(f"Failed to setup matching system: {e}")
-            self.progress_bar.setVisible(False)
+            logging.error(f"Failed to open platform linking dialog: {e}")
             QMessageBox.critical(
-                self, "Setup Error",
-                f"Failed to setup matching system:\n{e}"
+                self, "Error",
+                f"Failed to open platform linking dialog:\n{e}"
             )
     
     def _setup_complete(self):

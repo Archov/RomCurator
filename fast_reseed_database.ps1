@@ -14,9 +14,9 @@ if (Test-Path $DatabasePath) {
     Remove-Item $DatabasePath -Force
 }
 
-# Create fresh database with v1.7 schema
-Write-Host "Creating fresh database with v1.7 schema..." -ForegroundColor Cyan
-Get-Content "Rom Curator Database 1.7.sql" | sqlite3 $DatabasePath
+# Create fresh database with current schema
+Write-Host "Creating fresh database with current schema..." -ForegroundColor Cyan
+Get-Content "Rom Curator Database.sql" | sqlite3 $DatabasePath
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "✓ Database created successfully" -ForegroundColor Green
