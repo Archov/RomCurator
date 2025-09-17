@@ -29,7 +29,7 @@ if ($LASTEXITCODE -eq 0) {
 Write-Host "Building consolidated seed script..." -ForegroundColor Cyan
 
 $consolidatedScript = @"
--- Single transaction for all seed data
+# Single transaction for all seed data
 PRAGMA synchronous = OFF;
 PRAGMA journal_mode = MEMORY;
 PRAGMA foreign_keys = OFF;

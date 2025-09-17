@@ -1,0 +1,84 @@
+{
+  "name": "Comprehensive Test Suite",
+  "description": "Test all importers with actual files from the database import_log",
+  "database_path": "database/RomCurator.db",
+  "imports": [
+    {
+      "name": "No-Intro NES Headered",
+      "importer": "nointro",
+      "file_path": "seed-data/No-Intro/Nintendo - Nintendo Entertainment System (Headered) (20250914-033119).dat",
+      "platform_name": "Nintendo Entertainment System"
+    },
+    {
+      "name": "No-Intro NES Headered Aftermarket",
+      "importer": "nointro",
+      "file_path": "seed-data/No-Intro/Nintendo - Nintendo Entertainment System (Headered) (Aftermarket) (20250914-033119).dat",
+      "platform_name": "Nintendo Entertainment System"
+    },
+    {
+      "name": "No-Intro NES Headerless",
+      "importer": "nointro",
+      "file_path": "seed-data/No-Intro/Nintendo - Nintendo Entertainment System (Headerless) (20250914-033119).dat",
+      "platform_name": "Nintendo Entertainment System"
+    },
+    {
+      "name": "No-Intro NES Headerless Aftermarket",
+      "importer": "nointro",
+      "file_path": "seed-data/No-Intro/Nintendo - Nintendo Entertainment System (Headerless) (Aftermarket) (20250914-033119).dat",
+      "platform_name": "Nintendo Entertainment System"
+    },
+    {
+      "name": "No-Intro SNES",
+      "importer": "nointro",
+      "file_path": "seed-data/No-Intro/Nintendo - Super Nintendo Entertainment System (20250903-215730).dat",
+      "platform_name": "Super Nintendo Entertainment System"
+    },
+    {
+      "name": "No-Intro SNES Aftermarket",
+      "importer": "nointro",
+      "file_path": "seed-data/No-Intro/Nintendo - Super Nintendo Entertainment System (Aftermarket) (20250903-215730).dat",
+      "platform_name": "Super Nintendo Entertainment System"
+    },
+    {
+      "name": "TOSEC NES Applications",
+      "importer": "tosec",
+      "file_path": "seed-data/TOSEC/Console/Nintendo/Nintendo Famicom & Entertainment System/Nintendo Famicom & Entertainment System - Applications - [NES] (TOSEC-v2025-01-15_CM).dat",
+      "platform_name": "Nintendo Entertainment System"
+    },
+    {
+      "name": "TOSEC NES Demos",
+      "importer": "tosec",
+      "file_path": "seed-data/TOSEC/Console/Nintendo/Nintendo Famicom & Entertainment System/Nintendo Famicom & Entertainment System - Demos - [NES] (TOSEC-v2025-01-15_CM).dat",
+      "platform_name": "Nintendo Entertainment System"
+    },
+    {
+      "name": "TOSEC NES Games",
+      "importer": "tosec",
+      "file_path": "seed-data/TOSEC/Console/Nintendo/Nintendo Famicom & Entertainment System/Nintendo Famicom & Entertainment System - Games - [NES] (TOSEC-v2025-01-15_CM).dat",
+      "platform_name": "Nintendo Entertainment System"
+    },
+    {
+      "name": "TOSEC NES Homebrew",
+      "importer": "tosec",
+      "file_path": "seed-data/TOSEC/Console/Nintendo/Nintendo Famicom & Entertainment System/Nintendo Famicom & Entertainment System - Homebrew - Games (TOSEC-v2025-01-15_CM).dat",
+      "platform_name": "Nintendo Entertainment System"
+    },
+    {
+      "name": "MobyGames NES",
+      "importer": "mobygames",
+      "file_path": "seed-data/Moby/Console/MobyGames-NES-Catalog.json",
+      "platform_name": "Nintendo Entertainment System"
+    },
+    {
+      "name": "MobyGames SNES",
+      "importer": "mobygames",
+      "file_path": "seed-data/Moby/Console/MobyGames-SNES-Catalog.json",
+      "platform_name": "Super Nintendo Entertainment System"
+    }
+  ],
+  "options": {
+    "clear_existing_data": false,
+    "verbose_logging": true,
+    "dry_run": false
+  }
+}

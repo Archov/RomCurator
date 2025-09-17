@@ -5,8 +5,8 @@
 # Usage: .\seed-scripts\seed_database.ps1
 
 param(
-    [string]$DatabasePath = ".\database\RomCurator.db",
-    [string]$SchemaFile = ".\Rom Curator Database.sql"
+    [string]$DatabasePath = "..\database\RomCurator.db",
+    [string]$SchemaFile = "..\Rom Curator Database.sql"
 )
 
 Write-Host "ROM Curator Database Seeding Script" -ForegroundColor Green
@@ -19,7 +19,7 @@ if (-not (Test-Path $SchemaFile)) {
 }
 
 # Check if seed scripts directory exists
-if (-not (Test-Path ".\seed-scripts")) {
+if (-not (Test-Path ".\")) {
     Write-Error "Seed scripts directory not found: .\seed-scripts"
     exit 1
 }
@@ -68,7 +68,7 @@ $seedFiles = @(
 Write-Host "Applying seed data..." -ForegroundColor Cyan
 
 foreach ($seedFile in $seedFiles) {
-    $fullPath = ".\seed-scripts\$seedFile"
+    $fullPath = ".\$seedFile"
     if (Test-Path $fullPath) {
         Write-Host "  - Loading $seedFile" -ForegroundColor White
         

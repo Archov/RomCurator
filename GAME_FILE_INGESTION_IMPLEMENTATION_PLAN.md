@@ -1,347 +1,232 @@
-# ROM Curator: File Ingestion and Processing Implementation Plan
+# ROM Curator: Game File Ingestion Implementation Plan (v1.8 aligned)
 
-## 1. File Discovery and Inventory
+## Overview & Goals
+- Deliver a deterministic, resumable workflow that transforms loose files into `rom_file` records linked to releases through `release_artifact`, feeding the existing curation and organization surfaces.
+- Reuse the v1.8 architecture: `ImportWorkerThread` for background execution, `GameMatcher` for DAT alignment, `platform_links` for cross-platform resolution, and the curation and importer GUIs for user feedback.
+- Maintain a trustworthy library structure while keeping imports idempotent and observable through the logging and configuration systems already in place.
 
-### 1.1 Directory Scanning
-- Leverage the existing `library_root` table to track configured library paths
-- Implement recursive directory scanning to discover all game files within library roots
-- Track file paths, sizes, and modification dates in the `file_instance` table
+## End-to-End Workflow Summary
+1. User launches **Tools → Library → Scan & Ingest Files…** (new) from `rom_curator_main.py`; the PyQt dialog uses `ConfigManager` paths and dispatches an ingestion job through `enhanced_importer_gui.ImportWorkerThread`.
+2. The worker records a `file_ingestion` run in `import_log`, resolves active `library_root` entries, and performs resumable recursive discovery, updating `file_instance` for everything seen.
+3. Each discovered file is classified (extension and header checks), hashed in a streaming fashion, and either linked to an existing `rom_file` or inserted as a new row.
+4. Archives are expanded virtually: contents are enumerated, hashed, and registered as child `rom_file`s without permanently unpacking unless policy requires it; new `archive_member` records preserve container relationships.
+5. For new or changed hashes, the job attempts deterministic DAT matching using `dat_entry` (hash first, then normalized metadata) and `GameMatcher` with `platform_links`. Results populate `dat_atomic_link` and enqueue unresolved items for curation.
+6. On completion the job writes summary metrics to the import log, emits progress/status updates to the GUI, and (optionally) triggers folder organization moves governed by configured rules and tracked in `file_operation_log`.
 
-### 1.2 File Extension Management
+## Stage 1 – Scan Orchestration & Job Tracking
+- Add a new `metadata_source` row named `file_ingestion` that points to a dedicated seeder script (e.g., `scripts/seeders/library_ingestion.py`). The script is invoked by the enhanced importer just like the existing DAT/Moby workers.
+- Use `import_log` to capture job lifecycle (running/completed/failed). Store aggregate counts (files seen, hashes computed, archives expanded) in `records_processed` and a JSON summary string in `notes` for later reporting.
+- Persist a checkpoint file per job under `logs/ingestion/` to allow resume after interruption; the worker reads pending paths from this checkpoint before beginning a fresh walk.
+- Respect cancellation requests from the GUI by periodically checking the worker’s cancellation flag; commit intermediate results to keep the run restartable.
 
-#### Database Schema
-```sql
--- File type categories (ROM, Archive, Disc Image, etc.)
-CREATE TABLE IF NOT EXISTS file_type_category (
-    category_id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL UNIQUE,
-    description TEXT,
-    is_active BOOLEAN DEFAULT 1
-);
+## Stage 2 – Discovery & Inventory Updates
+### Directory Scanning
+- Use paths from `library_root` (relative paths resolved via `ConfigManager`) and perform breadth-first traversal to limit deep recursion memory pressure.
+- Skip hidden/system folders, respect `.nomedia`, `.no-roms`, and user-specified ignore globs persisted in `config.json`.
+- Record raw file observations in an in-memory queue before hashing to separate IO from CPU work. Batch database writes via transactions of ~250 records to reduce commit overhead.
 
--- File extensions with rich metadata
-CREATE TABLE IF NOT EXISTS file_extension (
-    extension TEXT PRIMARY KEY,  -- e.g., 'nes', 'smc' (without dot)
-    category_id INTEGER REFERENCES file_type_category(category_id),
-    description TEXT,
-    is_compressed BOOLEAN DEFAULT 0,
-    is_disc_image BOOLEAN DEFAULT 0,
-    is_archive BOOLEAN DEFAULT 0,
-    is_bios BOOLEAN DEFAULT 0,
-    is_save_file BOOLEAN DEFAULT 0,
-    is_patch_file BOOLEAN DEFAULT 0,
-    is_playlist BOOLEAN DEFAULT 0,
-    is_active BOOLEAN DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+### `file_instance` Maintenance
+- For each observed file, compute the relative path to its root and insert or update the `file_instance` row (`root_id`, `rom_id`, `relative_path`, timestamps).
+- Extend the schema with first/last seen tracking:
+  ```sql
+  ALTER TABLE file_instance ADD COLUMN first_seen TEXT;
+  ALTER TABLE file_instance ADD COLUMN last_modified TEXT;
+  ALTER TABLE file_instance ADD COLUMN status TEXT DEFAULT 'present' CHECK (status IN ('present','missing','quarantined'));
+  ```
+- When a file disappears in a later run, mark `status='missing'` so the health views can surface rot without deleting historical information.
 
--- Platform-specific extensions (many-to-many)
-CREATE TABLE IF NOT EXISTS platform_extension (
-    platform_id INTEGER REFERENCES platform(platform_id),
-    extension TEXT REFERENCES file_extension(extension),
-    is_primary BOOLEAN DEFAULT 0,
-    PRIMARY KEY (platform_id, extension)
-);
+## Stage 3 – Classification & Archive Handling
+### Extension Registry
+- Introduce an extension registry that the GUI can manage:
+  ```sql
+  CREATE TABLE IF NOT EXISTS file_type_category (
+      category_id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT,
+      is_active INTEGER DEFAULT 1
+  );
 
--- Tracks contents of archive files (ZIP, 7Z, RAR, etc.)
-CREATE TABLE IF NOT EXISTS archive_contents (
-    archive_rom_id INTEGER NOT NULL REFERENCES rom_file(rom_id) ON DELETE CASCADE,
-    content_rom_id INTEGER NOT NULL REFERENCES rom_file(rom_id) ON DELETE CASCADE,
-    path_in_archive TEXT NOT NULL,  -- Relative path within the archive
-    file_size INTEGER NOT NULL,      -- Uncompressed size in bytes
-    compression_ratio REAL,          -- Compression ratio (0-1, where lower is better)
-    is_primary BOOLEAN DEFAULT 0,    -- Whether this is the primary ROM in the archive
-    file_order INTEGER,              -- Order of files in the archive
-    last_modified TEXT,              -- Last modified timestamp of the file in the archive
-    PRIMARY KEY (archive_rom_id, content_rom_id)
-);
-```
+  CREATE TABLE IF NOT EXISTS file_extension (
+      extension TEXT PRIMARY KEY,
+      category_id INTEGER REFERENCES file_type_category(category_id),
+      description TEXT,
+      is_active INTEGER DEFAULT 1,
+      treat_as_archive INTEGER DEFAULT 0,
+      treat_as_disc INTEGER DEFAULT 0,
+      treat_as_auxiliary INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+  );
 
-#### Default Extensions
-- **ROM Files**: `.nes`, `.smc`, `.sfc`, `.gba`, `.nds`, `.gb`, `.gbc`, `.n64`, `.z64`, `.v64`, `.a26`, `.a78`, `.lnx`
-- **Compressed Archives**: `.zip`, `.7z`, `.rar`
-- **Disc Images**: `.iso`, `.bin`, `.cue`, `.chd`, `.gdi`, `.cdi`
-- **Save Files**: `.srm`, `.sav`, `.eep`, `.fla`, `.mcr`
-- **Patches**: `.ips`, `.bps`, `.ups`, `.xdelta`
-- **Playlists**: `.m3u`, `.m3u8`
+  CREATE TABLE IF NOT EXISTS platform_extension (
+      platform_id INTEGER REFERENCES platform(platform_id),
+      extension TEXT REFERENCES file_extension(extension),
+      is_primary INTEGER DEFAULT 0,
+      PRIMARY KEY (platform_id, extension)
+  );
+  ```
+- Ship defaults for known ROM, disc, archive, save, patch, and playlist extensions, and expose them through a PyQt management dialog.
 
-#### Processing Rules
-- **Inclusion/Exclusion**:
-  - Process files with extensions marked as active in the database
-  - Skip system files (`.DS_Store`, `thumbs.db`, `desktop.ini`)
-  - Respect `.nomedia` and `.no-roms` marker files
-  - Skip system directories (`__MACOSX`, `System Volume Information`)
+### Archive & Container Strategy
+- Identify archives via the extension registry and confirm using `libarchive`/`zipfile` signature headers to avoid false positives.
+- For each archive, enumerate members without extracting the entire file: stream entries through `libarchive.public.memory_reader` to compute hashes chunk by chunk, spilling to a temp directory under `ConfigManager.get_temp_path()` when >128 MB.
+- Handle nested archives by pushing discovered archive entries onto the same processing queue, tracking depth with a guard (e.g., max depth 3) to prevent infinite loops.
+- Password-protected archives: attempt configured default passwords; if none succeed, record the failure in `file_operation_log` with status `password_required`, mark the `rom_file` as pending, and surface the issue in the importer summary.
+- Non-ROM auxiliaries (readme, nfo, cue, cover art) inherit classification from the extension registry. Create `rom_file` rows so they remain traceable but flag them as auxiliary via a new column (`rom_file.content_role`).
+  ```sql
+  ALTER TABLE rom_file ADD COLUMN content_role TEXT DEFAULT 'rom' CHECK (content_role IN ('rom','disc','patch','auxiliary','save','playlist'));
+  ```
 
-#### User Interface
-- **Extension Manager**:
-  - List all known file extensions with filtering/sorting
-  - Toggle extensions on/off
-  - Add new custom extensions
-  - Assign extensions to platforms
-  - View file type statistics
-- **Bulk Operations**:
-  - Import/export extension lists
-  - Enable/disable by category
-  - Reset to defaults
-- **Discovery Mode**:
-  - Scan directories and suggest new extensions
-  - Show statistics on file types found
-  - One-click enable/disable of discovered extensions
+### Archive Membership Tracking
+- Preserve container relationships with a dedicated table:
+  ```sql
+  CREATE TABLE IF NOT EXISTS archive_member (
+      parent_rom_id INTEGER NOT NULL REFERENCES rom_file(rom_id) ON DELETE CASCADE,
+      child_rom_id INTEGER NOT NULL REFERENCES rom_file(rom_id) ON DELETE CASCADE,
+      path_in_archive TEXT NOT NULL,
+      compressed_size INTEGER,
+      uncompressed_size INTEGER,
+      compression_ratio REAL,
+      is_primary INTEGER DEFAULT 0,
+      sort_order INTEGER,
+      last_modified TEXT,
+      PRIMARY KEY (parent_rom_id, child_rom_id)
+  );
+  ```
+- Mark the preferred playable asset for single-ROM archives via `is_primary` so UI components can pick the right file without re-scanning the container.
 
-## 2. File Processing Pipeline
+## Stage 4 – Hashing & Metadata Extraction
+- Hash everything with streaming SHA‑1; compute MD5/CRC32 when the file is <1 GB or when a DAT requires it. Respect chunk sizes from `config.json` (default 32 MB) to control memory pressure.
+- Populate `rom_file.sha1`, `md5`, `crc32`, `size_bytes`, and `filename` (basename only). Update `content_role` and maintain `rom_file` rows even for auxiliary assets to keep the library complete.
+- Pull format-specific data where possible:
+  - Disc images: probe cue/bin pairs, CHD headers, and embed disc count information.
+  - Cartridge ROMs: extract internal headers (title, region) where safe.
+- Store extracted metadata in a new table keyed off `rom_file` when it is not already modeled elsewhere:
+  ```sql
+  CREATE TABLE IF NOT EXISTS rom_file_metadata (
+      rom_id INTEGER NOT NULL REFERENCES rom_file(rom_id) ON DELETE CASCADE,
+      metadata_key TEXT NOT NULL,
+      metadata_value TEXT NOT NULL,
+      PRIMARY KEY (rom_id, metadata_key)
+  );
+  ```
+- Cache hash results in a lightweight SQLite sidecar (`database/rom_curator_cache.db`) to bypass re-hashing unchanged files between runs; store path + modified time → sha1 mapping.
 
-### 2.1 File Type Detection
-- **Primary Method**: File extension matching against configured lists
-- **Fallback**: Magic number/header analysis for ambiguous files
-- **Classification**:
-  - **Single-file ROMs**: Direct ROM files with known extensions
-  - **Compressed Archives**: Multi-file containers that need extraction
-  - **Disc Images**: CD/DVD/Blu-ray images with game data
-  - **Multi-file ROMs**: ROMs that span multiple files (e.g., `.bin` + `.cue`)
+## Stage 5 – Database Integration & Schema Alignment
+### Existing Entities Leveraged
+- `rom_file`: canonical store for unique content hashes; now extended with `content_role`.
+- `release_artifact`: link curated releases to `rom_file` IDs. Use `artifact_type='rom'|'disc'|'patch'` and add an optional ordering column for multi-disc sequencing:
+  ```sql
+  ALTER TABLE release_artifact ADD COLUMN artifact_sequence INTEGER;
+  ```
+- `file_instance`: track physical locations per root; now enriched with first/last seen and status.
+- `dat_entry` + `dat_entry_metadata`: already contain normalized metadata (`base_title`, `region_normalized`) needed for matching.
+- `dat_atomic_link`: persists linkage decisions (`match_type`, `confidence`). Automatic matches from ingestion use `match_type='automatic'` with annotated confidence.
 
-### 2.2 Hashing Strategy
-- **Uncompressed Files**:
-  - Calculate SHA-1 hash of the complete file (stored in `rom_file.sha1`)
-  - Calculate additional hashes (MD5, CRC32) for compatibility
-  - For large files (>100MB), use memory-efficient hashing with chunks
-  - Store file size in bytes and last modified timestamp
+### New Supporting Tables (beyond registry/membership)
+- `file_operation_log` to capture moves, renames, quarantines, and culls for auditing:
+  ```sql
+  CREATE TABLE IF NOT EXISTS file_operation_log (
+      operation_id INTEGER PRIMARY KEY,
+      instance_id INTEGER REFERENCES file_instance(instance_id),
+      rom_id INTEGER REFERENCES rom_file(rom_id),
+      operation_type TEXT NOT NULL CHECK (operation_type IN ('move','copy','delete','quarantine','restore','password_required','error')),
+      source_path TEXT,
+      destination_path TEXT,
+      initiated_by TEXT DEFAULT 'ingestion',
+      status TEXT NOT NULL CHECK (status IN ('pending','completed','failed')) DEFAULT 'completed',
+      message TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  ```
+- `ingestion_queue` (ephemeral table) to coordinate deferred hashing tasks for large files or nested archives if we need to throttle work across multiple threads:
+  ```sql
+  CREATE TABLE IF NOT EXISTS ingestion_queue (
+      queue_id INTEGER PRIMARY KEY,
+      root_id INTEGER NOT NULL,
+      absolute_path TEXT NOT NULL,
+      depth INTEGER DEFAULT 0,
+      status TEXT NOT NULL CHECK (status IN ('pending','processing','done','error')) DEFAULT 'pending',
+      error_message TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  ```
+  This table can be truncated after a successful run; it doubles as a resume point if the app crashes mid-scan.
 
-- **Compressed Files**:
-  - **Single ROM Archives**:
-    1. Extract file to memory/temp
-    2. Calculate hash of the extracted content
-    3. Store in `rom_file` table with metadata
-    4. Create `file_instance` record linked to the `rom_file`
-  
-  - **Multi-ROM Archives** (e.g., No-Intro packs, TOSEC sets):
-    1. Extract all files in the archive to a temporary location
-    2. Process each file individually:
-       - Calculate hashes for each file
-       - Create `rom_file` entries for each unique file
-       - Store archive membership in `archive_contents` table
-    3. Maintain archive structure in `file_instance` with:
-       - Original archive path and metadata
-       - Number of ROMs contained
-       - Compression ratio
-    4. Option to extract all ROMs to library during hashing (user-configurable)
-  
-  - **Multi-disc Sets** (e.g., PlayStation, Sega CD games):
-    1. Identify related disc files (e.g., `Game (Disc 1).chd`, `Game (Disc 2).chd`)
-    2. Group them as a single logical game
-    3. Store relationship in `game_discs` table
-    4. Allow launching the appropriate disc based on game requirements
-  
-  - **Batch Processing Options**:
-    - Extract all ROMs to library (flattened structure)
-    - Keep in archives but index all contents
-    - User-defined rules for handling different archive types
+## Stage 6 – DAT Correlation & GameMatcher Integration
+- Hash-first: attempt to resolve every new `rom_file.sha1` against `dat_entry.rom_sha1`. If a match exists, link to the corresponding `game_release` via existing seed data (No-Intro, TOSEC) and record the association in `dat_atomic_link` by pulling the related `atomic_id`.
+- Metadata fallback: when hashes do not match, use `GameMatcher` to score candidates. Feed it the normalized title derived from the file name or extracted header and supply platform candidates gathered from `library_root` hints plus the extension registry; pass these into `GameMatcher.find_all_potential_matches()`.
+- Use `platform_links` to broaden search across alias platforms automatically; persist matches meeting the confidence threshold (>=0.85) as `match_type='automatic'`. Lower confidence results (<0.85) are stored as suggestions in a new `ingestion_candidate` table consumed by the curation GUI:
+  ```sql
+  CREATE TABLE IF NOT EXISTS ingestion_candidate (
+      candidate_id INTEGER PRIMARY KEY,
+      rom_id INTEGER NOT NULL REFERENCES rom_file(rom_id) ON DELETE CASCADE,
+      dat_entry_id INTEGER REFERENCES dat_entry(dat_entry_id),
+      suggested_atomic_id INTEGER REFERENCES atomic_game_unit(atomic_id),
+      confidence REAL NOT NULL,
+      reason TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      processed INTEGER DEFAULT 0
+  );
+  ```
+- Pipe confirmed matches into the curation subsystem: automatic matches update `dat_atomic_link` and call existing helper functions to enqueue the pairing for confirmation in `curation_gui` (high-confidence auto-accept) or manual review (lower confidence via `ingestion_candidate`).
+- Maintain provenance by storing the originating `import_log.log_id` in each new record (add `log_id` columns to supporting tables where helpful) so analysts can trace issues back to the specific run.
 
-### 2.3 Metadata Extraction
-- **File Metadata**:
-  - File name and extension
-  - File size (compressed and uncompressed if applicable)
-  - Last modified timestamp
-  - File permissions and attributes
+## Stage 7 – Curation, Auto-Link, and Library Organization
+- After matching, derive actionable items:
+  - **Auto-link:** For confidence ≥0.95, immediately insert or update `release_artifact` records linking the `rom_file` to the `game_release` surfaced by DAT metadata.
+  - **Curation queue:** For other cases, insert into `ingestion_candidate` and refresh the queue shown in `curation_gui`. Leverage Qt signals to notify the GUI when a new ingestion run finishes so the queue refreshes automatically.
+- Generate per-run summaries (new matches, duplicates, orphaned files) and expose them via the log viewer so operators can confirm outcomes.
+- Respect the existing auto-link toggle inside the curation GUI; ingestion should honor the user’s "auto-link high confidence" preference and only write `release_artifact` rows when the preference allows.
 
-- **ROM-Specific Metadata**:
-  - Header information (when available)
-  - ROM size
-  - Checksums (CRC32, MD5, SHA-1)
-  - Internal ROM header information (title, region, version)
+## Stage 8 – File Movement & Library Structure
+- Adopt a two-phase policy: scanning is non-destructive; organization runs when the user chooses "Apply Library Organization" from the importer completion dialog.
+- Movement strategy:
+  - Only relocate files that are linked to a curated release (`release_artifact` exists) and pass integrity checks (hash matches DAT entry).
+  - Determine destination paths using the North Star folder template (platform/region/title) defined in config; generate moves via `FileOrganizerService` that consumes `release_artifact` and `platform_links` data.
+  - Record every move in `file_operation_log` (`operation_type='move'`) and update `file_instance.relative_path` accordingly in the same transaction.
+- Detect external moves: during scan, when a `rom_file` hash is found under a different path, insert a new `file_instance` row and mark the old one `status='missing'`; create a `file_operation_log` entry with `operation_type='restore'` if auto-healed by the organizer.
+- Provide a dry-run option in the GUI to preview the move list before committing changes.
 
-## 3. Database Integration
+## Stage 9 – Logging, Error Handling, and Resiliency
+- Use `LoggingManager` channels (`ingestion`, `ingestion.archive`, `ingestion.organizer`) so logs surface in the existing log viewer. Include archive depth, hashing duration, and failures.
+- On exceptions, roll back only the current batch while leaving earlier work committed; flag the job as `failed` in `import_log` and include the exception summary in `notes`.
+- Retain partially processed archives by marking associated `ingestion_queue` records `status='error'`; the next run can pick them up.
+- Provide user feedback through the GUI progress bar (files scanned vs total) and a message area listing blocked archives (password, corruption) or unexpectedly large files that were skipped based on size limits.
 
-### 3.1 File Tracking
-- **`file_instance` Table**:
-  - Track physical file locations and attributes
-  - Link to `library_root` for organization
-  - Store relative paths for portability
-  - Track first/last seen timestamps
+## Stage 10 – User Interface Integration
+- **Importer GUI (`enhanced_importer_gui.py`):**
+  - Add a "Library Scan" source entry using the new metadata source. The UI should reuse the existing per-run log viewer and cancellation controls.
+  - Surface summary metrics (files inserted, matched, pending review) in the session results panel.
+- **Main Window (`rom_curator_main.py`):**
+  - Wire `Tools → Database → Validate Matching…` to launch the ingestion-aware validation dialog, showing unmatched `rom_file`s and stale `file_instance` rows. This dialog can reuse the importer log output for transparency.
+- **Curation GUI (`curation_gui.py`):**
+  - Subscribe to ingestion completion signals so the queue refreshes.
+  - Add filters to show "New from ingestion" items coming from `ingestion_candidate`.
+- **Platform Linking (`platform_linking_gui.py`):**
+  - Display archive-driven platform discoveries (e.g., when an unknown extension is associated with a platform) so curators can confirm or adjust mappings.
+- **Config Dialog:** add controls for archive depth limit, password dictionary path, hash chunk size, and organizer dry-run default.
 
-### 3.2 ROM File Registry
-- **`rom_file` Table**:
-  - Store unique ROM files by hash
-  - Track file size and hashes
-  - Record first/last seen timestamps
-  - Link to original source file
+## Stage 11 – Testing & Validation
+- **Unit tests:** hashing utilities, archive enumeration (including nested cases), file classification, schema helpers for new tables, `FileOrganizerService` move calculations.
+- **Integration tests:** run ingestion against seeded fixture directories representing mixed content (ROMs, archives, password-protected files, non-ROM extras). Validate database side effects, DAT linkage, and curation queue population.
+- **Performance tests:** benchmark large directory scans using real-world directory sizes; ensure the job can resume after interruption by deleting the worker mid-run and re-launching it.
+- **Manual QA:** verify GUI interactions (start/cancel/resume), ensure logs surface correctly, and confirm that organizer dry runs produce the expected move manifests.
 
-### 3.3 Archive Contents
-- **Archive Handling**:
-  - Store archive structure and contents
-  - Track which files have been processed
-  - Maintain relationships between archives and extracted ROMs
+## Implementation Phases
+1. **Foundation (Schema & Services)**
+   - Apply migrations for new/altered tables and columns.
+   - Implement ingestion worker core (scanning, hashing, `rom_file` upsert, archive handling, caching).
+   - Build extension registry defaults and management dialog.
+2. **Matching & UI Wiring**
+   - Integrate `GameMatcher` and DAT correlation logic, populate `dat_atomic_link`/`ingestion_candidate`.
+   - Update `enhanced_importer_gui`, `rom_curator_main`, and `curation_gui` to expose the workflow and review surfaces.
+   - Implement organizer dry-run view and file operation logging.
+3. **Polish & Resilience**
+   - Add resume support, cancellation handling, and detailed logging.
+   - Optimize batching, add configuration hooks, finalize automated tests, and document runbooks in `README.md` / `Agents.md`.
 
-## 4. Performance and Optimization
-
-### 4.1 Batch Processing
-- Process files in configurable batch sizes
-- Use database transactions for batch operations
-- Implement progress tracking and reporting
-## 4. Processing Pipeline
-
-### 4.1 Initial Scan
-1. Scan all directories in `library_root`
-2. For each file:
-   - Create/update `file_instance` record
-   - If new or modified, calculate hashes and update `rom_file`
-   - Link to `library_root` via `root_id`
-   - Set `last_seen` timestamp
-
-### 4.2 DAT Matching Phase
-1. Load DAT files through `metadata_source` and `import_log`
-2. For each ROM file:
-   - Attempt exact hash match in `dat_entry`
-   - If no match, try fuzzy matching using `base_title` and platform
-   - Record matches in `dat_atomic_link` with appropriate confidence
-
-### 4.3 Post-Processing
-1. Identify unmatched files for review
-2. Flag potential duplicates using `rom_file` hashes
-3. Generate reports on collection status and matching statistics
-
-## 5. Performance Considerations
-
-### 5.1 Batch Processing
-- Process files in batches to manage memory usage
-- Use database transactions for bulk operations
-- Implement progress reporting using the existing logging system
-
-### 5.2 Caching
-- Cache file hashes to avoid re-processing unchanged files
-- Use `last_seen` timestamp for incremental updates
-- Maintain in-memory index of known ROM hashes for quick lookups
-
-### 5.3 Parallel Processing
-- Process multiple files in parallel (with configurable concurrency)
-- Implement work queues for balanced resource usage
-- Respect system resources to avoid excessive memory/CPU usage
-
-## 6. Error Handling and Recovery
-
-### 6.1 Error Conditions
-- Corrupt archives
-- Permission issues
-- Unsupported file formats
-- Hash calculation failures
-- Database constraint violations
-
-### 6.2 Recovery Mechanisms
-- Database transaction rollback on failure
-- Detailed error logging to `import_log`
-- Resume capabilities for interrupted scans
-- Option to skip problem files and continue
-
-## 7. Integration with Existing Components
-
-### 7.1 Logging
-- Use the existing `LoggingManager` for application logs
-- Create detailed import logs in the `logs/` directory
-- Include timestamps and operation details for debugging
-
-### 7.2 Configuration
-- Read settings from `config.json` via `ConfigManager`
-- Support configuration of:
-  - Library root directories
-  - File type preferences
-  - Hashing behavior
-  - Performance settings
-
-## 8. Testing Strategy
-
-### 8.1 Unit Tests
-- File format detection
-- Hash calculation
-- DAT parsing and normalization
-- Database operations
-
-### 8.2 Integration Tests
-- End-to-end processing of sample collections
-- DAT matching accuracy with known test sets
-- Performance with large collections
-
-### 8.3 Test Data
-- Create test fixtures with known-good ROMs
-- Include edge cases (corrupt files, unusual filenames, etc.)
-- Test with various DAT file formats
-
-## 9. Future Enhancements
-
-### 9.1 Performance Optimizations
-- Background processing for large collections
-- Incremental updates for changed files only
-- Optimized database indexes for common queries
-
-### 9.2 Enhanced Matching
-- Improved fuzzy matching algorithms
-- Machine learning for better title normalization
-- Community-sourced matching overrides
-
-### 10.2 Additional Features
-- Automatic ROM renaming
-- Thumbnail generation
-- Integration with emulator frontends
-
-## 11. Implementation Phases
-
-### Phase 1: Core Functionality
-- Basic file scanning and hashing
-- Simple DAT matching
-- Basic database schema
-
-### Phase 2: Advanced Features
-- Compressed file support
-- Advanced DAT parsing
-- Performance optimizations
-
-### Phase 3: Polish and Refinement
-- Error handling
-- User interface improvements
-- Comprehensive testing
-
-## 12. Dependencies
-
-### Required Libraries
-- `py7zr` for 7z archive support
-- `rarfile` for RAR archive support
-- `python-libarchive-c` for general archive support
-- `crcmod` for CRC calculations
-- `cryptography` for secure hashing
-
-## 13. Security Considerations
-
-### 13.1 File Handling
-- Validate all file paths to prevent directory traversal
-- Set appropriate file permissions
-- Handle potentially malicious archives safely
-
-### 13.2 Resource Usage
-- Implement file size limits
-- Set timeouts for archive operations
-- Clean up temporary files properly
-
-## 14. Documentation
-
-### 14.1 User Documentation
-- File format support
-- DAT file requirements
-- Troubleshooting guide
-
-### 14.2 Developer Documentation
-- Code organization
-- Database schema
-- Extension points
-
-## 15. Maintenance Plan
-
-### 15.1 Versioning
-- Follow semantic versioning
-- Maintain changelog
-
-### 15.2 Updates
-- Regular updates for new DAT files
-- Support for new file formats as needed
-
-## 16. Conclusion
-
-This implementation plan provides a comprehensive approach to parsing and processing game collections for the ROM Curator application. By following this plan, we can build a robust system that handles the complexities of ROM management while providing a solid foundation for future enhancements.
+## Documentation & Follow-Up
+- Update `Rom Curator Database Documentation.md` with the new/altered tables and workflow diagrams.
+- Extend `README.md` with user-facing instructions covering library scans, archive handling expectations, and organizer behavior.
+- Capture operational playbooks in `Agents.md`, including guidance on resolving password-protected archives, handling missing files, and interpreting ingestion reports.

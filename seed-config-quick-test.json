@@ -1,0 +1,18 @@
+{
+  "name": "Quick Test - Single File",
+  "description": "Quick test with just one file for rapid iteration",
+  "database_path": "database/RomCurator.db",
+  "imports": [
+    {
+      "name": "Quick No-Intro Test",
+      "importer": "nointro",
+      "file_path": "seed-data/Samples/FFExample-NOINTRO.dat",
+      "platform_name": "Super Nintendo Entertainment System"
+    }
+  ],
+  "options": {
+    "clear_existing_data": false,
+    "verbose_logging": true,
+    "dry_run": false
+  }
+}

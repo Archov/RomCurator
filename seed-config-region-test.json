@@ -1,0 +1,24 @@
+{
+  "name": "Region Standardization Test",
+  "description": "Test the new region standardization system with various region formats",
+  "database_path": "database/RomCurator.db",
+  "imports": [
+    {
+      "name": "No-Intro Multi-Region Test",
+      "importer": "nointro",
+      "file_path": "seed-data/Samples/FFExample-NOINTRO.dat",
+      "platform_name": "Super Nintendo Entertainment System"
+    },
+    {
+      "name": "TOSEC ISO Region Test",
+      "importer": "tosec", 
+      "file_path": "seed-data/Samples/FFExample-TOSEC.dat",
+      "platform_name": "Nintendo Entertainment System"
+    }
+  ],
+  "options": {
+    "clear_existing_data": true,
+    "verbose_logging": true,
+    "dry_run": false
+  }
+}
