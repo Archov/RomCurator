@@ -16,8 +16,8 @@ try:
         process_dat_rom_entry
     )
 except ImportError:
-    from base_importer import BaseImporter
-    from xml_utils import (
+    from .base_importer import BaseImporter
+    from .xml_utils import (
         load_dtd_schema, 
         validate_xml_against_schema,
         handle_schema_validation_warning,

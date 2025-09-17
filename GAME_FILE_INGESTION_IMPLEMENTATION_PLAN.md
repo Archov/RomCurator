@@ -26,14 +26,15 @@
 - Record raw file observations in an in-memory queue before hashing to separate IO from CPU work. Batch database writes via transactions of ~250 records to reduce commit overhead.
 
 ### `file_instance` Maintenance
-- For each observed file, compute the relative path to its root and insert or update the `file_instance` row (`root_id`, `rom_id`, `relative_path`, timestamps).
-- Extend the schema with first/last seen tracking:
+- For each observed file, compute the relative path to its root and merge the metadata into a staging row in `file_discovery`. This table buffers discovery data without requiring a `rom_id`, capturing `root_id`, absolute and relative paths, size, modified time, depth, and the active `log_id`.
+- Once hashing resolves the file's content, update the staged row with the resulting `rom_id`, mark its promotion state, and then upsert into `file_instance`. Rows that fail hashing remain staged so the worker can retry or surface them to the user.
+- Extend the schema with first/last seen tracking on `file_instance` so promoted records retain temporal history:
   ```sql
   ALTER TABLE file_instance ADD COLUMN first_seen TEXT;
   ALTER TABLE file_instance ADD COLUMN last_modified TEXT;
   ALTER TABLE file_instance ADD COLUMN status TEXT DEFAULT 'present' CHECK (status IN ('present','missing','quarantined'));
   ```
-- When a file disappears in a later run, mark `status='missing'` so the health views can surface rot without deleting historical information.
+- When a file disappears in a later run, mark `status='missing'` on the existing `file_instance` row (during the promotion/reconciliation sweep) so the health views can surface rot without deleting historical information.
 
 ## Stage 3 – Classification & Archive Handling
 ### Extension Registry
@@ -110,6 +111,7 @@
       PRIMARY KEY (rom_id, metadata_key)
   );
   ```
+- After hashing, resolve or insert the corresponding `rom_file` row, update the matching `file_discovery` entry with `rom_id` and `promotion_state='hashed'`, and upsert into `file_instance` within the same transaction to keep discovery, hashing, and location tracking in sync.
 - Cache hash results in a lightweight SQLite sidecar (`database/rom_curator_cache.db`) to bypass re-hashing unchanged files between runs; store path + modified time → sha1 mapping.
 
 ## Stage 5 – Database Integration & Schema Alignment
@@ -124,6 +126,25 @@
 - `dat_atomic_link`: persists linkage decisions (`match_type`, `confidence`). Automatic matches from ingestion use `match_type='automatic'` with annotated confidence.
 
 ### New Supporting Tables (beyond registry/membership)
+- `file_discovery` buffers raw scan observations until a `rom_id` is known, allowing ingestion to resume without violating `file_instance` foreign keys:
+  ```sql
+  CREATE TABLE IF NOT EXISTS file_discovery (
+      discovery_id INTEGER PRIMARY KEY,
+      log_id INTEGER NOT NULL REFERENCES import_log(log_id),
+      root_id INTEGER NOT NULL REFERENCES library_root(root_id),
+      absolute_path TEXT NOT NULL,
+      relative_path TEXT NOT NULL,
+      size_bytes INTEGER,
+      modified_time TEXT,
+      rom_id INTEGER REFERENCES rom_file(rom_id),
+      promotion_state TEXT NOT NULL DEFAULT 'pending' CHECK (promotion_state IN ('pending','hashed','failed')),
+      first_seen TEXT NOT NULL DEFAULT (datetime('now')),
+      last_seen TEXT NOT NULL DEFAULT (datetime('now')),
+      depth INTEGER DEFAULT 0,
+      message TEXT,
+      UNIQUE(root_id, relative_path)
+  );
+  ```
 - `file_operation_log` to capture moves, renames, quarantines, and culls for auditing:
   ```sql
   CREATE TABLE IF NOT EXISTS file_operation_log (

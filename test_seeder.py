@@ -27,10 +27,11 @@ from scripts.seeders.no_intro import NoIntroImporter
 class TestSeeder:
     """Test seeder that runs importers based on configuration."""
     
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str, recreate_db: bool = False):
         self.config_path = Path(config_path)
         self.config = self._load_config()
         self.logger = self._setup_logging()
+        self.recreate_db = recreate_db
         
     def _load_config(self) -> Dict[str, Any]:
         """Load the seed configuration file."""
@@ -66,6 +67,94 @@ class TestSeeder:
             raise ValueError(f"Unknown importer type: {importer_type}")
             
         return importer_map[importer_type](db_path)
+    
+    def _recreate_database(self):
+        """Recreate the database from scratch."""
+        if not self.recreate_db:
+            return
+            
+        db_path = self.config['database_path']
+        self.logger.info(f"Recreating database: {db_path}")
+        
+        # Remove existing database
+        if Path(db_path).exists():
+            Path(db_path).unlink()
+            self.logger.info("Removed existing database")
+        
+        # Create fresh database with current schema
+        schema_file = "Rom Curator Database.sql"
+        if not Path(schema_file).exists():
+            self.logger.error(f"Schema file not found: {schema_file}")
+            return False
+            
+        self.logger.info(f"Creating fresh database with schema: {schema_file}")
+        try:
+            with open(schema_file, 'r', encoding='utf-8') as f:
+                schema_sql = f.read()
+            
+            with sqlite3.connect(db_path) as conn:
+                conn.executescript(schema_sql)
+                conn.commit()
+            
+            self.logger.info("✓ Database recreated successfully")
+            
+            # Seed with basic data (metadata_source, platforms, etc.)
+            self.logger.info("Seeding database with basic data...")
+            self._seed_basic_data(db_path)
+            
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to recreate database: {e}")
+            return False
+    
+    def _seed_basic_data(self, db_path: str):
+        """Seed the database with basic required data."""
+        try:
+            # Run the fast reseed script to populate basic data
+            import subprocess
+            result = subprocess.run([
+                "powershell", "-ExecutionPolicy", "Bypass", "-File", 
+                "fast_reseed_database.ps1", "-DatabasePath", db_path
+            ], capture_output=True, text=True, cwd=".")
+            
+            if result.returncode == 0:
+                self.logger.info("✓ Basic data seeded successfully")
+            else:
+                self.logger.warning(f"Basic seeding had issues: {result.stderr}")
+                # Fallback: manually insert essential data
+                self._insert_essential_data(db_path)
+        except Exception as e:
+            self.logger.warning(f"Failed to run fast reseed script: {e}")
+            # Fallback: manually insert essential data
+            self._insert_essential_data(db_path)
+    
+    def _insert_essential_data(self, db_path: str):
+        """Insert essential data manually as fallback."""
+        try:
+            with sqlite3.connect(db_path) as conn:
+                cursor = conn.cursor()
+                
+                # Insert metadata sources
+                cursor.execute("""
+                    INSERT OR IGNORE INTO metadata_source (source_id, name, importer_script, schema_file_path) 
+                    VALUES 
+                    (1, 'No-Intro', 'scripts/seeders/no_intro.py', NULL),
+                    (2, 'MobyGames', 'scripts/seeders/mobygames.py', 'seed-data/Moby/MobyGames.Schema.json'),
+                    (3, 'TOSEC', 'scripts/seeders/tosec.py', 'seed-data/TOSEC/schema/TOSEC.dtd')
+                """)
+                
+                # Insert some basic platforms
+                cursor.execute("""
+                    INSERT OR IGNORE INTO platform (platform_id, name) 
+                    VALUES 
+                    (33, 'Nintendo Entertainment System'),
+                    (34, 'Super Nintendo Entertainment System')
+                """)
+                
+                conn.commit()
+                self.logger.info("✓ Essential data inserted manually")
+        except Exception as e:
+            self.logger.error(f"Failed to insert essential data: {e}")
     
     def _get_source_id(self, importer_type: str) -> int:
         """Get the source_id for the given importer type."""
@@ -165,8 +254,14 @@ class TestSeeder:
         self.logger.info(f"Starting test seeder: {self.config['name']}")
         self.logger.info(f"Description: {self.config.get('description', 'No description')}")
         
-        # Clear existing data if requested
-        self._clear_existing_data()
+        # Recreate database if requested
+        if self.recreate_db:
+            if not self._recreate_database():
+                self.logger.error("Failed to recreate database, aborting")
+                return False
+        else:
+            # Clear existing data if requested
+            self._clear_existing_data()
         
         # Run each import
         imports = self.config.get('imports', [])
@@ -190,15 +285,17 @@ class TestSeeder:
 
 def main():
     """Main entry point."""
-    if len(sys.argv) != 2:
-        print("Usage: python test_seeder.py <config_file>")
+    if len(sys.argv) < 2 or len(sys.argv) > 3:
+        print("Usage: python test_seeder.py <config_file> [--recreate-db]")
         print("Example: python test_seeder.py seed-config.json")
+        print("Example: python test_seeder.py seed-config.json --recreate-db")
         sys.exit(1)
     
     config_file = sys.argv[1]
+    recreate_db = len(sys.argv) == 3 and sys.argv[2] == '--recreate-db'
     
     try:
-        seeder = TestSeeder(config_file)
+        seeder = TestSeeder(config_file, recreate_db)
         success = seeder.run()
         sys.exit(0 if success else 1)
     except Exception as e:
