@@ -1,3 +1,4 @@
 /seed-data
 /logs
 *.pyc
+*.db-journal
