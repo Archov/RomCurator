@@ -11,6 +11,10 @@ from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 from difflib import SequenceMatcher
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class MatchCandidate:
@@ -33,6 +37,7 @@ class GameMatcher:
         self.db_path = db_path
         self.conn = sqlite3.connect(db_path)
         self.conn.row_factory = sqlite3.Row
+        logger.debug("GameMatcher initialized for database %s", db_path)
         
         # Title normalization patterns
         self.normalization_patterns = [
@@ -108,6 +113,7 @@ class GameMatcher:
             return []
         
         atomic_title = atomic_row['canonical_title']
+        logger.debug("Evaluating atomic game %s (%s)", atomic_title, atomic_id)
         
         # Get all platforms this atomic game has releases for
         cursor.execute("""
@@ -117,6 +123,7 @@ class GameMatcher:
             WHERE gr.atomic_id = ?
         """, (atomic_id,))
         platforms = cursor.fetchall()
+        logger.debug("Atomic %s (%s) has %d release platforms", atomic_title, atomic_id, len(platforms))
         
         matches = []
         
@@ -127,7 +134,11 @@ class GameMatcher:
             # Find DAT entries for this platform AND linked platforms
             # First get the platform and any linked platforms
             linked_platform_ids = self.get_linked_platform_ids(platform_id)
-            
+            if not linked_platform_ids:
+                logger.debug("No platform links for atomic %s (%s) on platform %s (%s); skipping", atomic_title, atomic_id, platform_name, platform_id)
+                continue
+            logger.debug("Atomic %s (%s) platform %s (%s) -> %d linked DAT platforms", atomic_title, atomic_id, platform_name, platform_id, len(linked_platform_ids))
+
             # Find DAT entries for this platform and linked platforms
             placeholders = ','.join(['?' for _ in linked_platform_ids])
             cursor.execute(f"""
@@ -140,6 +151,9 @@ class GameMatcher:
             """, linked_platform_ids)
             
             dat_entries = cursor.fetchall()
+            logger.debug("Atomic %s (%s) platform %s produced %d DAT candidates", atomic_title, atomic_id, platform_name, len(dat_entries))
+            if not dat_entries:
+                continue
             
             for dat_row in dat_entries:
                 # Calculate similarity between atomic title and DAT base title
@@ -192,13 +206,14 @@ class GameMatcher:
         atomic_games = cursor.fetchall()
         all_matches = {}
         
-        print(f"Analyzing {len(atomic_games)} atomic games for potential DAT matches...")
+        logger.debug("Analyzing %d atomic games for potential DAT matches (min_confidence=%.2f)", len(atomic_games), min_confidence)
         
         for i, atomic_row in enumerate(atomic_games):
             if i % 100 == 0:  # Progress indicator
-                print(f"Processing game {i+1}/{len(atomic_games)}: {atomic_row['canonical_title']}")
+                logger.debug("Processing game %d/%d: %s", i + 1, len(atomic_games), atomic_row['canonical_title'])
             
             matches = self.find_matches_for_atomic_game(atomic_row['atomic_id'], min_confidence)
+            logger.debug("Atomic %s (%s) produced %d match candidates", atomic_row['canonical_title'], atomic_row['atomic_id'], len(matches))
             if matches:
                 all_matches[atomic_row['atomic_id']] = matches
         
@@ -239,10 +254,10 @@ class GameMatcher:
                     self.conn.commit()
                     stats['created'] += 1
                     
-                    print(f"Auto-linked: '{match.atomic_title}' -> '{match.base_title}' ({match.confidence:.3f})")
+                    logger.info("Auto-linked: %s -> %s (confidence=%.3f)", match.atomic_title, match.base_title, match.confidence)
                     
                 except Exception as e:
-                    print(f"Error creating link for atomic_id {atomic_id}: {e}")
+                    logger.exception("Error creating link for atomic_id %s", atomic_id)
                     stats['errors'] += 1
                     self.conn.rollback()
         
@@ -290,19 +305,44 @@ class GameMatcher:
 
 
     def get_linked_platform_ids(self, platform_id: int) -> List[int]:
-        """Get all platform IDs linked to the given platform (including itself)."""
+        """Return DAT platform IDs linked to the given platform via mappings."""
         cursor = self.conn.cursor()
-        
-        # Get direct links (both directions)
+
+        linked_ids = set()
+
+        # Direct mappings from the canonical platform to DAT platforms
         cursor.execute("""
-            SELECT DISTINCT dat_platform_id as linked_id FROM platform_links WHERE atomic_platform_id = ?
-            UNION
-            SELECT DISTINCT atomic_platform_id as linked_id FROM platform_links WHERE dat_platform_id = ?
-            UNION
-            SELECT ? as linked_id  -- Include the platform itself
-        """, (platform_id, platform_id, platform_id))
-        
-        return [row['linked_id'] for row in cursor.fetchall()]
+            SELECT DISTINCT dat_platform_id
+            FROM platform_links
+            WHERE atomic_platform_id = ?
+        """, (platform_id,))
+        linked_ids.update(row['dat_platform_id'] for row in cursor.fetchall() if row['dat_platform_id'] is not None)
+
+        # If this platform appears as a DAT alias, follow it back to the canonical platforms
+        cursor.execute("""
+            SELECT DISTINCT atomic_platform_id
+            FROM platform_links
+            WHERE dat_platform_id = ?
+        """, (platform_id,))
+        reverse_atomic_ids = [row['atomic_platform_id'] for row in cursor.fetchall() if row['atomic_platform_id'] is not None]
+
+        if reverse_atomic_ids:
+            placeholders = ','.join('?' for _ in reverse_atomic_ids)
+            cursor.execute(f"""
+                SELECT DISTINCT dat_platform_id
+                FROM platform_links
+                WHERE atomic_platform_id IN ({placeholders})
+            """, reverse_atomic_ids)
+            linked_ids.update(row['dat_platform_id'] for row in cursor.fetchall() if row['dat_platform_id'] is not None)
+
+        # Only return DAT platform IDs that are explicitly linked
+        if not linked_ids:
+            logger.debug("Platform %s has no DAT platform links", platform_id)
+            return []
+
+        linked_list = sorted(linked_ids)
+        logger.debug("Platform %s resolves to DAT platforms %s", platform_id, linked_list)
+        return linked_list
 
     def create_platform_link(self, atomic_platform_id: int, dat_platform_id: int, confidence: float = 1.0) -> bool:
         """Create a link between atomic and DAT platforms."""

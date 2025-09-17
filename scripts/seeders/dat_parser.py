@@ -26,26 +26,76 @@ class DATNameParser:
     """Parser for extracting metadata from ROM/game names in various DAT formats."""
     
     def __init__(self):
-        # No-Intro region mappings
-        self.nointro_regions = {
-            'USA': 'USA', 'US': 'USA', 'U': 'USA',
-            'Europe': 'EUR', 'EUR': 'EUR', 'E': 'EUR',
-            'Japan': 'JPN', 'JPN': 'JPN', 'J': 'JPN',
-            'World': 'World', 'W': 'World',
-            'Asia': 'Asia',
-            'Australia': 'AUS', 'AUS': 'AUS',
-            'Brazil': 'BRA', 'BRA': 'BRA',
-            'Canada': 'CAN', 'CAN': 'CAN',
-            'China': 'CHN', 'CHN': 'CHN',
-            'France': 'FRA', 'FRA': 'FRA',
-            'Germany': 'GER', 'GER': 'GER',
-            'Italy': 'ITA', 'ITA': 'ITA',
-            'Korea': 'KOR', 'KOR': 'KOR',
-            'Netherlands': 'NLD', 'NLD': 'NLD',
-            'Spain': 'ESP', 'ESP': 'ESP',
-            'Sweden': 'SWE', 'SWE': 'SWE',
-            'Taiwan': 'TWN', 'TWN': 'TWN',
-            'UK': 'GBR', 'GBR': 'GBR'
+        # Centralized region mappings - all convert to No-Intro format
+        self.region_mappings = {
+            # No-Intro (already correct format)
+            'nointro': {
+                'USA': 'USA', 'US': 'USA', 'U': 'USA',
+                'Europe': 'Europe', 'EUR': 'Europe', 'E': 'Europe', 
+                'Japan': 'Japan', 'JPN': 'Japan', 'J': 'Japan',
+                'World': 'World', 'W': 'World',
+                'Asia': 'Asia',
+                'Australia': 'Australia', 'AUS': 'Australia', 'A': 'Australia',
+                'Brazil': 'Brazil', 'BRA': 'Brazil', 'B': 'Brazil',
+                'Canada': 'Canada', 'CAN': 'Canada', 'C': 'Canada',
+                'China': 'China', 'CHN': 'China', 'CH': 'China',
+                'France': 'France', 'FRA': 'France', 'F': 'France',
+                'Germany': 'Germany', 'GER': 'Germany', 'G': 'Germany',
+                'Italy': 'Italy', 'ITA': 'Italy', 'I': 'Italy',
+                'Korea': 'Korea', 'KOR': 'Korea', 'K': 'Korea',
+                'Netherlands': 'Netherlands', 'NLD': 'Netherlands', 'D': 'Netherlands',
+                'Spain': 'Spain', 'ESP': 'Spain', 'S': 'Spain',
+                'Sweden': 'Sweden', 'SWE': 'Sweden', 'SW': 'Sweden',
+                'Taiwan': 'Taiwan', 'TWN': 'Taiwan', 'TW': 'Taiwan',
+                'UK': 'UK', 'GBR': 'UK', 'GB': 'UK'
+            },
+            
+            # TOSEC (ISO 3166-1 alpha-2) → No-Intro
+            'tosec': {
+                'US': 'USA', 'JP': 'Japan', 'EU': 'Europe', 'GB': 'UK',
+                'DE': 'Germany', 'FR': 'France', 'IT': 'Italy', 'ES': 'Spain',
+                'NL': 'Netherlands', 'AU': 'Australia', 'BR': 'Brazil', 'CA': 'Canada',
+                'CN': 'China', 'KR': 'Korea', 'TW': 'Taiwan', 'AS': 'Asia',
+                'RU': 'Russia', 'PL': 'Poland', 'SE': 'Sweden', 'NO': 'Norway',
+                'DK': 'Denmark', 'FI': 'Finland', 'PT': 'Portugal', 'GR': 'Greece',
+                'HU': 'Hungary', 'CZ': 'Czech Republic', 'SK': 'Slovakia',
+                'HR': 'Croatia', 'SI': 'Slovenia', 'BG': 'Bulgaria', 'RO': 'Romania',
+                'LT': 'Lithuania', 'LV': 'Latvia', 'EE': 'Estonia', 'LU': 'Luxembourg',
+                'MT': 'Malta', 'CY': 'Cyprus', 'IE': 'Ireland', 'IS': 'Iceland',
+                'CH': 'Switzerland', 'AT': 'Austria', 'BE': 'Belgium', 'LI': 'Liechtenstein',
+                'MC': 'Monaco', 'SM': 'San Marino', 'VA': 'Vatican City', 'AD': 'Andorra',
+                'FO': 'Faroe Islands', 'GL': 'Greenland', 'SJ': 'Svalbard and Jan Mayen',
+                'AX': 'Åland Islands', 'AL': 'Albania', 'BA': 'Bosnia and Herzegovina',
+                'ME': 'Montenegro', 'MK': 'North Macedonia', 'RS': 'Serbia', 'XK': 'Kosovo',
+                'MD': 'Moldova', 'UA': 'Ukraine', 'BY': 'Belarus', 'KZ': 'Kazakhstan',
+                'KG': 'Kyrgyzstan', 'TJ': 'Tajikistan', 'TM': 'Turkmenistan', 'UZ': 'Uzbekistan',
+                'AF': 'Afghanistan', 'PK': 'Pakistan', 'BD': 'Bangladesh', 'BT': 'Bhutan',
+                'IN': 'India', 'MV': 'Maldives', 'LK': 'Sri Lanka', 'NP': 'Nepal',
+                'MM': 'Myanmar', 'TH': 'Thailand', 'LA': 'Laos', 'KH': 'Cambodia',
+                'VN': 'Vietnam', 'MY': 'Malaysia', 'SG': 'Singapore', 'BN': 'Brunei',
+                'ID': 'Indonesia', 'TL': 'East Timor', 'PH': 'Philippines', 'MN': 'Mongolia',
+                'KP': 'North Korea', 'HK': 'Hong Kong', 'MO': 'Macau'
+            },
+            
+            # GoodTools → No-Intro
+            'goodtools': {
+                # Official GoodTools codes
+                '1': 'Japan', '4': 'USA', 'A': 'Australia', 'B': 'Brazil', 'C': 'China',
+                'D': 'Netherlands', 'E': 'Europe', 'F': 'France', 'FC': 'Canada',
+                'FN': 'Finland', 'G': 'Germany', 'GR': 'Greece', 'HK': 'Hong Kong',
+                'J': 'Japan', 'K': 'Korea', 'NL': 'Netherlands', 'PD': 'Public Domain',
+                'S': 'Spain', 'Sw': 'Sweden', 'U': 'USA', 'UK': 'UK', 'Unk': 'Unknown',
+                'I': 'Italy', 'Unl': 'Unlicensed',
+                
+                # Unofficial GoodTools codes (ISO 3166-1 alpha-2)
+                'Ar': 'Argentina', 'As': 'Asia', 'Au': 'Australia', 'Br': 'Brazil',
+                'Ca': 'Canada', 'Cn': 'China', 'Dk': 'Denmark', 'Eu': 'Europe',
+                'Fr': 'France', 'Fi': 'Finland', 'De': 'Germany', 'Gr': 'Greece',
+                'It': 'Italy', 'Jp': 'Japan', 'Kr': 'Korea', 'Mx': 'Mexico',
+                'Nl': 'Netherlands', 'NZ': 'New Zealand', 'Pt': 'Portugal',
+                'Ru': 'Russia', 'Es': 'Spain', 'Se': 'Sweden', 'Tw': 'Taiwan',
+                'US': 'USA', 'Wo': 'World'
+            }
         }
         
         # Development status keywords
@@ -165,15 +215,17 @@ class DATNameParser:
         # Find all parenthetical groups
         paren_groups = re.findall(r'\(([^)]+)\)', title)
         
+        # Collect all regions for multi-region handling
+        regions_found = []
+        
         for group in paren_groups:
             group_lower = group.lower()
             
             # Check for regions (first priority)
-            if not result['region_normalized']:
-                region = self._extract_region(group)
-                if region:
-                    result['region_normalized'] = region
-                    continue
+            region = self._standardize_region(group, 'nointro')
+            if region:
+                regions_found.append(region)
+                continue
                     
             # Check for languages
             if not result['language_codes']:
@@ -208,6 +260,14 @@ class DATNameParser:
                 result['extra_info'] += f"; {group}"
             else:
                 result['extra_info'] = group
+        
+        # Handle regions: single region or MULTI
+        if regions_found:
+            if len(regions_found) == 1:
+                result['region_normalized'] = regions_found[0]
+            else:
+                result['region_normalized'] = 'MULTI'
+                # Note: Individual regions would be stored in EAV table in actual implementation
                 
         return result
 
@@ -235,13 +295,13 @@ class DATNameParser:
             
         # Extract regions/countries - look in all parentheses
         paren_groups = re.findall(r'\(([^)]+)\)', title)
+        regions_found = []
         for group in paren_groups:
             if group.isdigit() and len(group) == 4:  # Skip years
                 continue
-            region = self._extract_region(group)
-            if region and not result['region_normalized']:
-                result['region_normalized'] = region
-                break
+            region = self._standardize_region(group, 'tosec')
+            if region:
+                regions_found.append(region)
                     
         # Look for dump status in brackets [good], [bad], etc.
         bracket_matches = re.findall(r'\[([^\]]+)\]', title)
@@ -252,6 +312,14 @@ class DATNameParser:
                 dump_status = self._extract_dump_status(match)
                 if dump_status and not result['dump_status']:
                     result['dump_status'] = dump_status
+        
+        # Handle regions: single region or MULTI
+        if regions_found:
+            if len(regions_found) == 1:
+                result['region_normalized'] = regions_found[0]
+            else:
+                result['region_normalized'] = 'MULTI'
+                # Note: Individual regions would be stored in EAV table in actual implementation
                 
         return result
 
@@ -269,22 +337,17 @@ class DATNameParser:
         # Find all bracketed groups
         bracket_groups = re.findall(r'\[([^\]]+)\]', title)
         
+        # Collect all regions for multi-region handling
+        regions_found = []
+        
         for group in bracket_groups:
             group_lower = group.lower()
             
-            # GoodTools region codes (check first)
-            if group.upper() in ['U', 'USA', 'US']:
-                if not result['region_normalized']:
-                    result['region_normalized'] = 'USA'
-            elif group.upper() in ['E', 'EUR', 'EUROPE']:
-                if not result['region_normalized']:
-                    result['region_normalized'] = 'EUR'
-            elif group.upper() in ['J', 'JPN', 'JAPAN']:
-                if not result['region_normalized']:
-                    result['region_normalized'] = 'JPN'
-            elif group.upper() in ['W', 'WORLD']:
-                if not result['region_normalized']:
-                    result['region_normalized'] = 'World'
+            # Check for regions first
+            region = self._standardize_region(group, 'goodtools')
+            if region:
+                regions_found.append(region)
+                continue
             # GoodTools status codes
             elif group == '!':
                 if not result['dump_status']:
@@ -317,18 +380,19 @@ class DATNameParser:
                 if not result['dump_status']:
                     result['dump_status'] = 'bad'
             else:
-                # Check for other regions
-                if not result['region_normalized']:
-                    region = self._extract_region(group)
-                    if region:
-                        result['region_normalized'] = region
-                        continue
-                        
                 # Store other info
                 if result['extra_info']:
                     result['extra_info'] += f"; {group}"
                 else:
                     result['extra_info'] = group
+        
+        # Handle regions: single region or MULTI
+        if regions_found:
+            if len(regions_found) == 1:
+                result['region_normalized'] = regions_found[0]
+            else:
+                result['region_normalized'] = 'MULTI'
+                # Note: Individual regions would be stored in EAV table in actual implementation
                     
         return result
 
@@ -356,27 +420,65 @@ class DATNameParser:
                 
         return result
 
+    def _standardize_region(self, region_text: str, source_format: str) -> Optional[str]:
+        """Convert any region code to standardized No-Intro format."""
+        if not region_text:
+            return None
+            
+        region_clean = region_text.strip().upper()
+        
+        # Check if it's already in No-Intro format
+        if region_clean in self.region_mappings['nointro']:
+            return self.region_mappings['nointro'][region_clean]
+        
+        # Convert from source format to No-Intro
+        if source_format in self.region_mappings:
+            if region_clean in self.region_mappings[source_format]:
+                return self.region_mappings[source_format][region_clean]
+        
+        # Handle multi-region formats
+        if ',' in region_clean:
+            regions = [r.strip() for r in region_clean.split(',')]
+            normalized_regions = []
+            for region in regions:
+                normalized = self._standardize_region(region, source_format)
+                if normalized:
+                    normalized_regions.append(normalized)
+            if normalized_regions:
+                return ', '.join(normalized_regions)
+        
+        # Partial matching for common variations (only for exact word matches)
+        if source_format in self.region_mappings:
+            for key, value in self.region_mappings[source_format].items():
+                # Only match if the key is a complete word, not a substring
+                if f' {key.lower()} ' in f' {region_clean.lower()} ' or region_clean.lower() == key.lower():
+                    return value
+        
+        return None
+
     def _extract_region(self, text: str) -> Optional[str]:
-        """Extract and normalize region from text."""
+        """Extract and normalize region from text (legacy method - use _standardize_region instead)."""
+        # This method is kept for backward compatibility but should be replaced
+        # with _standardize_region calls in the individual parsers
         text_clean = text.strip()
         
-        # Direct mapping
-        if text_clean in self.nointro_regions:
-            return self.nointro_regions[text_clean]
+        # Direct mapping (legacy)
+        if text_clean in self.region_mappings['nointro']:
+            return self.region_mappings['nointro'][text_clean]
             
         # Check for multi-region format like "Japan, USA"
         if ',' in text_clean:
             regions = [r.strip() for r in text_clean.split(',')]
             normalized_regions = []
             for region in regions:
-                if region in self.nointro_regions:
-                    normalized_regions.append(self.nointro_regions[region])
+                if region in self.region_mappings['nointro']:
+                    normalized_regions.append(self.region_mappings['nointro'][region])
             if normalized_regions:
                 return ', '.join(normalized_regions)
                 
         # Partial matching
         text_lower = text_clean.lower()
-        for key, value in self.nointro_regions.items():
+        for key, value in self.region_mappings['nointro'].items():
             if key.lower() in text_lower:
                 return value
                 

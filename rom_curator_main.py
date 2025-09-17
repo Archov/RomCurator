@@ -130,7 +130,7 @@ class LoggingManager:
         simple_formatter = logging.Formatter('%(levelname)s: %(message)s')
         
         # File handler for detailed logs
-        file_handler = logging.FileHandler(log_dir / 'rom_curator.log')
+        file_handler = logging.FileHandler(log_dir / 'rom_curator.log', encoding='utf-8')
         file_handler.setLevel(log_level)
         file_handler.setFormatter(detailed_formatter)
         
@@ -138,6 +138,8 @@ class LoggingManager:
         console_handler = logging.StreamHandler()
         console_handler.setLevel(log_level)
         console_handler.setFormatter(simple_formatter)
+        # Set encoding to UTF-8 to handle Unicode characters
+        console_handler.stream.reconfigure(encoding='utf-8')
         
         # Configure root logger
         root_logger = logging.getLogger()
@@ -286,16 +288,6 @@ class RomCuratorMainWindow(QMainWindow):
         # Database tools
         db_menu = tools_menu.addMenu('&Database')
         
-        setup_action = QAction('&Setup Matching System...', self)
-        db_menu.addAction(setup_action)
-        
-        validate_action = QAction('&Validate Matching...', self)
-        validate_action.setStatusTip('Run validation tests on the matching system')
-        validate_action.triggered.connect(self.validate_matching_system)
-        db_menu.addAction(validate_action)
-        
-        db_menu.addSeparator()
-        
         platform_linking_action = QAction('&Platform Linking...', self)
         platform_linking_action.setStatusTip('Manage platform links for accurate matching')
         platform_linking_action.triggered.connect(self.open_platform_linking)
@@ -333,8 +325,7 @@ class RomCuratorMainWindow(QMainWindow):
             QMessageBox.warning(
                 self, "Database Not Found",
                 f"Database file not found at:\n{db_path}\n\n"
-                "Please create the database using the schema creation script, "
-                "or use Tools → Database → Setup Matching System to initialize."
+                "Please create the database using the schema creation script."
             )
         else:
             # TODO: Add actual database schema checking
@@ -411,7 +402,7 @@ class RomCuratorMainWindow(QMainWindow):
                 QMessageBox.warning(
                     self, "Schema Update Required",
                     "Platform linking requires database schema v1.8 or later.\n"
-                    "Please run Tools → Database → Setup Matching System first."
+                    "Please ensure your database is up to date."
                 )
                 conn.close()
                 return
@@ -441,21 +432,6 @@ class RomCuratorMainWindow(QMainWindow):
             "You can now import data and use the curation interface."
         )
     
-    def validate_matching_system(self):
-        """Run matching system validation."""
-        try:
-            # TODO: Implement validation without command line args
-            QMessageBox.information(
-                self, "Validation",
-                "Matching validation will be implemented in the next update."
-            )
-            
-        except Exception as e:
-            logging.error(f"Failed to run validation: {e}")
-            QMessageBox.critical(
-                self, "Validation Error",
-                f"Failed to run validation:\n{e}"
-            )
     
     def view_logs(self):
         """Open log viewer window."""

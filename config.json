@@ -2,7 +2,7 @@
     "database_path": "./database/RomCurator.db",
     "importer_scripts_directory": "./scripts/seeders/",
     "log_directory": "./logs/",
-    "log_level": "INFO",
+    "log_level": "DEBUG",
     "auto_create_directories": true,
     "progress_update_interval": 100,
     "gui_settings": {
