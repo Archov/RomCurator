@@ -1,0 +1,478 @@
+"""
+Universal DAT filename parser for No-Intro, TOSEC, and GoodTools naming conventions.
+
+This module extracts universal metadata concepts from ROM/game names in DAT files,
+including base title, region, version, development status, dump status, and languages.
+"""
+
+import re
+from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass
+
+
+@dataclass
+class ParsedMetadata:
+    """Container for parsed metadata from a ROM/game name."""
+    base_title: str
+    region_normalized: str = ""
+    version_info: str = ""
+    development_status: str = ""
+    dump_status: str = ""
+    language_codes: str = ""
+    extra_info: str = ""
+
+
+class DATNameParser:
+    """Parser for extracting metadata from ROM/game names in various DAT formats."""
+    
+    def __init__(self):
+        # No-Intro region mappings
+        self.nointro_regions = {
+            'USA': 'USA', 'US': 'USA', 'U': 'USA',
+            'Europe': 'EUR', 'EUR': 'EUR', 'E': 'EUR',
+            'Japan': 'JPN', 'JPN': 'JPN', 'J': 'JPN',
+            'World': 'World', 'W': 'World',
+            'Asia': 'Asia',
+            'Australia': 'AUS', 'AUS': 'AUS',
+            'Brazil': 'BRA', 'BRA': 'BRA',
+            'Canada': 'CAN', 'CAN': 'CAN',
+            'China': 'CHN', 'CHN': 'CHN',
+            'France': 'FRA', 'FRA': 'FRA',
+            'Germany': 'GER', 'GER': 'GER',
+            'Italy': 'ITA', 'ITA': 'ITA',
+            'Korea': 'KOR', 'KOR': 'KOR',
+            'Netherlands': 'NLD', 'NLD': 'NLD',
+            'Spain': 'ESP', 'ESP': 'ESP',
+            'Sweden': 'SWE', 'SWE': 'SWE',
+            'Taiwan': 'TWN', 'TWN': 'TWN',
+            'UK': 'GBR', 'GBR': 'GBR'
+        }
+        
+        # Development status keywords
+        self.dev_status_keywords = {
+            'demo': 'demo',
+            'beta': 'beta', 
+            'proto': 'proto',
+            'prototype': 'proto',
+            'alpha': 'alpha',
+            'sample': 'sample',
+            'preview': 'preview',
+            'test': 'test',
+            'debug': 'debug'
+        }
+        
+        # Dump status keywords  
+        self.dump_status_keywords = {
+            'verified': 'verified',
+            'good': 'good',
+            'bad': 'bad',
+            'alternate': 'alternate',
+            'overdump': 'overdump',
+            'underdump': 'underdump',
+            'fixed': 'fixed',
+            'hack': 'hack',
+            'translated': 'translated',
+            'cracked': 'cracked',
+            'trained': 'trained',
+            'pirate': 'pirate'
+        }
+        
+        # Language code mappings (ISO 639-1)
+        self.language_codes = {
+            'en': 'en', 'english': 'en',
+            'ja': 'ja', 'japanese': 'ja', 'jp': 'ja',
+            'fr': 'fr', 'french': 'fr',
+            'de': 'de', 'german': 'de',
+            'es': 'es', 'spanish': 'es',
+            'it': 'it', 'italian': 'it',
+            'nl': 'nl', 'dutch': 'nl',
+            'pt': 'pt', 'portuguese': 'pt',
+            'sv': 'sv', 'swedish': 'sv',
+            'no': 'no', 'norwegian': 'no',
+            'da': 'da', 'danish': 'da',
+            'fi': 'fi', 'finnish': 'fi',
+            'zh': 'zh', 'chinese': 'zh',
+            'ko': 'ko', 'korean': 'ko',
+            'pl': 'pl', 'polish': 'pl'
+        }
+
+    def parse_title(self, title: str, dat_format: str = "auto") -> Dict[str, str]:
+        """
+        Parse a ROM/game title and extract universal metadata.
+        
+        Args:
+            title: The ROM/game name from the DAT file
+            dat_format: Format hint ("nointro", "tosec", "goodtools", or "auto")
+            
+        Returns:
+            Dictionary with parsed metadata fields
+        """
+        if not title:
+            return self._empty_result()
+            
+        # Detect format if auto
+        if dat_format == "auto":
+            dat_format = self._detect_format(title)
+            
+        # Parse based on detected/specified format
+        if dat_format == "nointro":
+            return self._parse_nointro(title)
+        elif dat_format == "tosec":
+            return self._parse_tosec(title)
+        elif dat_format == "goodtools":
+            return self._parse_goodtools(title)
+        else:
+            # Fallback: basic parsing
+            return self._parse_generic(title)
+
+    def _detect_format(self, title: str) -> str:
+        """Auto-detect the DAT format based on naming patterns."""
+        # TOSEC typically uses lots of parentheses with specific patterns
+        if re.search(r'\(\d{4}\)', title) and '(' in title:
+            # Check for TOSEC-specific patterns
+            if any(pattern in title.lower() for pattern in ['disk ', 'side ', 'tape ', 'file ']):
+                return "tosec"
+                
+        # GoodTools uses [brackets] and specific abbreviations
+        if '[' in title and ']' in title:
+            # Look for GoodTools patterns: [!], [U], [E], [J], [h1], [t1], etc.
+            goodtools_patterns = [
+                r'\[!\]',           # verified
+                r'\[[UEJWuejw]\]',  # regions
+                r'\[[abcfhoptx]\d*\]', # status codes with optional numbers
+                r'\[USA?\]', r'\[EUR?\]', r'\[JPN?\]'  # full region names
+            ]
+            if any(re.search(pattern, title) for pattern in goodtools_patterns):
+                return "goodtools"
+                
+        # No-Intro is cleaner, typically (Region) patterns
+        if re.search(r'\([A-Za-z, ]+\)(?:\s*\([^)]*\))*$', title):
+            return "nointro"
+            
+        return "generic"
+
+    def _parse_nointro(self, title: str) -> Dict[str, str]:
+        """Parse No-Intro format: Game Title (Region) (Language) (Version) (Status)"""
+        result = self._empty_result()
+        
+        # Extract base title (everything before first parenthesis)
+        base_match = re.match(r'^([^(]+)', title.strip())
+        if base_match:
+            result['base_title'] = base_match.group(1).strip()
+        else:
+            result['base_title'] = title
+            
+        # Find all parenthetical groups
+        paren_groups = re.findall(r'\(([^)]+)\)', title)
+        
+        for group in paren_groups:
+            group_lower = group.lower()
+            
+            # Check for regions (first priority)
+            if not result['region_normalized']:
+                region = self._extract_region(group)
+                if region:
+                    result['region_normalized'] = region
+                    continue
+                    
+            # Check for languages
+            if not result['language_codes']:
+                languages = self._extract_languages(group)
+                if languages:
+                    result['language_codes'] = languages
+                    continue
+                    
+            # Check for version info
+            if not result['version_info']:
+                version = self._extract_version(group)
+                if version:
+                    result['version_info'] = version
+                    continue
+                    
+            # Check for development status
+            if not result['development_status']:
+                dev_status = self._extract_dev_status(group)
+                if dev_status:
+                    result['development_status'] = dev_status
+                    continue
+                    
+            # Check for dump status
+            if not result['dump_status']:
+                dump_status = self._extract_dump_status(group)
+                if dump_status:
+                    result['dump_status'] = dump_status
+                    continue
+                    
+            # Store unrecognized info
+            if result['extra_info']:
+                result['extra_info'] += f"; {group}"
+            else:
+                result['extra_info'] = group
+                
+        return result
+
+    def _parse_tosec(self, title: str) -> Dict[str, str]:
+        """Parse TOSEC format: Game Title (Year)(Company)(Country)[more info]"""
+        result = self._empty_result()
+        
+        # TOSEC format: Title (Year)(Publisher)(Country)[Status]
+        # Extract just the title part (before year)
+        title_match = re.match(r'^([^(]+?)(?:\s*\(\d{4}\).*)?$', title.strip())
+        if title_match:
+            result['base_title'] = title_match.group(1).strip()
+        else:
+            # Fallback: take everything before first parenthesis
+            base_match = re.match(r'^([^(]+)', title.strip())
+            if base_match:
+                result['base_title'] = base_match.group(1).strip()
+            else:
+                result['base_title'] = title
+            
+        # Extract year (usually first parenthesis with 4 digits)
+        year_match = re.search(r'\((\d{4})\)', title)
+        if year_match:
+            result['extra_info'] = f"Year: {year_match.group(1)}"
+            
+        # Extract regions/countries - look in all parentheses
+        paren_groups = re.findall(r'\(([^)]+)\)', title)
+        for group in paren_groups:
+            if group.isdigit() and len(group) == 4:  # Skip years
+                continue
+            region = self._extract_region(group)
+            if region and not result['region_normalized']:
+                result['region_normalized'] = region
+                break
+                    
+        # Look for dump status in brackets [good], [bad], etc.
+        bracket_matches = re.findall(r'\[([^\]]+)\]', title)
+        for match in bracket_matches:
+            if match == '!':
+                result['dump_status'] = 'verified'
+            else:
+                dump_status = self._extract_dump_status(match)
+                if dump_status and not result['dump_status']:
+                    result['dump_status'] = dump_status
+                
+        return result
+
+    def _parse_goodtools(self, title: str) -> Dict[str, str]:
+        """Parse GoodTools format: Game Title [!] [region codes] [status]"""
+        result = self._empty_result()
+        
+        # Extract base title (everything before first bracket)
+        base_match = re.match(r'^([^\[]+)', title.strip())
+        if base_match:
+            result['base_title'] = base_match.group(1).strip()
+        else:
+            result['base_title'] = title
+            
+        # Find all bracketed groups
+        bracket_groups = re.findall(r'\[([^\]]+)\]', title)
+        
+        for group in bracket_groups:
+            group_lower = group.lower()
+            
+            # GoodTools region codes (check first)
+            if group.upper() in ['U', 'USA', 'US']:
+                if not result['region_normalized']:
+                    result['region_normalized'] = 'USA'
+            elif group.upper() in ['E', 'EUR', 'EUROPE']:
+                if not result['region_normalized']:
+                    result['region_normalized'] = 'EUR'
+            elif group.upper() in ['J', 'JPN', 'JAPAN']:
+                if not result['region_normalized']:
+                    result['region_normalized'] = 'JPN'
+            elif group.upper() in ['W', 'WORLD']:
+                if not result['region_normalized']:
+                    result['region_normalized'] = 'World'
+            # GoodTools status codes
+            elif group == '!':
+                if not result['dump_status']:
+                    result['dump_status'] = 'verified'
+            elif group in ['a', 'a1', 'a2']:
+                if not result['dump_status']:
+                    result['dump_status'] = 'alternate'
+            elif group in ['b', 'b1', 'b2']:
+                if not result['dump_status']:
+                    result['dump_status'] = 'bad'
+            elif group == 'c':
+                if not result['dump_status']:
+                    result['dump_status'] = 'cracked'
+            elif group == 'f':
+                if not result['dump_status']:
+                    result['dump_status'] = 'fixed'
+            elif group.startswith('h') and (len(group) == 1 or group[1:].isdigit()):
+                if not result['dump_status']:
+                    result['dump_status'] = 'hack'
+            elif group == 'o':
+                if not result['dump_status']:
+                    result['dump_status'] = 'overdump'
+            elif group == 'p':
+                if not result['dump_status']:
+                    result['dump_status'] = 'pirate'
+            elif group.startswith('t') and (len(group) == 1 or group[1:].isdigit()):
+                if not result['dump_status']:
+                    result['dump_status'] = 'translated'
+            elif group == 'x':
+                if not result['dump_status']:
+                    result['dump_status'] = 'bad'
+            else:
+                # Check for other regions
+                if not result['region_normalized']:
+                    region = self._extract_region(group)
+                    if region:
+                        result['region_normalized'] = region
+                        continue
+                        
+                # Store other info
+                if result['extra_info']:
+                    result['extra_info'] += f"; {group}"
+                else:
+                    result['extra_info'] = group
+                    
+        return result
+
+    def _parse_generic(self, title: str) -> Dict[str, str]:
+        """Generic parsing for unknown formats."""
+        result = self._empty_result()
+        result['base_title'] = title.strip()
+        
+        # Try to extract any recognizable patterns
+        all_groups = re.findall(r'[\(\[]([^\)\]]+)[\)\]]', title)
+        
+        for group in all_groups:
+            # Try region extraction
+            if not result['region_normalized']:
+                region = self._extract_region(group)
+                if region:
+                    result['region_normalized'] = region
+                    continue
+                    
+            # Try other extractions...
+            if not result['extra_info']:
+                result['extra_info'] = group
+            else:
+                result['extra_info'] += f"; {group}"
+                
+        return result
+
+    def _extract_region(self, text: str) -> Optional[str]:
+        """Extract and normalize region from text."""
+        text_clean = text.strip()
+        
+        # Direct mapping
+        if text_clean in self.nointro_regions:
+            return self.nointro_regions[text_clean]
+            
+        # Check for multi-region format like "Japan, USA"
+        if ',' in text_clean:
+            regions = [r.strip() for r in text_clean.split(',')]
+            normalized_regions = []
+            for region in regions:
+                if region in self.nointro_regions:
+                    normalized_regions.append(self.nointro_regions[region])
+            if normalized_regions:
+                return ', '.join(normalized_regions)
+                
+        # Partial matching
+        text_lower = text_clean.lower()
+        for key, value in self.nointro_regions.items():
+            if key.lower() in text_lower:
+                return value
+                
+        return None
+
+    def _extract_languages(self, text: str) -> Optional[str]:
+        """Extract language codes from text."""
+        text_lower = text.lower()
+        found_languages = []
+        
+        # Look for comma-separated language codes like "En,Fr,De"
+        if ',' in text:
+            parts = [p.strip() for p in text.split(',')]
+            for part in parts:
+                part_lower = part.lower()
+                if part_lower in self.language_codes:
+                    found_languages.append(self.language_codes[part_lower])
+                    
+        # Single language check
+        if not found_languages and text_lower in self.language_codes:
+            found_languages.append(self.language_codes[text_lower])
+            
+        return ','.join(found_languages) if found_languages else None
+
+    def _extract_version(self, text: str) -> Optional[str]:
+        """Extract version information from text."""
+        # Common version patterns
+        version_patterns = [
+            r'v?(\d+\.?\d*)',           # v1.0, v2, 1.02
+            r'rev\s*(\d+)',             # Rev 1, Rev A
+            r'version\s*(\d+\.?\d*)',   # Version 1.0
+            r'\b(\d+\.?\d*)\b',         # Just numbers
+        ]
+        
+        text_lower = text.lower()
+        for pattern in version_patterns:
+            match = re.search(pattern, text_lower)
+            if match:
+                return match.group(1)
+                
+        return None
+
+    def _extract_dev_status(self, text: str) -> Optional[str]:
+        """Extract development status from text."""
+        text_lower = text.lower()
+        for keyword, status in self.dev_status_keywords.items():
+            if keyword in text_lower:
+                return status
+        return None
+
+    def _extract_dump_status(self, text: str) -> Optional[str]:
+        """Extract dump status from text."""
+        text_lower = text.lower()
+        for keyword, status in self.dump_status_keywords.items():
+            if keyword in text_lower:
+                return status
+        return None
+
+    def _empty_result(self) -> Dict[str, str]:
+        """Return empty result dictionary."""
+        return {
+            'base_title': '',
+            'region_normalized': '',
+            'version_info': '',
+            'development_status': '',
+            'dump_status': '',
+            'language_codes': '',
+            'extra_info': ''
+        }
+
+
+# Example usage and testing
+if __name__ == "__main__":
+    parser = DATNameParser()
+    
+    # Test cases
+    test_cases = [
+        # No-Intro examples
+        "Super Mario Bros. (USA)",
+        "The Legend of Zelda (USA) (Rev 1)",
+        "Final Fantasy (USA) (En,Fr,De)",
+        "Pokemon Red (Japan) (Beta)",
+        
+        # TOSEC examples  
+        "Sonic the Hedgehog (1991)(Sega)(US)[!]",
+        "Prince of Persia (1989)(Broderbund)(Disk 1 of 2)",
+        
+        # GoodTools examples
+        "Super Mario Bros [!]",
+        "Zelda II - The Adventure of Link [U][!]",
+        "Metroid [U][h1]",
+    ]
+    
+    for test in test_cases:
+        print(f"\nParsing: {test}")
+        result = parser.parse_title(test)
+        for key, value in result.items():
+            if value:
+                print(f"  {key}: {value}")

@@ -73,10 +73,14 @@ class DatabaseHandler:
             return row[id_column]
         else:
             if table == 'region':
-                cursor.execute(f"INSERT INTO {table} (region_code, name) VALUES (?, ?)", (value, value))
+                cursor.execute(f"INSERT OR IGNORE INTO {table} (region_code, name) VALUES (?, ?)", (value, value))
             else:
-                cursor.execute(f"INSERT INTO {table} ({name_column}) VALUES (?)", (value,))
-            return cursor.lastrowid
+                cursor.execute(f"INSERT OR IGNORE INTO {table} ({name_column}) VALUES (?)", (value,))
+            
+            # After INSERT OR IGNORE, we need to get the ID again in case it was ignored
+            cursor.execute(f"SELECT {id_column} FROM {table} WHERE lower({name_column}) = ?", (value.lower(),))
+            row = cursor.fetchone()
+            return row[id_column] if row else cursor.lastrowid
 
     def get_or_create_platform(self, cursor, platform_name):
         """Gets the ID of a platform if it exists, otherwise creates it."""
@@ -85,8 +89,12 @@ class DatabaseHandler:
         if row:
             return row['platform_id']
         else:
-            cursor.execute("INSERT INTO platform (name) VALUES (?)", (platform_name,))
-            return cursor.lastrowid
+            cursor.execute("INSERT OR IGNORE INTO platform (name) VALUES (?)", (platform_name,))
+            
+            # After INSERT OR IGNORE, we need to get the ID again in case it was ignored
+            cursor.execute("SELECT platform_id FROM platform WHERE lower(name) = ?", (platform_name.lower(),))
+            row = cursor.fetchone()
+            return row['platform_id'] if row else cursor.lastrowid
 
     @staticmethod
     def calculate_file_hash(file_path):

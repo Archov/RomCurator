@@ -1,5 +1,13 @@
 {
     "database_path": "./database/RomCurator.db",
-    "importer_scripts_directory": "./scripts/seeders/"
+    "importer_scripts_directory": "./scripts/seeders/",
+    "log_directory": "./logs/",
+    "log_level": "INFO",
+    "auto_create_directories": true,
+    "progress_update_interval": 100,
+    "gui_settings": {
+        "window_width": 1200,
+        "window_height": 800,
+        "theme": "dark"
+    }
 }
-

@@ -140,9 +140,10 @@ class DatabaseManager:
 # --- Dialog for Managing Sources ---
 class SourceManagerDialog(QDialog):
     """A dialog to add, edit, or delete metadata sources."""
-    def __init__(self, db_manager, source_data=None, parent=None):
+    def __init__(self, db_manager, config_manager, source_data=None, parent=None):
         super().__init__(parent)
         self.db_manager = db_manager
+        self.config = config_manager
         self.source_data = source_data # (source_id, name, script_path, schema_path)
 
         self.setWindowTitle("Manage Metadata Source")
@@ -177,7 +178,7 @@ class SourceManagerDialog(QDialog):
         layout.addRow(buttons)
 
     def browse_for_script(self):
-        initial_dir = str(IMPORTER_SCRIPTS_DIR.resolve())
+        initial_dir = str(Path(self.config.get('importer_scripts_directory')).resolve())
         file_path, _ = QFileDialog.getOpenFileName(self, "Select Importer Script", initial_dir, "Python Files (*.py)")
         if file_path:
             try:
@@ -218,9 +219,20 @@ class SourceManagerDialog(QDialog):
 
 # --- Main Application Window ---
 class ImporterApp(QWidget):
-    def __init__(self):
+    def __init__(self, config_manager=None):
         super().__init__()
-        self.db = DatabaseManager(DATABASE_FILE)
+        
+        # Use provided config or load default
+        if config_manager:
+            self.config = config_manager
+        else:
+            from rom_curator_main import ConfigManager
+            self.config = ConfigManager()
+        
+        # Get paths from config
+        db_path = self.config.get('database_path')
+        self.db = DatabaseManager(Path(db_path))
+        
         self.selected_files = []
         self.current_source_id = None
         self.current_importer_script = None
@@ -340,7 +352,7 @@ class ImporterApp(QWidget):
 
     def open_source_dialog(self, parent_menu, index=-1, sources=None):
         source_data = sources[index] if index != -1 and sources else None
-        dialog = SourceManagerDialog(self.db, source_data, self)
+        dialog = SourceManagerDialog(self.db, self.config, source_data, self)
         if dialog.exec_():
             parent_menu.close()
 
@@ -379,11 +391,13 @@ class ImporterApp(QWidget):
         print(f"Files: {self.selected_files}")
 
         try:
+            # Pass configuration via environment or temporary config
+            db_path = self.config.get('database_path')
             args = [
                 sys.executable,
                 str(script_path),
                 '--source_id', str(self.current_source_id),
-                '--db_path', str(DATABASE_FILE.resolve()),
+                '--db_path', str(Path(db_path).resolve()),
                 '--files'
             ] + self.selected_files
             

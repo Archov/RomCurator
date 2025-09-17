@@ -129,15 +129,56 @@ def handle_schema_validation_warning(file_path, is_valid, validation_message, sc
         print(f"{schema_type} schema validation passed: {validation_message}")
 
 
-def process_dat_rom_entry(cursor, log_id, platform_id, game_name, sha1, is_clone=0, clone_of=""):
-    """Insert a single ROM entry into the dat_entry table."""
+def process_dat_rom_entry(cursor, log_id, platform_id, game_name, sha1, is_clone=0, clone_of="", dat_format="auto"):
+    """Insert a single ROM entry into the dat_entry table with enhanced parsing."""
     if not sha1:
         return False
     
-    cursor.execute("""
-        INSERT OR IGNORE INTO dat_entry (
-            log_id, platform_id, release_title, rom_sha1, is_clone, clone_of
-        ) VALUES (?, ?, ?, ?, ?, ?)
-    """, (log_id, platform_id, game_name, sha1.lower(), is_clone, clone_of))
+    # Import parser here to avoid circular imports
+    try:
+        from .dat_parser import DATNameParser
+    except ImportError:
+        from dat_parser import DATNameParser
+    
+    # Parse the game name to extract universal metadata
+    parser = DATNameParser()
+    parsed_data = parser.parse_title(game_name, dat_format)
+    
+    # Check if the enhanced dat_entry table structure exists
+    cursor.execute("PRAGMA table_info(dat_entry)")
+    columns = [column[1] for column in cursor.fetchall()]
+    
+    if 'base_title' in columns:
+        # Use enhanced structure (v1.7)
+        cursor.execute("""
+            INSERT OR IGNORE INTO dat_entry (
+                log_id, platform_id, release_title, rom_sha1, is_clone, clone_of,
+                base_title, region_normalized, version_info, development_status,
+                dump_status, language_codes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            log_id, platform_id, game_name, sha1.lower(), is_clone, clone_of,
+            parsed_data['base_title'], parsed_data['region_normalized'],
+            parsed_data['version_info'], parsed_data['development_status'],
+            parsed_data['dump_status'], parsed_data['language_codes']
+        ))
+        
+        # Insert format-specific metadata if any extra_info exists
+        if parsed_data['extra_info']:
+            cursor.execute("""
+                INSERT OR IGNORE INTO dat_entry_metadata (
+                    dat_entry_id, metadata_key, metadata_value
+                ) VALUES (
+                    (SELECT dat_entry_id FROM dat_entry WHERE rom_sha1 = ? AND log_id = ?),
+                    'extra_info', ?
+                )
+            """, (sha1.lower(), log_id, parsed_data['extra_info']))
+    else:
+        # Fallback to basic structure (v1.6)
+        cursor.execute("""
+            INSERT OR IGNORE INTO dat_entry (
+                log_id, platform_id, release_title, rom_sha1, is_clone, clone_of
+            ) VALUES (?, ?, ?, ?, ?, ?)
+        """, (log_id, platform_id, game_name, sha1.lower(), is_clone, clone_of))
     
     return True
