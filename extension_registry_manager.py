@@ -610,6 +610,21 @@ class ExtensionRegistryManager:
                             mapping['platform_extension_id'], mapping['platform_id'], mapping['platform_name'],
                             mapping['extension_id'], mapping['extension'], mapping['is_primary'], mapping['confidence']
                         ])
+                    
+                    writer.writerow([])  # Empty row
+                    
+                    # Write unknown extensions
+                    writer.writerow(['UNKNOWN EXTENSIONS'])
+                    writer.writerow(['unknown_extension_id', 'extension', 'file_count', 'status', 
+                                   'suggested_category_id', 'suggested_platform_id', 'notes', 
+                                   'first_seen', 'last_seen'])
+                    for unknown in unknown:
+                        writer.writerow([
+                            unknown['unknown_extension_id'], unknown['extension'], unknown['file_count'],
+                            unknown['status'], unknown.get('suggested_category_id') or '', 
+                            unknown.get('suggested_platform_id') or '', unknown.get('notes') or '',
+                            unknown.get('first_seen') or '', unknown.get('last_seen') or ''
+                        ])
             
             else:
                 raise ValueError(f"Unsupported export format: {format}")
