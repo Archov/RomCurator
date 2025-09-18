@@ -312,6 +312,33 @@ class ImportWorkerThread(QThread):
             timeout_seconds = 300  # 5 minute timeout per file
             start_time = time.time()
             
+            # Set up Windows threading infrastructure once, outside the loop
+            stdout_queue = None
+            stderr_queue = None
+            stdout_thread = None
+            stderr_thread = None
+            
+            if os.name == 'nt' or not hasattr(select, 'select'):
+                # Use threading for Windows and fallback
+                import threading
+                import queue
+                
+                def read_output(pipe, output_queue):
+                    for line in iter(pipe.readline, ''):
+                        output_queue.put(line.rstrip())
+                    # Don't close the pipe here - let communicate() handle it
+                
+                stdout_queue = queue.Queue()
+                stderr_queue = queue.Queue()
+                
+                stdout_thread = threading.Thread(target=read_output, args=(process.stdout, stdout_queue))
+                stderr_thread = threading.Thread(target=read_output, args=(process.stderr, stderr_queue))
+                
+                stdout_thread.daemon = True
+                stderr_thread.daemon = True
+                stdout_thread.start()
+                stderr_thread.start()
+            
             while process.poll() is None:
                 # Check for cancellation
                 if self.should_stop:
@@ -353,27 +380,8 @@ class ImportWorkerThread(QThread):
                                 self.output_received.emit(f"STDERR: {line.rstrip()}")
                                 self.logger.log_message("debug", f"STDERR: {line.rstrip()}")
                     else:
-                        # Use threading for Windows and fallback
-                        import threading
-                        import queue
-                        
-                        def read_output(pipe, output_queue):
-                            for line in iter(pipe.readline, ''):
-                                output_queue.put(line.rstrip())
-                            pipe.close()
-                        
-                        stdout_queue = queue.Queue()
-                        stderr_queue = queue.Queue()
-                        
-                        stdout_thread = threading.Thread(target=read_output, args=(process.stdout, stdout_queue))
-                        stderr_thread = threading.Thread(target=read_output, args=(process.stderr, stderr_queue))
-                        
-                        stdout_thread.daemon = True
-                        stderr_thread.daemon = True
-                        stdout_thread.start()
-                        stderr_thread.start()
-                        
-                        # Process available output
+                        # Use the pre-created threads and queues for Windows
+                        # Process available output from the queues
                         while not stdout_queue.empty():
                             line = stdout_queue.get_nowait()
                             stdout_lines.append(line)
@@ -399,15 +407,38 @@ class ImportWorkerThread(QThread):
             self.current_process = None
             
             # Get any remaining output
-            remaining_stdout, remaining_stderr = process.communicate()
-            if remaining_stdout:
-                stdout_lines.extend(remaining_stdout.splitlines())
-                for line in remaining_stdout.splitlines():
+            if os.name != 'nt' and hasattr(select, 'select'):
+                # For Unix/Linux, use communicate() to get remaining output
+                remaining_stdout, remaining_stderr = process.communicate()
+                if remaining_stdout:
+                    stdout_lines.extend(remaining_stdout.splitlines())
+                    for line in remaining_stdout.splitlines():
+                        self.output_received.emit(line)
+                if remaining_stderr:
+                    stderr_lines.extend(remaining_stderr.splitlines())
+                    for line in remaining_stderr.splitlines():
+                        self.output_received.emit(f"STDERR: {line}")
+            else:
+                # For Windows, drain any remaining output from the queues
+                # Wait a moment for threads to finish reading
+                if stdout_thread and stdout_thread.is_alive():
+                    stdout_thread.join(timeout=1)
+                if stderr_thread and stderr_thread.is_alive():
+                    stderr_thread.join(timeout=1)
+                
+                # Drain any remaining output from queues
+                while not stdout_queue.empty():
+                    line = stdout_queue.get_nowait()
+                    stdout_lines.append(line)
                     self.output_received.emit(line)
-            if remaining_stderr:
-                stderr_lines.extend(remaining_stderr.splitlines())
-                for line in remaining_stderr.splitlines():
+                
+                while not stderr_queue.empty():
+                    line = stderr_queue.get_nowait()
+                    stderr_lines.append(line)
                     self.output_received.emit(f"STDERR: {line}")
+                
+                # Now it's safe to call communicate() to close pipes
+                process.communicate()
             
             # Combine all output
             stdout_output = '\n'.join(stdout_lines)
