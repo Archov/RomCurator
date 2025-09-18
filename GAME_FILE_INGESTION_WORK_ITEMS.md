@@ -1,6 +1,11 @@
 # Game File Ingestion - Work Items
 The following work items break down the implementation plan into actionable chunks. Each item includes concrete requirements and acceptance criteria so an AI agent (or human teammate) can verify completion objectively. Unit tests and automated checks are expected to be authored alongside each work item; regression coverage should accumulate throughout the program rather than arriving in a single dedicated task.
 
+Integration testing cadence:
+- **Phase 3 exit** – run end-to-end discovery → hashing → matching suites on representative local and NAS fixtures (including large collections) before promoting Work Items 13–16.
+- **Phase 4 exit** – repeat end-to-end runs including organiser/quarantine flows to validate curation and movement paths.
+- **Pre-Phase 6 sign-off** – execute a UAT-style regression covering performance baselines, network storage scenarios, and large collection stress tests prior to documentation/final optimisation work.
+
 ### Phase 1: Foundation
 ---
 ## Work Item 1: Database Foundations for Ingestion
@@ -21,11 +26,12 @@ The following work items break down the implementation plan into actionable chun
 - Add dedicated logging channels (`ingestion`, `ingestion.archive`, `ingestion.organizer`) via `LoggingManager` and ensure all worker components log meaningful events from the start of the project.
 - Implement granular error handling that rolls back only the active batch while persisting prior progress; failed entries should stay in `file_discovery` with diagnostic messages.
 - Persist checkpoint state frequently, honor cancellation flags promptly, and surface recoverable issues (e.g., permission problems) in the session summary.
-- Establish unit tests or fault-injection harnesses that exercise cancellation, checkpoint recovery, and logging paths.
+- Define a retry policy for transient failures (I/O hiccups, temporary DB locks, transient network share outages) capped at **three attempts** with exponential backoff (starting at 30 seconds, doubling per retry); classify non-retryable failures (permissions, schema issues, missing files) so they surface immediately without retries.
+- Establish unit tests or fault-injection harnesses that exercise cancellation, checkpoint recovery, retry exhaustion, and logging paths.
 
 **Acceptance Criteria**
 - Import logs show phase transitions, per-file outcomes, and explicit warnings/errors; log viewer filters expose ingestion-specific logs.
-- Force-injecting an error during processing leaves earlier work committed and records the failure details for the affected file.
+- Force-injecting an error during processing leaves earlier work committed and records the failure details for the affected file, including retry counters and final classification (transient vs permanent).
 - Cancelling an ingestion run mid-way produces a resumable checkpoint and user-facing notification confirming the pause; automated tests cover these behaviours.
 
 ---
@@ -74,7 +80,7 @@ The following work items break down the implementation plan into actionable chun
 ---
 ## Work Item 6: Hash Cache Infrastructure
 **Requirements**
-- Introduce the hash cache sidecar database (`database/rom_curator_cache.db`) keyed by absolute path + modified time → SHA-1 (with invalidation when file attributes change).
+- Introduce the hash cache sidecar database (`./database/rom_curator_cache.db`) keyed by absolute path + modified time → SHA-1 (with invalidation when file attributes change).
 - Define a cache lifecycle policy (size limits, LRU eviction or age-out schedules) and expose maintenance commands for pruning or rebuilding the cache.
 - Provide migration tooling to backfill cache entries for existing `rom_file` rows without rehashing everything at once.
 - Make chunk size, cache usage, and cache statistics toggles configurable through `config.json` and the `ConfigManager` interface with upfront defaults.
@@ -107,6 +113,7 @@ The following work items break down the implementation plan into actionable chun
 - Insert or update rows in `file_discovery` capturing `log_id`, `root_id`, absolute/relative paths, size, modified timestamp, recursion depth, and initial `promotion_state="pending"`.
 - Persist and reload per-job checkpoint files so the walker can resume after interruption or cancellation.
 - Implement incremental scan optimisations: detect unchanged directory trees via timestamp or hash caching, support quick-scan modes for new or modified content, and maintain a directory-state cache between runs.
+- Validate scaling characteristics against libraries containing **100,000+ files** by chunking database writes, monitoring memory/queue utilisation, and ensuring checkpoints remain performant under large workloads.
 - Validate that ignore/exclusion settings are defined in `config.json`, surfaced in the configuration UI, and documented for operators before discovery is enabled.
 - Author unit tests covering ignore rules, resume-from-checkpoint behaviour, and incremental scan decision logic.
 
@@ -124,11 +131,15 @@ The following work items break down the implementation plan into actionable chun
 - Validate that required `config.json` settings exist and meet schema requirements before launch; offer guided remediation for missing/invalid values.
 - Integrate pre-flight results into logging and session metadata for auditing.
 - Implement automated tests covering supported/unsupported detection, configuration validation, and cancellation pathways.
+- Display a headline estimate — “Processing this collection will take approximately **X hours**” — based on historical throughput metrics and current file counts, breaking the ETA into discovery, hashing, and matching phases.
+- Calculate and present required temporary space (default **10 GB**, configurable) for archive work plus expected final storage consumption; warn and block when thresholds are unmet.
+- Detect when roots are on NAS/network storage, read-only media, or contain locked files/symbolic links; surface the implications (slower throughput, checkpoint frequency adjustments, manual unlock steps) prior to launch.
 
 **Acceptance Criteria**
 - Starting an ingestion job produces a pre-flight summary that highlights counts of supported/unsupported files and paths requiring attention; users can abort or continue based on the preview.
 - Configuration or filesystem issues detected during pre-flight block execution until resolved and provide actionable guidance.
 - QA scenarios that intentionally include unsupported formats surface warnings before processing rather than failing silently mid-run; automated tests cover these flows.
+- The pre-flight panel displays ETA and per-phase breakdowns consistent (±10%) with observed runtimes on pilot datasets, and space/network warnings appear when thresholds are crossed.
 
 ---
 ## Work Item 10: Hashing & Promotion Pipeline
@@ -149,14 +160,15 @@ The following work items break down the implementation plan into actionable chun
 - Detect archives via the extension registry and signature probes; enumerate contents using streaming readers that handle nested archives up to the configured depth.
 - Record member relationships in `archive_member`, designating primary playable entries and capturing compressed/uncompressed sizes and modification metadata.
 - Implement failure handling for password-protected or corrupt archives, recording issues in `file_operation_log` and keeping `file_discovery` rows in a `promotion_state="failed"` state for operator review.
-- Detect solid archives (e.g., 7z solid blocks) and fall back to controlled extraction strategies with configurable temp-storage limits.
+- Detect solid archives (e.g., 7z solid blocks) and fall back to controlled extraction strategies with configurable temp-storage limits (default **10 GB**, configurable).
 - Support split archives (.001, .002, multi-part ZIP/7Z) by reassembling or sequentially streaming segments prior to hashing.
 - Add corruption detection and partial recovery logic that skips bad members while cataloguing the remainder, surfacing remediation guidance in the session summary.
+- Enforce ingestion memory ceilings with a default **2 GB** cap for hashing/extraction buffers and trigger throttling when utilisation exceeds **80 %** of the configured limit; expose overrides in configuration and logs.
 - Provide automated tests or fixtures covering nested archives, password handling stubs, and failure reporting.
 
 **Acceptance Criteria**
 - Test archives (single ROM, multi-ROM, nested archives, password-protected, solid, and split archives) yield appropriate `archive_member` rows and primary designations or actionable failure reports.
-- Password-protected or corrupted archives surface clear log entries/statuses without crashing the ingestion run, and recoverable members remain catalogued.
+- Password-protected or corrupted archives surface clear log entries/statuses without crashing the ingestion run, and recoverable members remain catalogued; memory and temp-space throttling events are observable in logs and telemetry.
 - Non-ROM assets (docs, cues, art) are classified using `content_role="auxiliary"` (or other category) and remain traceable in the database; fixtures/tests validate coverage.
 
 ---
@@ -178,7 +190,7 @@ The following work items break down the implementation plan into actionable chun
 ## Work Item 13: DAT Correlation & Ingestion Candidate Pipeline
 **Requirements**
 - Implement hash-first matching between `rom_file.sha1` and `dat_entry.rom_sha1`; when successful, create/update `dat_atomic_link` with `match_type="automatic"` and confidence scores.
-- For unresolved files, invoke `GameMatcher` with platform hints derived from extensions and `platform_links`; generate candidate rows in the new `ingestion_candidate` table.
+- For unresolved files, invoke `GameMatcher` with platform hints derived from extensions and `platform_links`; generate candidate rows in the new `ingestion_candidate` table, persisting the originating `log_id` for provenance.
 - Annotate candidates with reasons/metrics and ensure `import_log` provenance is captured for auditing.
 - Provide automated tests covering direct hash matches, fuzzy candidate generation, and deduplication of links.
 
@@ -223,12 +235,14 @@ The following work items break down the implementation plan into actionable chun
 - Generate a backup manifest (original path, destination path, hash) prior to executing moves and store it with the session logs.
 - Offer an "undo last organization" command that replays the backup manifest to restore files to their prior locations.
 - Include automated tests verifying dry-run output, manifest generation, and undo routines.
+- Define quarantine behaviour: quarantine destinations default to `./quarantine/<YYYYMMDD>/<session_id>/` (configurable), entries are chosen when organiser policy detects conflicts, hash mismatches, permission denials, or operator hold requests, and recovery tooling must support restore-or-delete workflows with audit trails.
 
 **Acceptance Criteria**
 - Running the organizer in dry-run mode produces a detailed, exportable diff of proposed moves without altering the filesystem or database.
 - Executing the organizer moves files into the configured library structure, updates `file_instance` paths, and logs each operation; the backup manifest is written alongside the run log.
 - Invoking the undo command after a move restores files to their previous locations and updates `file_instance`/`file_operation_log` accordingly; automated tests confirm behaviour.
 - Moving files externally between runs is detected; the next organizer run logs a restore or missing status as appropriate.
+- Quarantined files land in the configured quarantine directory with manifests, can be restored through the documented flow, and deletion versus restoration actions are auditable.
 
 ---
 ## Work Item 17: Bulk Platform Operations & Smart Defaults
@@ -252,14 +266,14 @@ The following work items break down the implementation plan into actionable chun
 - Add "Tools -> Library -> Scan & Ingest Files..." to the main window, launching the ingestion dialog with progress and cancellation controls.
 - Enhance the enhanced importer UI to display ingestion metrics (files seen, hashed, matched, pending) and run summaries.
 - Extend the configuration dialog to expose archive depth limit, password dictionary path, hash chunk size, database batch sizes, and organizer defaults; ensure `ConfigManager` persists and applies these settings.
-- Implement adaptive batching for database writes and queue processing, including memory-pressure detection with automatic back-off and user-configurable ceilings.
+- Implement adaptive batching for database writes and queue processing, including memory-pressure detection with automatic back-off and user-configurable ceilings (default 2 GB memory cap, throttling at 80 %).
 - Cover UI additions and configuration persistence with automated tests.
 
 **Acceptance Criteria**
 - The new menu entry opens the ingestion workflow; progress and status updates stay responsive throughout a run.
 - Session results panel shows accurate counts and links to the per-run log file.
 - Changing configuration values updates `config.json` and alters subsequent ingestion behaviour (e.g., archive depth limit enforced, batch sizes adjusted).
-- Stress tests demonstrate batching adapts to memory/CPU pressure without data loss or stalled UI updates; automated tests confirm configuration handling.
+- Stress tests demonstrate batching adapts to memory/CPU pressure without data loss or stalled UI updates; automated tests confirm configuration handling and surface throttling state changes in the UI/logs.
 
 ---
 ## Work Item 19: UAT Readiness Reports & Post-run Verification
@@ -296,10 +310,10 @@ The following work items break down the implementation plan into actionable chun
 - Implement adaptive batching that tunes batch sizes based on file size distribution and system load, with user-configurable ceilings in `config.json`.
 - Monitor memory, CPU, and disk I/O usage during ingestion; throttle or pause work when thresholds are exceeded, logging the adjustments.
 - Apply targeted optimizations (parallel hashing, pipelined staging) where profiling indicates bottlenecks, ensuring changes respect the resilience guardrails from earlier phases.
-- Capture before/after benchmarks to quantify throughput improvements.
+- Capture before/after benchmarks to quantify throughput improvements, using Phase 3 completion runs to record baselines on representative datasets (including 100k-file libraries and NAS-backed paths) that track files/minute, MB/sec, queue latency, ETA accuracy, memory utilisation vs the 2 GB ceiling, and temp-space consumption vs the 10 GB default.
 - Provide automated performance regression tests or benchmark scripts integrated into CI/CD where feasible.
 
 **Acceptance Criteria**
 - Stress tests with mixed workloads show batching adapts automatically to stay within configured resource limits while maintaining throughput.
 - Performance metrics and ETAs (from Work Item 7) reflect optimizations and remain accurate; throttling events are logged and observable.
-- Benchmark reports demonstrate measurable improvements against the baseline established before optimization, and regression scripts protect against future slowdowns.
+- Benchmark reports demonstrate measurable improvements against the baseline established before optimization, and regression scripts protect against future slowdowns; baseline collection is documented and repeatable.
