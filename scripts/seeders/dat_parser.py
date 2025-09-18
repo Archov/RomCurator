@@ -1,130 +1,164 @@
+#!/usr/bin/env python3
 """
-Universal DAT filename parser for No-Intro, TOSEC, and GoodTools naming conventions.
+Enhanced DAT name parser with comprehensive dump status support.
 
-This module extracts universal metadata concepts from ROM/game names in DAT files,
-including base title, region, version, development status, dump status, and languages.
+This parser extracts metadata from ROM filenames following No-Intro, TOSEC, GoodTools,
+and Redump naming conventions. The format must be explicitly specified by the calling
+code - no auto-detection is performed.
+
+Supported formats:
+- nointro: No-Intro naming conventions
+- tosec: TOSEC naming conventions  
+- goodtools: GoodTools naming conventions
+- redump: Redump naming conventions (uses No-Intro rules)
 """
 
 import re
-from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass
-
-
-@dataclass
-class ParsedMetadata:
-    """Container for parsed metadata from a ROM/game name."""
-    base_title: str
-    region_normalized: str = ""
-    version_info: str = ""
-    development_status: str = ""
-    dump_status: str = ""
-    language_codes: str = ""
-    extra_info: str = ""
-
+from typing import Dict, Optional, List
 
 class DATNameParser:
-    """Parser for extracting metadata from ROM/game names in various DAT formats."""
+    """Parser for extracting metadata from DAT filenames."""
     
     def __init__(self):
-        # Centralized region mappings - all convert to No-Intro format
+        # Region mappings for standardization to No-Intro format
         self.region_mappings = {
-            # No-Intro (already correct format)
             'nointro': {
-                'USA': 'USA', 'US': 'USA', 'U': 'USA',
-                'Europe': 'Europe', 'EUR': 'Europe', 'E': 'Europe', 
-                'Japan': 'Japan', 'JPN': 'Japan', 'J': 'Japan',
-                'World': 'World', 'W': 'World',
-                'Asia': 'Asia',
-                'Australia': 'Australia', 'AUS': 'Australia', 'A': 'Australia',
-                'Brazil': 'Brazil', 'BRA': 'Brazil', 'B': 'Brazil',
-                'Canada': 'Canada', 'CAN': 'Canada', 'C': 'Canada',
-                'China': 'China', 'CHN': 'China', 'CH': 'China',
-                'France': 'France', 'FRA': 'France', 'F': 'France',
-                'Germany': 'Germany', 'GER': 'Germany', 'G': 'Germany',
-                'Italy': 'Italy', 'ITA': 'Italy', 'I': 'Italy',
-                'Korea': 'Korea', 'KOR': 'Korea', 'K': 'Korea',
-                'Netherlands': 'Netherlands', 'NLD': 'Netherlands', 'D': 'Netherlands',
-                'Spain': 'Spain', 'ESP': 'Spain', 'S': 'Spain',
-                'Sweden': 'Sweden', 'SWE': 'Sweden', 'SW': 'Sweden',
-                'Taiwan': 'Taiwan', 'TWN': 'Taiwan', 'TW': 'Taiwan',
-                'UK': 'UK', 'GBR': 'UK', 'GB': 'UK'
+                # No-Intro regions (already standardized)
+                'USA': 'USA', 'United States': 'USA', 'US': 'USA',
+                'Europe': 'Europe', 'EU': 'Europe', 'European': 'Europe',
+                'Japan': 'Japan', 'JP': 'Japan', 'Japanese': 'Japan',
+                'Australia': 'Australia', 'AU': 'Australia', 'AUS': 'Australia',
+                'Brazil': 'Brazil', 'BR': 'Brazil', 'Brasil': 'Brazil',
+                'Canada': 'Canada', 'CA': 'Canada', 'CAN': 'Canada',
+                'China': 'China', 'CN': 'China', 'CHN': 'China',
+                'France': 'France', 'FR': 'France', 'FRA': 'France',
+                'Germany': 'Germany', 'DE': 'Germany', 'DEU': 'Germany',
+                'Italy': 'Italy', 'IT': 'Italy', 'ITA': 'Italy',
+                'Spain': 'Spain', 'ES': 'Spain', 'ESP': 'Spain',
+                'Korea': 'Korea', 'KR': 'Korea', 'KOR': 'Korea',
+                'Netherlands': 'Netherlands', 'NL': 'Netherlands', 'NLD': 'Netherlands',
+                'Sweden': 'Sweden', 'SE': 'Sweden', 'SWE': 'Sweden',
+                'Hong Kong': 'Hong Kong', 'HK': 'Hong Kong', 'HKG': 'Hong Kong',
+                'Taiwan': 'Taiwan', 'TW': 'Taiwan', 'TWN': 'Taiwan',
+                'Asia': 'Asia', 'AS': 'Asia',
+                'World': 'World', 'WD': 'World',
+                'Unlicensed': 'Unlicensed'
             },
-            
-            # TOSEC (ISO 3166-1 alpha-2) → No-Intro
             'tosec': {
-                'US': 'USA', 'JP': 'Japan', 'EU': 'Europe', 'GB': 'UK',
-                'DE': 'Germany', 'FR': 'France', 'IT': 'Italy', 'ES': 'Spain',
-                'NL': 'Netherlands', 'AU': 'Australia', 'BR': 'Brazil', 'CA': 'Canada',
-                'CN': 'China', 'KR': 'Korea', 'TW': 'Taiwan', 'AS': 'Asia',
-                'RU': 'Russia', 'PL': 'Poland', 'SE': 'Sweden', 'NO': 'Norway',
-                'DK': 'Denmark', 'FI': 'Finland', 'PT': 'Portugal', 'GR': 'Greece',
-                'HU': 'Hungary', 'CZ': 'Czech Republic', 'SK': 'Slovakia',
-                'HR': 'Croatia', 'SI': 'Slovenia', 'BG': 'Bulgaria', 'RO': 'Romania',
-                'LT': 'Lithuania', 'LV': 'Latvia', 'EE': 'Estonia', 'LU': 'Luxembourg',
-                'MT': 'Malta', 'CY': 'Cyprus', 'IE': 'Ireland', 'IS': 'Iceland',
-                'CH': 'Switzerland', 'AT': 'Austria', 'BE': 'Belgium', 'LI': 'Liechtenstein',
-                'MC': 'Monaco', 'SM': 'San Marino', 'VA': 'Vatican City', 'AD': 'Andorra',
-                'FO': 'Faroe Islands', 'GL': 'Greenland', 'SJ': 'Svalbard and Jan Mayen',
-                'AX': 'Åland Islands', 'AL': 'Albania', 'BA': 'Bosnia and Herzegovina',
-                'ME': 'Montenegro', 'MK': 'North Macedonia', 'RS': 'Serbia', 'XK': 'Kosovo',
-                'MD': 'Moldova', 'UA': 'Ukraine', 'BY': 'Belarus', 'KZ': 'Kazakhstan',
-                'KG': 'Kyrgyzstan', 'TJ': 'Tajikistan', 'TM': 'Turkmenistan', 'UZ': 'Uzbekistan',
-                'AF': 'Afghanistan', 'PK': 'Pakistan', 'BD': 'Bangladesh', 'BT': 'Bhutan',
-                'IN': 'India', 'MV': 'Maldives', 'LK': 'Sri Lanka', 'NP': 'Nepal',
-                'MM': 'Myanmar', 'TH': 'Thailand', 'LA': 'Laos', 'KH': 'Cambodia',
-                'VN': 'Vietnam', 'MY': 'Malaysia', 'SG': 'Singapore', 'BN': 'Brunei',
-                'ID': 'Indonesia', 'TL': 'East Timor', 'PH': 'Philippines', 'MN': 'Mongolia',
-                'KP': 'North Korea', 'HK': 'Hong Kong', 'MO': 'Macau'
+                # TOSEC ISO codes -> No-Intro
+                'US': 'USA', 'JP': 'Japan', 'DE': 'Germany', 'FR': 'France',
+                'GB': 'UK', 'IT': 'Italy', 'ES': 'Spain', 'NL': 'Netherlands',
+                'SE': 'Sweden', 'AU': 'Australia', 'CA': 'Canada', 'BR': 'Brazil',
+                'CN': 'China', 'KR': 'Korea', 'HK': 'Hong Kong', 'TW': 'Taiwan',
+                'EU': 'Europe', 'AS': 'Asia', 'RU': 'Russia', 'PL': 'Poland',
+                'CZ': 'Czech Republic', 'HU': 'Hungary', 'FI': 'Finland',
+                'NO': 'Norway', 'DK': 'Denmark', 'AT': 'Austria', 'CH': 'Switzerland',
+                'BE': 'Belgium', 'PT': 'Portugal', 'GR': 'Greece', 'IE': 'Ireland',
+                'NZ': 'New Zealand', 'ZA': 'South Africa', 'MX': 'Mexico',
+                'AR': 'Argentina', 'CL': 'Chile', 'CO': 'Colombia', 'PE': 'Peru',
+                'VE': 'Venezuela', 'UY': 'Uruguay', 'PY': 'Paraguay', 'BO': 'Bolivia',
+                'EC': 'Ecuador', 'GY': 'Guyana', 'SR': 'Suriname', 'GF': 'French Guiana',
+                'IN': 'India', 'ID': 'Indonesia', 'MY': 'Malaysia', 'SG': 'Singapore',
+                'TH': 'Thailand', 'PH': 'Philippines', 'VN': 'Vietnam', 'MM': 'Myanmar',
+                'KH': 'Cambodia', 'LA': 'Laos', 'BN': 'Brunei', 'TL': 'East Timor',
+                'BD': 'Bangladesh', 'LK': 'Sri Lanka', 'MV': 'Maldives', 'NP': 'Nepal',
+                'BT': 'Bhutan', 'AF': 'Afghanistan', 'PK': 'Pakistan', 'IR': 'Iran',
+                'IQ': 'Iraq', 'SY': 'Syria', 'LB': 'Lebanon', 'JO': 'Jordan',
+                'IL': 'Israel', 'PS': 'Palestine', 'SA': 'Saudi Arabia', 'AE': 'UAE',
+                'QA': 'Qatar', 'BH': 'Bahrain', 'KW': 'Kuwait', 'OM': 'Oman',
+                'YE': 'Yemen', 'EG': 'Egypt', 'LY': 'Libya', 'TN': 'Tunisia',
+                'DZ': 'Algeria', 'MA': 'Morocco', 'SD': 'Sudan', 'SS': 'South Sudan',
+                'ET': 'Ethiopia', 'ER': 'Eritrea', 'DJ': 'Djibouti', 'SO': 'Somalia',
+                'KE': 'Kenya', 'UG': 'Uganda', 'TZ': 'Tanzania', 'RW': 'Rwanda',
+                'BI': 'Burundi', 'MW': 'Malawi', 'ZM': 'Zambia', 'ZW': 'Zimbabwe',
+                'BW': 'Botswana', 'NA': 'Namibia', 'SZ': 'Swaziland', 'LS': 'Lesotho',
+                'MG': 'Madagascar', 'MU': 'Mauritius', 'SC': 'Seychelles', 'KM': 'Comoros',
+                'YT': 'Mayotte', 'RE': 'Reunion', 'MZ': 'Mozambique', 'AO': 'Angola',
+                'CD': 'Congo', 'CG': 'Congo', 'CF': 'Central African Republic',
+                'TD': 'Chad', 'CM': 'Cameroon', 'GQ': 'Equatorial Guinea', 'GA': 'Gabon',
+                'ST': 'Sao Tome and Principe', 'GH': 'Ghana', 'TG': 'Togo', 'BJ': 'Benin',
+                'NE': 'Niger', 'NG': 'Nigeria', 'BF': 'Burkina Faso', 'ML': 'Mali',
+                'SN': 'Senegal', 'GM': 'Gambia', 'GN': 'Guinea', 'GW': 'Guinea-Bissau',
+                'SL': 'Sierra Leone', 'LR': 'Liberia', 'CI': 'Ivory Coast', 'GH': 'Ghana',
+                'TG': 'Togo', 'BJ': 'Benin', 'NE': 'Niger', 'NG': 'Nigeria',
+                'BF': 'Burkina Faso', 'ML': 'Mali', 'SN': 'Senegal', 'GM': 'Gambia',
+                'GN': 'Guinea', 'GW': 'Guinea-Bissau', 'SL': 'Sierra Leone',
+                'LR': 'Liberia', 'CI': 'Ivory Coast'
             },
-            
-            # GoodTools → No-Intro
             'goodtools': {
-                # Official GoodTools codes
-                '1': 'Japan', '4': 'USA', 'A': 'Australia', 'B': 'Brazil', 'C': 'China',
-                'D': 'Netherlands', 'E': 'Europe', 'F': 'France', 'FC': 'Canada',
-                'FN': 'Finland', 'G': 'Germany', 'GR': 'Greece', 'HK': 'Hong Kong',
-                'J': 'Japan', 'K': 'Korea', 'NL': 'Netherlands', 'PD': 'Public Domain',
-                'S': 'Spain', 'Sw': 'Sweden', 'U': 'USA', 'UK': 'UK', 'Unk': 'Unknown',
-                'I': 'Italy', 'Unl': 'Unlicensed',
-                
-                # Unofficial GoodTools codes (ISO 3166-1 alpha-2)
-                'Ar': 'Argentina', 'As': 'Asia', 'Au': 'Australia', 'Br': 'Brazil',
-                'Ca': 'Canada', 'Cn': 'China', 'Dk': 'Denmark', 'Eu': 'Europe',
-                'Fr': 'France', 'Fi': 'Finland', 'De': 'Germany', 'Gr': 'Greece',
-                'It': 'Italy', 'Jp': 'Japan', 'Kr': 'Korea', 'Mx': 'Mexico',
-                'Nl': 'Netherlands', 'NZ': 'New Zealand', 'Pt': 'Portugal',
-                'Ru': 'Russia', 'Es': 'Spain', 'Se': 'Sweden', 'Tw': 'Taiwan',
-                'US': 'USA', 'Wo': 'World'
+                # GoodTools codes -> No-Intro
+                'U': 'USA', 'E': 'Europe', 'J': 'Japan', 'A': 'Australia',
+                'B': 'Brazil', 'C': 'Canada', 'D': 'Germany', 'F': 'France',
+                'G': 'Germany', 'H': 'Hong Kong', 'I': 'Italy', 'K': 'Korea',
+                'L': 'Netherlands', 'N': 'Netherlands', 'P': 'Portugal',
+                'Q': 'Qatar', 'R': 'Russia', 'S': 'Spain', 'T': 'Taiwan',
+                'V': 'Venezuela', 'W': 'World', 'X': 'Unknown', 'Y': 'Yugoslavia',
+                'Z': 'Zimbabwe', 'Unl': 'Unlicensed'
             }
         }
         
         # Development status keywords
         self.dev_status_keywords = {
-            'demo': 'demo',
+            'alpha': 'alpha',
             'beta': 'beta', 
+            'demo': 'demo',
+            'kiosk': 'kiosk',
             'proto': 'proto',
             'prototype': 'proto',
-            'alpha': 'alpha',
-            'sample': 'sample',
             'preview': 'preview',
-            'test': 'test',
-            'debug': 'debug'
+            'prerelease': 'prerelease',
+            'sample': 'sample'
         }
         
-        # Dump status keywords  
+        # Comprehensive dump status keywords covering all three formats
         self.dump_status_keywords = {
+            # Verification status
             'verified': 'verified',
-            'good': 'good',
+            'good': 'verified',
+            '!': 'verified',
+            
+            # Quality issues
             'bad': 'bad',
-            'alternate': 'alternate',
+            'b': 'bad',
             'overdump': 'overdump',
-            'underdump': 'underdump',
+            'o': 'overdump',
+            'underdump': 'underdump', 
+            'u': 'underdump',
+            'virus': 'virus',
+            'v': 'virus',
+            
+            # Modifications
             'fixed': 'fixed',
+            'f': 'fixed',
             'hack': 'hack',
-            'translated': 'translated',
+            'h': 'hack',
+            'hacked': 'hack',
+            'modified': 'modified',
+            'm': 'modified',
             'cracked': 'cracked',
+            'cr': 'cracked',
             'trained': 'trained',
-            'pirate': 'pirate'
+            't': 'trained',
+            'translated': 'translated',
+            'tr': 'translated',
+            'oldtranslation': 'old_translation',
+            't-': 'old_translation',
+            'newtranslation': 'new_translation', 
+            't+': 'new_translation',
+            
+            # Licensing
+            'pirate': 'pirate',
+            'p': 'pirate',
+            'pirated': 'pirate',
+            'unlicensed': 'unlicensed',
+            'unl': 'unlicensed',
+            
+            # Versions
+            'alternate': 'alternate',
+            'a': 'alternate',
+            'alt': 'alternate',
+            'pending': 'pending',
+            '!p': 'pending'
         }
         
         # Language code mappings (ISO 639-1)
@@ -132,71 +166,68 @@ class DATNameParser:
             'en': 'en', 'english': 'en',
             'ja': 'ja', 'japanese': 'ja', 'jp': 'ja',
             'fr': 'fr', 'french': 'fr',
-            'de': 'de', 'german': 'de',
-            'es': 'es', 'spanish': 'es',
-            'it': 'it', 'italian': 'it',
-            'nl': 'nl', 'dutch': 'nl',
-            'pt': 'pt', 'portuguese': 'pt',
-            'sv': 'sv', 'swedish': 'sv',
-            'no': 'no', 'norwegian': 'no',
-            'da': 'da', 'danish': 'da',
-            'fi': 'fi', 'finnish': 'fi',
-            'zh': 'zh', 'chinese': 'zh',
-            'ko': 'ko', 'korean': 'ko',
-            'pl': 'pl', 'polish': 'pl'
+            'de': 'de', 'german': 'de', 'deutsch': 'de',
+            'es': 'es', 'spanish': 'es', 'espanol': 'es',
+            'it': 'it', 'italian': 'it', 'italiano': 'it',
+            'pt': 'pt', 'portuguese': 'pt', 'portugues': 'pt',
+            'ru': 'ru', 'russian': 'ru', 'russkiy': 'ru',
+            'ko': 'ko', 'korean': 'ko', 'hangul': 'ko',
+            'zh': 'zh', 'chinese': 'zh', 'zhongwen': 'zh',
+            'nl': 'nl', 'dutch': 'nl', 'nederlands': 'nl',
+            'sv': 'sv', 'swedish': 'sv', 'svenska': 'sv',
+            'no': 'no', 'norwegian': 'no', 'norsk': 'no',
+            'da': 'da', 'danish': 'da', 'dansk': 'da',
+            'fi': 'fi', 'finnish': 'fi', 'suomi': 'fi',
+            'pl': 'pl', 'polish': 'pl', 'polski': 'pl',
+            'cs': 'cs', 'czech': 'cs', 'cesky': 'cs',
+            'hu': 'hu', 'hungarian': 'hu', 'magyar': 'hu',
+            'ro': 'ro', 'romanian': 'ro', 'romana': 'ro',
+            'bg': 'bg', 'bulgarian': 'bg', 'bulgarski': 'bg',
+            'hr': 'hr', 'croatian': 'hr', 'hrvatski': 'hr',
+            'sk': 'sk', 'slovak': 'sk', 'slovensky': 'sk',
+            'sl': 'sl', 'slovenian': 'sl', 'slovenski': 'sl',
+            'et': 'et', 'estonian': 'et', 'eesti': 'et',
+            'lv': 'lv', 'latvian': 'lv', 'latviesu': 'lv',
+            'lt': 'lt', 'lithuanian': 'lt', 'lietuviu': 'lt',
+            'el': 'el', 'greek': 'el', 'ellinika': 'el',
+            'tr': 'tr', 'turkish': 'tr', 'turkce': 'tr',
+            'ar': 'ar', 'arabic': 'ar', 'arabiyya': 'ar',
+            'he': 'he', 'hebrew': 'he', 'ivrit': 'he',
+            'hi': 'hi', 'hindi': 'hi', 'hindustani': 'hi',
+            'th': 'th', 'thai': 'th', 'thai': 'th',
+            'vi': 'vi', 'vietnamese': 'vi', 'tieng viet': 'vi',
+            'id': 'id', 'indonesian': 'id', 'bahasa indonesia': 'id',
+            'ms': 'ms', 'malay': 'ms', 'bahasa melayu': 'ms',
+            'tl': 'tl', 'tagalog': 'tl', 'filipino': 'tl'
         }
 
-    def parse_title(self, title: str, dat_format: str = "auto") -> Dict[str, str]:
-        """
-        Parse a ROM/game title and extract universal metadata.
-        
-        Args:
-            title: The ROM/game name from the DAT file
-            dat_format: Format hint ("nointro", "tosec", "goodtools", or "auto")
-            
-        Returns:
-            Dictionary with parsed metadata fields
-        """
-        if not title:
-            return self._empty_result()
-            
-        # Detect format if auto
-        if dat_format == "auto":
-            dat_format = self._detect_format(title)
-            
-        # Parse based on detected/specified format
-        if dat_format == "nointro":
+    def parse_title(self, title: str, format_type: str) -> Dict[str, str]:
+        """Parse a ROM title and extract metadata using the specified format rules."""
+        if format_type == "nointro":
             return self._parse_nointro(title)
-        elif dat_format == "tosec":
+        elif format_type == "tosec":
             return self._parse_tosec(title)
-        elif dat_format == "goodtools":
+        elif format_type == "goodtools":
             return self._parse_goodtools(title)
+        elif format_type == "redump":
+            # Redump uses No-Intro naming conventions
+            return self._parse_nointro(title)
         else:
-            # Fallback: basic parsing
+            # Fallback to generic parsing for unknown formats
             return self._parse_generic(title)
 
     def _detect_format(self, title: str) -> str:
-        """Auto-detect the DAT format based on naming patterns."""
-        # TOSEC typically uses lots of parentheses with specific patterns
-        if re.search(r'\(\d{4}\)', title) and '(' in title:
-            # Check for TOSEC-specific patterns
-            if any(pattern in title.lower() for pattern in ['disk ', 'side ', 'tape ', 'file ']):
-                return "tosec"
-                
-        # GoodTools uses [brackets] and specific abbreviations
-        if '[' in title and ']' in title:
-            # Look for GoodTools patterns: [!], [U], [E], [J], [h1], [t1], etc.
-            goodtools_patterns = [
-                r'\[!\]',           # verified
-                r'\[[UEJWuejw]\]',  # regions
-                r'\[[abcfhoptx]\d*\]', # status codes with optional numbers
-                r'\[USA?\]', r'\[EUR?\]', r'\[JPN?\]'  # full region names
-            ]
-            if any(re.search(pattern, title) for pattern in goodtools_patterns):
-                return "goodtools"
-                
-        # No-Intro is cleaner, typically (Region) patterns
-        if re.search(r'\([A-Za-z, ]+\)(?:\s*\([^)]*\))*$', title):
+        """Auto-detect the naming convention format."""
+        # Check for TOSEC format (square brackets with dump flags)
+        if re.search(r'\[[a-z!]+\]', title):
+            return "tosec"
+        
+        # Check for GoodTools format (specific patterns)
+        if re.search(r'\[[a-z!]+\]|\([A-Z]{1,3}\)', title):
+            return "goodtools"
+            
+        # Check for No-Intro format (parentheses with regions)
+        if re.search(r'\([A-Za-z\s,]+\)', title):
             return "nointro"
             
         return "generic"
@@ -221,7 +252,35 @@ class DATNameParser:
         for group in paren_groups:
             group_lower = group.lower()
             
-            # Check for regions (first priority)
+            # Check for dump status first (before regions)
+            if not result['dump_status']:
+                dump_status = self._extract_dump_status(group)
+                if dump_status:
+                    result['dump_status'] = dump_status
+                    continue
+                    
+            # Check for development status
+            if not result['development_status']:
+                dev_status = self._extract_dev_status(group)
+                if dev_status:
+                    result['development_status'] = dev_status
+                    continue
+                    
+            # Check for version info
+            if not result['version_info']:
+                version = self._extract_version(group)
+                if version:
+                    result['version_info'] = version
+                    continue
+                    
+            # Check for languages
+            if not result['language_codes']:
+                languages = self._extract_languages(group)
+                if languages:
+                    result['language_codes'] = languages
+                    continue
+            
+            # Check for regions (last priority)
             # Handle comma-separated regions in No-Intro format
             if ',' in group:
                 # Split by comma and check each part for regions
@@ -239,34 +298,6 @@ class DATNameParser:
                 region = self._standardize_region(group, 'nointro')
                 if region:
                     regions_found.append(region)
-                    continue
-                    
-            # Check for languages
-            if not result['language_codes']:
-                languages = self._extract_languages(group)
-                if languages:
-                    result['language_codes'] = languages
-                    continue
-                    
-            # Check for version info
-            if not result['version_info']:
-                version = self._extract_version(group)
-                if version:
-                    result['version_info'] = version
-                    continue
-                    
-            # Check for development status
-            if not result['development_status']:
-                dev_status = self._extract_dev_status(group)
-                if dev_status:
-                    result['development_status'] = dev_status
-                    continue
-                    
-            # Check for dump status
-            if not result['dump_status']:
-                dump_status = self._extract_dump_status(group)
-                if dump_status:
-                    result['dump_status'] = dump_status
                     continue
                     
             # Store unrecognized info
@@ -301,31 +332,39 @@ class DATNameParser:
                 result['base_title'] = base_match.group(1).strip()
             else:
                 result['base_title'] = title
-            
-        # Extract year (usually first parenthesis with 4 digits)
-        year_match = re.search(r'\((\d{4})\)', title)
-        if year_match:
-            result['extra_info'] = f"Year: {year_match.group(1)}"
-            
-        # Extract regions/countries - look in all parentheses
+        
+        # Find all parenthetical groups
         paren_groups = re.findall(r'\(([^)]+)\)', title)
+        
+        # Collect all regions for multi-region handling
         regions_found = []
+        
         for group in paren_groups:
-            if group.isdigit() and len(group) == 4:  # Skip years
-                continue
+            # Check for regions (ISO country codes)
             region = self._standardize_region(group, 'tosec')
             if region:
                 regions_found.append(region)
+                continue
+                
+            # Check for languages
+            if not result['language_codes']:
+                languages = self._extract_languages(group)
+                if languages:
+                    result['language_codes'] = languages
+                    continue
                     
-        # Look for dump status in brackets [good], [bad], etc.
-        bracket_matches = re.findall(r'\[([^\]]+)\]', title)
-        for match in bracket_matches:
-            if match == '!':
-                result['dump_status'] = 'verified'
+            # Check for development status
+            if not result['development_status']:
+                dev_status = self._extract_dev_status(group)
+                if dev_status:
+                    result['development_status'] = dev_status
+                    continue
+                    
+            # Store unrecognized info
+            if result['extra_info']:
+                result['extra_info'] += f"; {group}"
             else:
-                dump_status = self._extract_dump_status(match)
-                if dump_status and not result['dump_status']:
-                    result['dump_status'] = dump_status
+                result['extra_info'] = group
         
         # Handle regions: single region or MULTI
         if regions_found:
@@ -333,72 +372,68 @@ class DATNameParser:
                 result['region_normalized'] = regions_found[0]
             else:
                 result['region_normalized'] = 'MULTI'
-                result['regions_list'] = regions_found  # Store individual regions for EAV storage
+                result['regions_list'] = regions_found
                 
+        # Parse TOSEC dump flags in square brackets
+        dump_flags = re.findall(r'\[([^\]]+)\]', title)
+        for flag_group in dump_flags:
+            # Split by space to handle multiple flags
+            flags = flag_group.split()
+            for flag in flags:
+                # Check for verified dump
+                if flag == '!':
+                    if not result['dump_status']:
+                        result['dump_status'] = 'verified'
+                else:
+                    dump_status = self._extract_dump_status(flag)
+                    if dump_status and not result['dump_status']:
+                        result['dump_status'] = dump_status
+        
         return result
 
     def _parse_goodtools(self, title: str) -> Dict[str, str]:
-        """Parse GoodTools format: Game Title [!] [region codes] [status]"""
+        """Parse GoodTools format: Game Title (Country) [Flags]"""
         result = self._empty_result()
         
-        # Extract base title (everything before first bracket)
-        base_match = re.match(r'^([^\[]+)', title.strip())
+        # Extract base title (everything before first parenthesis or bracket)
+        base_match = re.match(r'^([^(\[]+)', title.strip())
         if base_match:
             result['base_title'] = base_match.group(1).strip()
         else:
             result['base_title'] = title
             
-        # Find all bracketed groups
-        bracket_groups = re.findall(r'\[([^\]]+)\]', title)
+        # Find all parenthetical groups
+        paren_groups = re.findall(r'\(([^)]+)\)', title)
         
         # Collect all regions for multi-region handling
         regions_found = []
         
-        for group in bracket_groups:
-            group_lower = group.lower()
-            
-            # Check for regions first
+        for group in paren_groups:
+            # Check for regions (GoodTools country codes)
             region = self._standardize_region(group, 'goodtools')
             if region:
                 regions_found.append(region)
                 continue
-            # GoodTools status codes
-            elif group == '!':
-                if not result['dump_status']:
-                    result['dump_status'] = 'verified'
-            elif group in ['a', 'a1', 'a2']:
-                if not result['dump_status']:
-                    result['dump_status'] = 'alternate'
-            elif group in ['b', 'b1', 'b2']:
-                if not result['dump_status']:
-                    result['dump_status'] = 'bad'
-            elif group == 'c':
-                if not result['dump_status']:
-                    result['dump_status'] = 'cracked'
-            elif group == 'f':
-                if not result['dump_status']:
-                    result['dump_status'] = 'fixed'
-            elif group.startswith('h') and (len(group) == 1 or group[1:].isdigit()):
-                if not result['dump_status']:
-                    result['dump_status'] = 'hack'
-            elif group == 'o':
-                if not result['dump_status']:
-                    result['dump_status'] = 'overdump'
-            elif group == 'p':
-                if not result['dump_status']:
-                    result['dump_status'] = 'pirate'
-            elif group.startswith('t') and (len(group) == 1 or group[1:].isdigit()):
-                if not result['dump_status']:
-                    result['dump_status'] = 'translated'
-            elif group == 'x':
-                if not result['dump_status']:
-                    result['dump_status'] = 'bad'
+                
+            # Check for languages
+            if not result['language_codes']:
+                languages = self._extract_languages(group)
+                if languages:
+                    result['language_codes'] = languages
+                    continue
+                    
+            # Check for development status
+            if not result['development_status']:
+                dev_status = self._extract_dev_status(group)
+                if dev_status:
+                    result['development_status'] = dev_status
+                    continue
+                    
+            # Store unrecognized info
+            if result['extra_info']:
+                result['extra_info'] += f"; {group}"
             else:
-                # Store other info
-                if result['extra_info']:
-                    result['extra_info'] += f"; {group}"
-                else:
-                    result['extra_info'] = group
+                result['extra_info'] = group
         
         # Handle regions: single region or MULTI
         if regions_found:
@@ -406,32 +441,32 @@ class DATNameParser:
                 result['region_normalized'] = regions_found[0]
             else:
                 result['region_normalized'] = 'MULTI'
-                result['regions_list'] = regions_found  # Store individual regions for EAV storage
-                    
+                result['regions_list'] = regions_found
+                
+        # Parse GoodTools dump flags in square brackets
+        dump_flags = re.findall(r'\[([^\]]+)\]', title)
+        for flag_group in dump_flags:
+            # Split by space to handle multiple flags
+            flags = flag_group.split()
+            for flag in flags:
+                # Check for verified dump
+                if flag == '!':
+                    if not result['dump_status']:
+                        result['dump_status'] = 'verified'
+                elif flag == '!p':
+                    if not result['dump_status']:
+                        result['dump_status'] = 'pending'
+                else:
+                    dump_status = self._extract_dump_status(flag)
+                    if dump_status and not result['dump_status']:
+                        result['dump_status'] = dump_status
+        
         return result
 
     def _parse_generic(self, title: str) -> Dict[str, str]:
-        """Generic parsing for unknown formats."""
+        """Parse generic format (fallback)."""
         result = self._empty_result()
-        result['base_title'] = title.strip()
-        
-        # Try to extract any recognizable patterns
-        all_groups = re.findall(r'[\(\[]([^\)\]]+)[\)\]]', title)
-        
-        for group in all_groups:
-            # Try region extraction
-            if not result['region_normalized']:
-                region = self._extract_region(group)
-                if region:
-                    result['region_normalized'] = region
-                    continue
-                    
-            # Try other extractions...
-            if not result['extra_info']:
-                result['extra_info'] = group
-            else:
-                result['extra_info'] += f"; {group}"
-                
+        result['base_title'] = title
         return result
 
     def _standardize_region(self, region_text: str, source_format: str) -> Optional[str]:
@@ -439,100 +474,71 @@ class DATNameParser:
         if not region_text:
             return None
             
-        region_clean = region_text.strip().upper()
+        region_clean = region_text.strip()
         
-        # Check if it's already in No-Intro format
-        if region_clean in self.region_mappings['nointro']:
-            return self.region_mappings['nointro'][region_clean]
-        
-        # Convert from source format to No-Intro
+        # First check if it's already in No-Intro format (case-insensitive)
         if source_format in self.region_mappings:
-            if region_clean in self.region_mappings[source_format]:
-                return self.region_mappings[source_format][region_clean]
-        
-        # Handle multi-region formats
-        if ',' in region_clean:
-            regions = [r.strip() for r in region_clean.split(',')]
-            normalized_regions = []
-            for region in regions:
-                normalized = self._standardize_region(region, source_format)
-                if normalized:
-                    normalized_regions.append(normalized)
-            if normalized_regions:
-                return ', '.join(normalized_regions)
-        
-        # Partial matching for common variations (only for exact word matches)
-        if source_format in self.region_mappings:
-            for key, value in self.region_mappings[source_format].items():
-                # Only match if the key is a complete word, not a substring
-                if f' {key.lower()} ' in f' {region_clean.lower()} ' or region_clean.lower() == key.lower():
+            mapping = self.region_mappings[source_format]
+            for key, value in mapping.items():
+                if key.upper() == region_clean.upper():
                     return value
         
-        return None
-
-    def _extract_region(self, text: str) -> Optional[str]:
-        """Extract and normalize region from text (legacy method - use _standardize_region instead)."""
-        # This method is kept for backward compatibility but should be replaced
-        # with _standardize_region calls in the individual parsers
-        text_clean = text.strip()
-        
-        # Direct mapping (legacy)
-        if text_clean in self.region_mappings['nointro']:
-            return self.region_mappings['nointro'][text_clean]
+        # Check No-Intro format as fallback (case-insensitive)
+        nointro_mapping = self.region_mappings['nointro']
+        for key, value in nointro_mapping.items():
+            if key.upper() == region_clean.upper():
+                return value
             
-        # Check for multi-region format like "Japan, USA"
-        if ',' in text_clean:
-            regions = [r.strip() for r in text_clean.split(',')]
-            normalized_regions = []
-            for region in regions:
-                if region in self.region_mappings['nointro']:
-                    normalized_regions.append(self.region_mappings['nointro'][region])
-            if normalized_regions:
-                return ', '.join(normalized_regions)
-                
-        # Partial matching
-        text_lower = text_clean.lower()
-        for key, value in self.region_mappings['nointro'].items():
-            if key.lower() in text_lower:
+        # Handle multi-region formats
+        if ',' in region_clean:
+            # This will be handled by the calling function
+            return None
+            
+        # More precise partial matching - only match if the input is a significant part of the key
+        # or if the key is a significant part of the input (avoid single character matches)
+        for key, value in nointro_mapping.items():
+            key_upper = key.upper()
+            region_upper = region_clean.upper()
+            
+            # Only match if either:
+            # 1. The input is at least 3 characters and is contained in the key
+            # 2. The key is at least 3 characters and is contained in the input
+            # 3. The input is exactly 2 characters and matches the key exactly
+            if (len(region_upper) >= 3 and region_upper in key_upper) or                (len(key_upper) >= 3 and key_upper in region_upper) or                (len(region_upper) == 2 and region_upper == key_upper):
                 return value
                 
         return None
 
     def _extract_languages(self, text: str) -> Optional[str]:
         """Extract language codes from text."""
-        text_lower = text.lower()
-        found_languages = []
+        text_lower = text.lower().strip()
+        languages = []
         
-        # Look for comma-separated language codes like "En,Fr,De"
-        if ',' in text:
-            parts = [p.strip() for p in text.split(',')]
-            for part in parts:
-                part_lower = part.lower()
-                if part_lower in self.language_codes:
-                    found_languages.append(self.language_codes[part_lower])
-                    
-        # Single language check
-        if not found_languages and text_lower in self.language_codes:
-            found_languages.append(self.language_codes[text_lower])
-            
-        return ','.join(found_languages) if found_languages else None
+        # Only exact matches - no partial matching
+        for code, standard_code in self.language_codes.items():
+            if code == text_lower:
+                if standard_code not in languages:
+                    languages.append(standard_code)
+        
+        return ','.join(languages) if languages else None
 
     def _extract_version(self, text: str) -> Optional[str]:
         """Extract version information from text."""
-        # Common version patterns
+        # Look for version patterns: v1.0, Rev 1, Rev A, v20000101, etc.
+        # Preserve the full version string including prefix
         version_patterns = [
-            r'v?(\d+\.?\d*)',           # v1.0, v2, 1.02
-            r'rev\s*(\d+)',             # Rev 1, Rev A
-            r'version\s*(\d+\.?\d*)',   # Version 1.0
-            r'\b(\d+\.?\d*)\b',         # Just numbers
+            r'(v\d+\.?\d*)',  # v1.0, v1, v20000101
+            r'(rev\s*\d+)',   # Rev 1, Rev2
+            r'(rev\s*[a-z])',  # Rev A, Rev B
+            r'(version\s*\d+\.?\d*)',  # Version 1.0
         ]
         
-        text_lower = text.lower()
         for pattern in version_patterns:
-            match = re.search(pattern, text_lower)
+            match = re.search(pattern, text, re.IGNORECASE)
             if match:
-                return match.group(1)
-                
+                # Return the full matched string (including prefix)
+                return match.group(1).strip()
+        
         return None
 
     def _extract_dev_status(self, text: str) -> Optional[str]:
@@ -545,10 +551,62 @@ class DATNameParser:
 
     def _extract_dump_status(self, text: str) -> Optional[str]:
         """Extract dump status from text."""
-        text_lower = text.lower()
-        for keyword, status in self.dump_status_keywords.items():
-            if keyword in text_lower:
+        text_lower = text.lower().strip()
+        
+        # Only check for known dump status patterns, not generic single characters
+        dump_status_patterns = {
+            # Multi-character patterns (exact matches)
+            'unl': 'unlicensed',
+            'unlicensed': 'unlicensed',
+            'pirate': 'pirate',
+            'pirated': 'pirate',
+            'cracked': 'cracked',
+            'fixed': 'fixed',
+            'hack': 'hack',
+            'hacked': 'hack',
+            'modified': 'modified',
+            'trained': 'trained',
+            'translated': 'translated',
+            'alternate': 'alternate',
+            'bad': 'bad',
+            'overdump': 'overdump',
+            'underdump': 'underdump',
+            'virus': 'virus',
+            'verified': 'verified',
+            'good': 'verified',
+            'oldtranslation': 'old_translation',
+            'newtranslation': 'new_translation',
+            'pending': 'pending',
+            
+            # Single character patterns (only when they appear as standalone flags)
+            '!': 'verified',
+            'a': 'alternate',
+            'b': 'bad', 
+            'cr': 'cracked',  # TOSEC cracked
+            'f': 'fixed',
+            'h': 'hack',
+            'm': 'modified',
+            'o': 'overdump',
+            'p': 'pirate',
+            't': 'trained',
+            'tr': 'translated',  # TOSEC translated
+            'u': 'underdump',
+            'v': 'virus'
+        }
+        
+        # Check for exact matches first (multi-character)
+        for pattern, status in dump_status_patterns.items():
+            if len(pattern) > 1 and pattern == text_lower:
                 return status
+        
+        # Check for single character matches only if the text is exactly that character
+        # and it's a known dump status flag (not part of version info like "Rev A")
+        for pattern, status in dump_status_patterns.items():
+            if len(pattern) == 1 and pattern == text_lower:
+                # Additional check: make sure it's not part of version info
+                if not re.match(r'^rev\s+[a-z0-9]+$', text_lower) and                    not re.match(r'^v\d+', text_lower) and                    not re.match(r'^version\s+\d+', text_lower):
+                    return status
+        
         return None
 
     def _empty_result(self) -> Dict[str, str]:
@@ -562,33 +620,3 @@ class DATNameParser:
             'language_codes': '',
             'extra_info': ''
         }
-
-
-# Example usage and testing
-if __name__ == "__main__":
-    parser = DATNameParser()
-    
-    # Test cases
-    test_cases = [
-        # No-Intro examples
-        "Super Mario Bros. (USA)",
-        "The Legend of Zelda (USA) (Rev 1)",
-        "Final Fantasy (USA) (En,Fr,De)",
-        "Pokemon Red (Japan) (Beta)",
-        
-        # TOSEC examples  
-        "Sonic the Hedgehog (1991)(Sega)(US)[!]",
-        "Prince of Persia (1989)(Broderbund)(Disk 1 of 2)",
-        
-        # GoodTools examples
-        "Super Mario Bros [!]",
-        "Zelda II - The Adventure of Link [U][!]",
-        "Metroid [U][h1]",
-    ]
-    
-    for test in test_cases:
-        print(f"\nParsing: {test}")
-        result = parser.parse_title(test)
-        for key, value in result.items():
-            if value:
-                print(f"  {key}: {value}")
