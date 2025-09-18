@@ -1,13 +1,13 @@
 -- =============================================================================
--- ATOMIC GAME DATABASE SCHEMA v1.8 (Platform Linking & Enhanced Matching)
+-- ATOMIC GAME DATABASE SCHEMA v1.9 (Game File Ingestion Foundations)
 --
 -- Author:      Project Contributor
 -- Created:     2025-09-16
--- Updated:     2025-09-16
--- Description: This version adds platform linking capabilities to enable
---              accurate matching between atomic games and DAT entries across
---              different naming conventions (e.g., NES <-> Nintendo Entertainment System).
---              Also includes enhanced DAT metadata parsing and matching system.
+-- Updated:     2025-09-18
+-- Description: This version adds database foundations for game file ingestion:
+--              file_discovery, archive_member, rom_file_metadata, file_operation_log,
+--              and ingestion_queue tables. Also adds columns to existing tables for
+--              enhanced file tracking and artifact sequencing.
 --              SQLite Compatible.
 -- =============================================================================
 
@@ -285,6 +285,86 @@ CREATE TABLE IF NOT EXISTS export_run (
   status TEXT
 );
 
+-- =============================================================================
+-- INGESTION FOUNDATION TABLES (New in v1.9)
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS file_discovery (
+    discovery_id INTEGER PRIMARY KEY,
+    log_id INTEGER NOT NULL REFERENCES import_log(log_id),
+    root_id INTEGER NOT NULL REFERENCES library_root(root_id),
+    absolute_path TEXT NOT NULL,
+    relative_path TEXT NOT NULL,
+    size_bytes INTEGER,
+    modified_time TEXT,
+    rom_id INTEGER REFERENCES rom_file(rom_id),
+    promotion_state TEXT NOT NULL DEFAULT 'pending' CHECK (promotion_state IN ('pending','hashed','failed')),
+    first_seen TEXT NOT NULL DEFAULT (datetime('now')),
+    last_seen TEXT NOT NULL DEFAULT (datetime('now')),
+    depth INTEGER DEFAULT 0,
+    message TEXT,
+    UNIQUE(root_id, relative_path)
+);
+
+CREATE TABLE IF NOT EXISTS archive_member (
+    parent_rom_id INTEGER NOT NULL REFERENCES rom_file(rom_id) ON DELETE CASCADE,
+    child_rom_id INTEGER NOT NULL REFERENCES rom_file(rom_id) ON DELETE CASCADE,
+    path_in_archive TEXT NOT NULL,
+    compressed_size INTEGER,
+    uncompressed_size INTEGER,
+    compression_ratio REAL,
+    is_primary INTEGER DEFAULT 0,
+    sort_order INTEGER,
+    last_modified TEXT,
+    PRIMARY KEY (parent_rom_id, child_rom_id)
+);
+
+CREATE TABLE IF NOT EXISTS rom_file_metadata (
+    rom_id INTEGER NOT NULL REFERENCES rom_file(rom_id) ON DELETE CASCADE,
+    metadata_key TEXT NOT NULL,
+    metadata_value TEXT NOT NULL,
+    PRIMARY KEY (rom_id, metadata_key)
+);
+
+CREATE TABLE IF NOT EXISTS file_operation_log (
+    operation_id INTEGER PRIMARY KEY,
+    instance_id INTEGER REFERENCES file_instance(instance_id),
+    rom_id INTEGER REFERENCES rom_file(rom_id),
+    operation_type TEXT NOT NULL CHECK (operation_type IN ('move','copy','delete','quarantine','restore','password_required','error')),
+    source_path TEXT,
+    destination_path TEXT,
+    initiated_by TEXT DEFAULT 'ingestion',
+    status TEXT NOT NULL CHECK (status IN ('pending','completed','failed')) DEFAULT 'completed',
+    message TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS ingestion_queue (
+    queue_id INTEGER PRIMARY KEY,
+    root_id INTEGER NOT NULL,
+    absolute_path TEXT NOT NULL,
+    depth INTEGER DEFAULT 0,
+    status TEXT NOT NULL CHECK (status IN ('pending','processing','done','error')) DEFAULT 'pending',
+    error_message TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+
+-- =============================================================================
+-- ENHANCED EXISTING TABLES (New columns for v1.9)
+-- =============================================================================
+
+-- Add new columns to file_instance for enhanced tracking
+ALTER TABLE file_instance ADD COLUMN first_seen TEXT DEFAULT (datetime('now'));
+ALTER TABLE file_instance ADD COLUMN last_modified TEXT DEFAULT (datetime('now'));
+ALTER TABLE file_instance ADD COLUMN status TEXT DEFAULT 'active' CHECK (status IN ('active','missing','moved','deleted'));
+
+-- Add artifact_sequence to release_artifact for ordering
+ALTER TABLE release_artifact ADD COLUMN artifact_sequence INTEGER DEFAULT 0;
+
+-- Add content_role to rom_file for categorization
+ALTER TABLE rom_file ADD COLUMN content_role TEXT DEFAULT 'rom' CHECK (content_role IN ('rom','disc','patch','save','auxiliary'));
+
 
 -- =============================================================================
 -- SECTION 5: INDEXES
@@ -314,6 +394,27 @@ CREATE INDEX IF NOT EXISTS idx_dat_entry_base_title ON dat_entry(base_title);
 CREATE INDEX IF NOT EXISTS idx_dat_entry_region_normalized ON dat_entry(region_normalized);
 CREATE INDEX IF NOT EXISTS idx_dat_entry_dump_status ON dat_entry(dump_status);
 CREATE INDEX IF NOT EXISTS idx_dat_entry_metadata_key ON dat_entry_metadata(metadata_key);
+
+-- Indexes for new ingestion foundation tables (v1.9)
+CREATE INDEX IF NOT EXISTS idx_file_discovery_log_id ON file_discovery(log_id);
+CREATE INDEX IF NOT EXISTS idx_file_discovery_root_id ON file_discovery(root_id);
+CREATE INDEX IF NOT EXISTS idx_file_discovery_promotion_state ON file_discovery(promotion_state);
+CREATE INDEX IF NOT EXISTS idx_file_discovery_rom_id ON file_discovery(rom_id);
+CREATE INDEX IF NOT EXISTS idx_archive_member_parent ON archive_member(parent_rom_id);
+CREATE INDEX IF NOT EXISTS idx_archive_member_child ON archive_member(child_rom_id);
+CREATE INDEX IF NOT EXISTS idx_archive_member_primary ON archive_member(is_primary);
+CREATE INDEX IF NOT EXISTS idx_rom_file_metadata_rom_id ON rom_file_metadata(rom_id);
+CREATE INDEX IF NOT EXISTS idx_file_operation_log_instance_id ON file_operation_log(instance_id);
+CREATE INDEX IF NOT EXISTS idx_file_operation_log_rom_id ON file_operation_log(rom_id);
+CREATE INDEX IF NOT EXISTS idx_file_operation_log_type ON file_operation_log(operation_type);
+CREATE INDEX IF NOT EXISTS idx_file_operation_log_status ON file_operation_log(status);
+CREATE INDEX IF NOT EXISTS idx_ingestion_queue_root_id ON ingestion_queue(root_id);
+CREATE INDEX IF NOT EXISTS idx_ingestion_queue_status ON ingestion_queue(status);
+
+-- Indexes for new columns in existing tables (v1.9)
+CREATE INDEX IF NOT EXISTS idx_file_instance_status ON file_instance(status);
+CREATE INDEX IF NOT EXISTS idx_release_artifact_sequence ON release_artifact(artifact_sequence);
+CREATE INDEX IF NOT EXISTS idx_rom_file_content_role ON rom_file(content_role);
 
 
 -- =============================================================================
@@ -692,7 +793,7 @@ GROUP BY de.dat_entry_id, de.log_id, de.platform_id, p.name, de.release_title,
 
 -- View to identify DAT entries that need atomic game linking based on base_title
 CREATE VIEW v_dat_atomic_linking_candidates AS
-SELECT 
+SELECT
     de.dat_entry_id,
     de.base_title,
     de.region_normalized,
@@ -704,7 +805,7 @@ SELECT
     -- Try to find potential atomic game matches
     agu.atomic_id as potential_atomic_match,
     agu.canonical_title,
-    CASE 
+    CASE
         WHEN agu.atomic_id IS NOT NULL THEN 'POTENTIAL_MATCH'
         ELSE 'NO_MATCH'
     END as match_status
@@ -716,3 +817,90 @@ LEFT JOIN atomic_game_unit agu ON LOWER(TRIM(de.base_title)) = LOWER(TRIM(agu.ca
 WHERE de.base_title IS NOT NULL
     AND de.dump_status NOT IN ('bad', 'overdump', 'underdump')  -- Focus on good dumps
 ORDER BY match_status, de.base_title;
+
+-- =============================================================================
+-- INGESTION FOUNDATION VIEWS (New in v1.9)
+-- =============================================================================
+
+-- View to show file discovery status and statistics
+CREATE VIEW v_file_discovery_status AS
+SELECT
+    ms.name as source_name,
+    lr.label as library_root,
+    fd.promotion_state,
+    COUNT(*) as file_count,
+    SUM(fd.size_bytes) as total_size_bytes,
+    COUNT(DISTINCT fd.rom_id) as hashed_files,
+    COUNT(CASE WHEN fd.message IS NOT NULL THEN 1 END) as files_with_messages,
+    MIN(fd.first_seen) as earliest_discovery,
+    MAX(fd.last_seen) as latest_discovery
+FROM file_discovery fd
+JOIN import_log il ON fd.log_id = il.log_id
+JOIN metadata_source ms ON il.source_id = ms.source_id
+JOIN library_root lr ON fd.root_id = lr.root_id
+GROUP BY ms.name, lr.label, fd.promotion_state;
+
+-- View to show archive contents and member relationships
+CREATE VIEW v_archive_contents AS
+SELECT
+    parent.filename as archive_filename,
+    parent.size_bytes as archive_size,
+    am.path_in_archive,
+    child.filename as member_filename,
+    child.size_bytes as member_size,
+    am.compressed_size,
+    am.uncompressed_size,
+    am.compression_ratio,
+    am.is_primary,
+    am.sort_order
+FROM archive_member am
+JOIN rom_file parent ON am.parent_rom_id = parent.rom_id
+JOIN rom_file child ON am.child_rom_id = child.rom_id
+ORDER BY parent.filename, am.sort_order;
+
+-- View to show file operation history
+CREATE VIEW v_file_operation_history AS
+SELECT
+    fol.operation_id,
+    fol.operation_type,
+    fol.initiated_by,
+    fol.status,
+    fol.source_path,
+    fol.destination_path,
+    fol.message,
+    fol.created_at,
+    fi.relative_path as current_relative_path,
+    lr.label as library_root,
+    rf.filename as rom_filename,
+    rf.sha1
+FROM file_operation_log fol
+LEFT JOIN file_instance fi ON fol.instance_id = fi.instance_id
+LEFT JOIN library_root lr ON fi.root_id = lr.root_id
+LEFT JOIN rom_file rf ON fol.rom_id = rf.rom_id
+ORDER BY fol.created_at DESC;
+
+-- View to show ingestion queue status
+CREATE VIEW v_ingestion_queue_status AS
+SELECT
+    lr.label as library_root,
+    iq.status,
+    COUNT(*) as file_count,
+    COUNT(CASE WHEN iq.error_message IS NOT NULL THEN 1 END) as files_with_errors,
+    MIN(iq.created_at) as oldest_pending,
+    MAX(iq.created_at) as newest_pending
+FROM ingestion_queue iq
+JOIN library_root lr ON iq.root_id = lr.root_id
+GROUP BY lr.label, iq.status;
+
+-- View to show ROM file metadata summary
+CREATE VIEW v_rom_file_metadata_summary AS
+SELECT
+    rf.filename,
+    rf.sha1,
+    rf.size_bytes,
+    rf.content_role,
+    COUNT(rfm.metadata_key) as metadata_count,
+    GROUP_CONCAT(rfm.metadata_key || ': ' || rfm.metadata_value, '; ') as metadata_pairs
+FROM rom_file rf
+LEFT JOIN rom_file_metadata rfm ON rf.rom_id = rfm.rom_id
+GROUP BY rf.rom_id, rf.filename, rf.sha1, rf.size_bytes, rf.content_role;
