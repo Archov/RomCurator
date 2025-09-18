@@ -179,6 +179,7 @@ CREATE TABLE IF NOT EXISTS platform_extension (
 - Leverage the hash cache to bypass redundant hashing where safe; log cache hit rates through the performance monitoring hooks.
 - Add tests validating hashing accuracy, database promotion logic, cache reuse, and missing file handling.
 
+### Work Item 11: Archive Handling & Auxiliary Asset Support
 - Detect archives via the extension registry and signature probes; enumerate contents using streaming readers that handle nested archives up to the configured depth.
 - Record member relationships in `archive_member`, designating primary playable entries and capturing compressed/uncompressed sizes and modification metadata.
 - Implement failure handling for password-protected or corrupt archives, recording issues in `file_operation_log` and keeping `file_discovery` rows in a `promotion_state='failed'` state for operator review.
@@ -225,8 +226,9 @@ CREATE TABLE IF NOT EXISTS ingestion_candidate (
 - Emit Qt signals when ingestion runs complete so the curation queue refreshes automatically without manual reloads.
 - Cover UI interactions with automated tests or scripted Qt harnesses to ensure queue updates and filters behave as expected.
 
+### Work Item 16: Library Organisation & Operation Logging
 - Implement `FileOrganizerService` (or extend the existing organizer) to compute destination paths based on release metadata, platform links, and configurable templates defined in `config.json`.
-- Define a quarantine strategy: default to moving items to `./quarantine/<log_id>/` (configurable `quarantine_root`), record provenance, and differentiate between quarantine (recoverable conflicts, permission issues) and deletion (explicit operator choice).
+- Define a quarantine strategy: default to moving items to `./quarantine/<log_id>/` (configurable `quarantine_root`), record provenance, and differentiate between quarantine (recoverable conflicts, permission issues, unresolved duplicates) and deletion (operator-confirmed purge).
 - Record every move/copy/quarantine in `file_operation_log`, including source/destination, status, and messages for failures; generate a backup manifest per run.
 - Provide automated restore tooling that reads the manifest to reinstate quarantined files or undo moves; document that quarantine remains until the operator clears it.
 - Provide a dry-run preview that includes a per-file before/after table and expose "Apply Library Organization" as an explicit post-ingestion action; persist manifests alongside session logs.
@@ -240,12 +242,14 @@ CREATE TABLE IF NOT EXISTS ingestion_candidate (
 - Provide skip/whitelist controls for BIOS/system files, homebrew, or other content that should not be matched/organised like standard ROMs.
 - Allow users to target ingestion to specific platforms or collections to reduce scope and processing time when desired; cover bulk actions and scoped runs with automated tests.
 
+### Work Item 18: UI Integration & Configuration Experience
 - Add "Tools → Library → Scan & Ingest Files..." to the main window, launching the ingestion dialog with progress, cancellation, and telemetry displays.
 - Enhance the enhanced importer UI to display ingestion metrics (files seen, hashed, matched, pending) and run summaries, linking to per-run log files and pre/post-flight reports, including pre-flight time/space estimates.
-- Extend the configuration dialog to expose archive depth limit, password dictionary path, hash chunk size, database batch sizes, organizer defaults, telemetry thresholds, and resource ceilings (`memory_limit_mb` default 2048, `temp_space_limit_gb` default 10, throttle threshold default 80%). Ensure `ConfigManager` persists and applies these settings.
+- Extend the configuration dialog to expose archive depth limit, password dictionary path, hash chunk size, database batch sizes, organizer defaults, telemetry thresholds, and resource ceilings (`memory_limit_mb` default 2048, `temp_space_limit_gb` default 10, `throttle_trigger_percent` default 80). Ensure `ConfigManager` persists and applies these settings.
 - Detect network-mounted paths (UNC shares, SMB/NFS mounts) during configuration/pre-flight and warn about reduced throughput or checkpoint tuning needs.
 - Implement adaptive batching controls with memory-pressure detection and automatic back-off tied to configuration values; verify via automated GUI/service tests.
 
+### Work Item 19: UAT Readiness Reports & Post-run Verification
 - Generate a post-run verification report detailing files processed, actions taken, failures (with reasons), and any manual follow-ups required; call out time/space estimate accuracy by comparing pre-flight predictions with actual results.
 - Capture and archive both pre-flight (from Work Item 9) and post-run reports with the session logs so they can be reviewed or shared post-run.
 - Provide export options (HTML/CSV) for QA review and stakeholder communication; include operator acknowledgements or sign-offs in the UI and audit log when post-run issues are resolved.
@@ -258,6 +262,7 @@ CREATE TABLE IF NOT EXISTS ingestion_candidate (
 - Provide an operator runbook outlining restart procedures, interpreting logs, reviewing pre/post-flight reports, and common remediation actions (password-protected archives, missing files, etc.).
 - Maintain a configuration reference that enumerates all ingestion-related keys, defaults, and tuning guidance; add documentation linting or link-checking in CI.
 
+### Work Item 21: Performance Optimization & Hardening
 - Implement adaptive batching that tunes batch sizes based on file size distribution and system load, with user-configurable ceilings in `config.json`.
 - Monitor memory, CPU, and disk I/O usage during ingestion; throttle or pause work when thresholds are exceeded, logging the adjustments through the performance monitoring framework.
 - Apply targeted optimizations (parallel hashing, pipelined staging) where profiling indicates bottlenecks, ensuring changes respect the resilience guardrails from earlier phases.
