@@ -530,13 +530,20 @@ class LibraryIngestionImporter(BaseImporter):
             return None
     
     def _detect_platform(self, file_path: Path) -> Optional[int]:
-        """Detect platform from file path and extension."""
+        """Detect platform from file path and extension using extension registry."""
         try:
-            # Simple platform detection based on directory structure and file extensions
-            path_parts = [part.lower() for part in file_path.parts]
             file_ext = file_path.suffix.lower()
             
-            # Platform detection rules
+            # First, try to get platform from extension registry
+            if file_ext:
+                platform_id = self._get_platform_from_extension_registry(file_ext)
+                if platform_id:
+                    return platform_id
+            
+            # Fallback to path-based detection
+            path_parts = [part.lower() for part in file_path.parts]
+            
+            # Platform detection rules for path-based detection
             platform_rules = {
                 'nintendo': {
                     'nes': 'Nintendo Entertainment System',
@@ -572,7 +579,7 @@ class LibraryIngestionImporter(BaseImporter):
                         if platform_key in ' '.join(path_parts):
                             return self._get_or_create_platform(platform_name)
             
-            # Check file extensions for platform hints
+            # Final fallback to extension-based mapping
             ext_platform_map = {
                 '.nes': 'Nintendo Entertainment System',
                 '.sfc': 'Super Nintendo Entertainment System',
@@ -591,6 +598,34 @@ class LibraryIngestionImporter(BaseImporter):
             print(f"Error detecting platform for {file_path}: {e}")
         
         return None
+    
+    def _get_platform_from_extension_registry(self, file_ext: str) -> Optional[int]:
+        """Get platform ID from extension registry for the given file extension."""
+        try:
+            # Get the extension info from registry
+            extension_info = self.extension_registry.get_extension_by_name(file_ext)
+            if not extension_info:
+                return None
+            
+            # Get platform mappings for this extension
+            platform_mappings = self.extension_registry.get_platforms_for_extension(extension_info['extension_id'])
+            
+            if not platform_mappings:
+                return None
+            
+            # Prefer primary mappings, then highest confidence
+            primary_mappings = [m for m in platform_mappings if m.get('is_primary', False)]
+            if primary_mappings:
+                # Return the first primary mapping
+                return primary_mappings[0]['platform_id']
+            
+            # If no primary mappings, return the highest confidence mapping
+            best_mapping = max(platform_mappings, key=lambda m: m.get('confidence', 0.0))
+            return best_mapping['platform_id']
+            
+        except Exception as e:
+            print(f"Error getting platform from extension registry for {file_ext}: {e}")
+            return None
     
     def _get_or_create_platform(self, platform_name: str) -> Optional[int]:
         """Get or create platform in database."""
