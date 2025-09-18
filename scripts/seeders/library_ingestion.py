@@ -673,12 +673,19 @@ def main():
     import json
     from pathlib import Path
     
-    # Load configuration
-    config_file = Path('config.json')
+    # Load configuration from project root
+    # Look for config.json in the project root (two levels up from this script)
+    script_dir = Path(__file__).parent
+    project_root = script_dir.parent.parent
+    config_file = project_root / 'config.json'
+    
     config = {}
     if config_file.exists():
         with open(config_file, 'r') as f:
             config = json.load(f)
+    else:
+        print(f"Warning: Config file not found at {config_file}")
+        print("Using default configuration values.")
     
     # Create importer
     importer = LibraryIngestionImporter(config.get('database_path', './database/RomCurator.db'), config)

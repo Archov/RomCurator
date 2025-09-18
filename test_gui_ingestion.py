@@ -537,8 +537,9 @@ class TestCancellationFlows(unittest.TestCase):
         worker.stop()
         self.assertTrue(worker.should_stop)
         
-        # Test that stop method logs the action
-        mock_logger.log_message.assert_called()
+        # Test that stop method logs the action only when there's a process
+        # Since no process is set, no logging should occur
+        mock_logger.log_message.assert_not_called()
     
     def test_process_termination(self):
         """Test that running processes are properly terminated."""
@@ -571,6 +572,9 @@ class TestCancellationFlows(unittest.TestCase):
         # Verify process was terminated
         mock_process.terminate.assert_called_once()
         mock_process.wait.assert_called_once_with(timeout=5)
+        
+        # Verify that logging occurred when there was a process
+        mock_logger.log_message.assert_called()
     
     def test_cancellation_during_execution(self):
         """Test that cancellation works during execution."""

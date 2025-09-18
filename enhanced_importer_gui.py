@@ -8,6 +8,7 @@ This provides a comprehensive interface for importing data with:
 - Error reporting and recovery
 """
 
+import os
 import sys
 import json
 import sqlite3
@@ -334,8 +335,8 @@ class ImportWorkerThread(QThread):
                 
                 # Read available output
                 try:
-                    # Use select for non-blocking read (Unix/Linux)
-                    if hasattr(select, 'select'):
+                    # Use select for non-blocking read (Unix/Linux only)
+                    if os.name != 'nt' and hasattr(select, 'select'):
                         ready, _, _ = select.select([process.stdout, process.stderr], [], [], 0.1)
                         
                         if process.stdout in ready:
@@ -352,7 +353,7 @@ class ImportWorkerThread(QThread):
                                 self.output_received.emit(f"STDERR: {line.rstrip()}")
                                 self.logger.log_message("debug", f"STDERR: {line.rstrip()}")
                     else:
-                        # Fallback for Windows - use threading
+                        # Use threading for Windows and fallback
                         import threading
                         import queue
                         
