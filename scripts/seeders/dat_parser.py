@@ -222,10 +222,24 @@ class DATNameParser:
             group_lower = group.lower()
             
             # Check for regions (first priority)
-            region = self._standardize_region(group, 'nointro')
-            if region:
-                regions_found.append(region)
-                continue
+            # Handle comma-separated regions in No-Intro format
+            if ',' in group:
+                # Split by comma and check each part for regions
+                sub_regions = [part.strip() for part in group.split(',')]
+                found_any_regions = False
+                for sub_region in sub_regions:
+                    region = self._standardize_region(sub_region, 'nointro')
+                    if region:
+                        regions_found.append(region)
+                        found_any_regions = True
+                if found_any_regions:
+                    continue
+            else:
+                # Single region check
+                region = self._standardize_region(group, 'nointro')
+                if region:
+                    regions_found.append(region)
+                    continue
                     
             # Check for languages
             if not result['language_codes']:
@@ -267,7 +281,7 @@ class DATNameParser:
                 result['region_normalized'] = regions_found[0]
             else:
                 result['region_normalized'] = 'MULTI'
-                # Note: Individual regions would be stored in EAV table in actual implementation
+                result['regions_list'] = regions_found  # Store individual regions for EAV storage
                 
         return result
 
@@ -319,7 +333,7 @@ class DATNameParser:
                 result['region_normalized'] = regions_found[0]
             else:
                 result['region_normalized'] = 'MULTI'
-                # Note: Individual regions would be stored in EAV table in actual implementation
+                result['regions_list'] = regions_found  # Store individual regions for EAV storage
                 
         return result
 
@@ -392,7 +406,7 @@ class DATNameParser:
                 result['region_normalized'] = regions_found[0]
             else:
                 result['region_normalized'] = 'MULTI'
-                # Note: Individual regions would be stored in EAV table in actual implementation
+                result['regions_list'] = regions_found  # Store individual regions for EAV storage
                     
         return result
 

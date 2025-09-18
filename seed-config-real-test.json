@@ -1,0 +1,20 @@
+{
+  "name": "Real DAT Test - Multi-Region",
+  "description": "Test multi-region handling with real working DAT files",
+  "database_path": "database/RomCurator.db",
+  "imports": [
+    {
+      "name": "Real No-Intro Test",
+      "type": "nointro",
+      "file": "seed-data/No-Intro/Nintendo - Nintendo Entertainment System (20240101-20241231) (2024-12-31 23-59-59).dat",
+      "platform": "Nintendo Entertainment System"
+    },
+    {
+      "name": "Real TOSEC Test", 
+      "type": "tosec",
+      "file": "seed-data/TOSEC/Console/Nintendo/Nintendo Entertainment System (2024-12-31)/Nintendo - Nintendo Entertainment System (2024-12-31).dat",
+      "platform": "Nintendo Entertainment System"
+    }
+  ]
+}
+

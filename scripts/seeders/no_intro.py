@@ -94,7 +94,7 @@ class NoIntroImporter(BaseImporter):
             roms = game_element.findall('rom')
             for rom_elem in roms:
                 sha1 = rom_elem.get('sha1')
-                if sha1 and process_dat_rom_entry(cursor, log_id, platform_id, game_name, sha1, is_clone, clone_of, "no-intro"):
+                if sha1 and process_dat_rom_entry(cursor, log_id, platform_id, game_name, sha1, is_clone, clone_of, "nointro"):
                     processed_files += 1
                 elif not sha1:
                     print(f"  - Warning: ROM in game '{game_name}' missing SHA1, skipping.")
@@ -105,7 +105,7 @@ class NoIntroImporter(BaseImporter):
                 files = source.findall('file')
                 for file_elem in files:
                     sha1 = file_elem.get('sha1')
-                    if sha1 and process_dat_rom_entry(cursor, log_id, platform_id, game_name, sha1, is_clone, clone_of, "no-intro"):
+                    if sha1 and process_dat_rom_entry(cursor, log_id, platform_id, game_name, sha1, is_clone, clone_of, "nointro"):
                         processed_files += 1
                     elif not sha1:
                         print(f"  - Warning: File in game '{game_name}' missing SHA1, skipping.")
@@ -116,7 +116,7 @@ class NoIntroImporter(BaseImporter):
                 files = release.findall('file')
                 for file_elem in files:
                     sha1 = file_elem.get('sha1')
-                    if sha1 and process_dat_rom_entry(cursor, log_id, platform_id, game_name, sha1, is_clone, clone_of, "no-intro"):
+                    if sha1 and process_dat_rom_entry(cursor, log_id, platform_id, game_name, sha1, is_clone, clone_of, "nointro"):
                         processed_files += 1
             
             if processed_files == 0:

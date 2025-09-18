@@ -173,6 +173,16 @@ def process_dat_rom_entry(cursor, log_id, platform_id, game_name, sha1, is_clone
                     'extra_info', ?
                 )
             """, (sha1.lower(), log_id, parsed_data['extra_info']))
+        
+        # Handle multi-region entries using existing EAV table
+        if parsed_data.get('region_normalized') == 'MULTI' and parsed_data.get('regions_list'):
+            dat_entry_id = cursor.lastrowid
+            for i, region in enumerate(parsed_data['regions_list']):
+                cursor.execute("""
+                    INSERT OR IGNORE INTO dat_entry_metadata (
+                        dat_entry_id, metadata_key, metadata_value
+                    ) VALUES (?, ?, ?)
+                """, (dat_entry_id, f'region_{i+1}', region))
     else:
         # Fallback to basic structure (v1.6)
         cursor.execute("""
