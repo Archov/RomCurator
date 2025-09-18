@@ -534,13 +534,14 @@ class LibraryIngestionImporter(BaseImporter):
         try:
             file_ext = file_path.suffix.lower()
             
-            # First, try to get platform from extension registry
+            # PRIMARY: Try to get platform from extension registry first
             if file_ext:
                 platform_id = self._get_platform_from_extension_registry(file_ext)
                 if platform_id:
+                    print(f"Platform detected from extension registry: {file_ext} -> Platform ID {platform_id}")
                     return platform_id
             
-            # Fallback to path-based detection
+            # SECONDARY: Fallback to path-based detection for unmapped extensions
             path_parts = [part.lower() for part in file_path.parts]
             
             # Platform detection rules for path-based detection
@@ -577,9 +578,11 @@ class LibraryIngestionImporter(BaseImporter):
                 if manufacturer in ' '.join(path_parts):
                     for platform_key, platform_name in platforms.items():
                         if platform_key in ' '.join(path_parts):
-                            return self._get_or_create_platform(platform_name)
+                            platform_id = self._get_or_create_platform(platform_name)
+                            print(f"Platform detected from path: {platform_name} -> Platform ID {platform_id}")
+                            return platform_id
             
-            # Final fallback to extension-based mapping
+            # TERTIARY: Final fallback to hardcoded extension mapping
             ext_platform_map = {
                 '.nes': 'Nintendo Entertainment System',
                 '.sfc': 'Super Nintendo Entertainment System',
@@ -592,7 +595,11 @@ class LibraryIngestionImporter(BaseImporter):
             }
             
             if file_ext in ext_platform_map:
-                return self._get_or_create_platform(ext_platform_map[file_ext])
+                platform_id = self._get_or_create_platform(ext_platform_map[file_ext])
+                print(f"Platform detected from hardcoded mapping: {file_ext} -> {ext_platform_map[file_ext]} -> Platform ID {platform_id}")
+                return platform_id
+            
+            print(f"No platform detected for {file_path} (extension: {file_ext})")
             
         except Exception as e:
             print(f"Error detecting platform for {file_path}: {e}")
