@@ -904,3 +904,108 @@ SELECT
 FROM rom_file rf
 LEFT JOIN rom_file_metadata rfm ON rf.rom_id = rfm.rom_id
 GROUP BY rf.rom_id, rf.filename, rf.sha1, rf.size_bytes, rf.content_role;
+
+-- =============================================================================
+-- SECTION 5: EXTENSION REGISTRY (v1.10)
+-- =============================================================================
+
+-- File type categories for organizing extensions
+CREATE TABLE IF NOT EXISTS file_type_category (
+    category_id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    description TEXT,
+    sort_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- File extensions with metadata
+CREATE TABLE IF NOT EXISTS file_extension (
+    extension_id INTEGER PRIMARY KEY,
+    extension TEXT NOT NULL UNIQUE,
+    category_id INTEGER NOT NULL REFERENCES file_type_category(category_id),
+    description TEXT,
+    mime_type TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    is_rom BOOLEAN DEFAULT FALSE,
+    is_archive BOOLEAN DEFAULT FALSE,
+    is_save BOOLEAN DEFAULT FALSE,
+    is_patch BOOLEAN DEFAULT FALSE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Platform-extension mappings with confidence scores
+CREATE TABLE IF NOT EXISTS platform_extension (
+    platform_extension_id INTEGER PRIMARY KEY,
+    platform_id INTEGER NOT NULL REFERENCES platform(platform_id),
+    extension_id INTEGER NOT NULL REFERENCES file_extension(extension_id),
+    is_primary BOOLEAN DEFAULT FALSE,
+    confidence REAL DEFAULT 1.0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(platform_id, extension_id)
+);
+
+-- Unknown extensions discovered during scanning
+CREATE TABLE IF NOT EXISTS unknown_extension (
+    unknown_extension_id INTEGER PRIMARY KEY,
+    extension TEXT NOT NULL UNIQUE,
+    file_count INTEGER DEFAULT 1,
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'ignored')),
+    suggested_category_id INTEGER REFERENCES file_type_category(category_id),
+    suggested_platform_id INTEGER REFERENCES platform(platform_id),
+    notes TEXT,
+    first_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_seen DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for extension registry
+CREATE INDEX IF NOT EXISTS idx_file_extension_category ON file_extension(category_id);
+CREATE INDEX IF NOT EXISTS idx_file_extension_active ON file_extension(is_active);
+CREATE INDEX IF NOT EXISTS idx_platform_extension_platform ON platform_extension(platform_id);
+CREATE INDEX IF NOT EXISTS idx_platform_extension_extension ON platform_extension(extension_id);
+CREATE INDEX IF NOT EXISTS idx_platform_extension_primary ON platform_extension(is_primary);
+CREATE INDEX IF NOT EXISTS idx_unknown_extension_status ON unknown_extension(status);
+CREATE INDEX IF NOT EXISTS idx_unknown_extension_extension ON unknown_extension(extension);
+
+-- View to show extension registry with platform mappings
+CREATE VIEW v_extension_registry AS
+SELECT
+    fe.extension,
+    fe.description,
+    fe.mime_type,
+    fe.is_active,
+    fe.is_rom,
+    fe.is_archive,
+    fe.is_save,
+    fe.is_patch,
+    ftc.name as category_name,
+    ftc.description as category_description,
+    GROUP_CONCAT(
+        p.name || ':' || pe.is_primary || ':' || pe.confidence,
+        ';'
+    ) as platform_mappings
+FROM file_extension fe
+JOIN file_type_category ftc ON fe.category_id = ftc.category_id
+LEFT JOIN platform_extension pe ON fe.extension_id = pe.extension_id
+LEFT JOIN platform p ON pe.platform_id = p.platform_id
+GROUP BY fe.extension_id, fe.extension, fe.description, fe.mime_type, 
+         fe.is_active, fe.is_rom, fe.is_archive, fe.is_save, fe.is_patch,
+         ftc.name, ftc.description;
+
+-- View to show unknown extensions with suggestions
+CREATE VIEW v_unknown_extensions AS
+SELECT
+    ue.extension,
+    ue.file_count,
+    ue.status,
+    ue.notes,
+    ue.first_seen,
+    ue.last_seen,
+    ftc.name as suggested_category,
+    p.name as suggested_platform
+FROM unknown_extension ue
+LEFT JOIN file_type_category ftc ON ue.suggested_category_id = ftc.category_id
+LEFT JOIN platform p ON ue.suggested_platform_id = p.platform_id
+ORDER BY ue.file_count DESC, ue.first_seen ASC;

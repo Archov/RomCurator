@@ -19,6 +19,7 @@ import hashlib
 import os
 import sqlite3
 import time
+import logging
 from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Tuple
@@ -28,6 +29,11 @@ try:
     from .base_importer import BaseImporter, DatabaseHandler
 except ImportError:
     from base_importer import BaseImporter, DatabaseHandler
+
+# Import extension registry manager
+import sys
+sys.path.append(str(Path(__file__).parent.parent.parent))
+from extension_registry_manager import ExtensionRegistryManager
 
 
 class LibraryIngestionImporter(BaseImporter):
@@ -53,6 +59,10 @@ class LibraryIngestionImporter(BaseImporter):
         self.exclude_patterns = self.ingestion_settings.get('exclude_patterns', [])
         self.enable_platform_detection = self.ingestion_settings.get('enable_platform_detection', True)
         self.enable_metadata_extraction = self.ingestion_settings.get('enable_metadata_extraction', True)
+        
+        # Initialize extension registry
+        self.extension_registry = ExtensionRegistryManager(db_path)
+        self.supported_extensions = self._load_supported_extensions()
         
         # Statistics tracking
         self.stats = {
@@ -88,6 +98,32 @@ class LibraryIngestionImporter(BaseImporter):
             print("Using default configuration values.")
         
         return config
+    
+    def _load_supported_extensions(self) -> Dict[str, List[str]]:
+        """Load supported extensions from extension registry with fallback to config."""
+        try:
+            # Try to get extensions from registry first
+            registry_extensions = self.extension_registry.get_supported_extensions()
+            if registry_extensions and any(registry_extensions.values()):
+                return registry_extensions
+        except Exception as e:
+            logging.warning(f"Could not load extensions from registry: {e}")
+        
+        # Fallback to config-based extensions
+        fallback_extensions = {
+            'rom': self.file_extensions.get('rom', []),
+            'archive': self.file_extensions.get('archive', []),
+            'save': self.file_extensions.get('save', []),
+            'patch': self.file_extensions.get('patch', [])
+        }
+        
+        # Ensure we have the expected extension types
+        if not fallback_extensions['save']:
+            fallback_extensions['save'] = ['.sav', '.save', '.srm', '.state']
+        if not fallback_extensions['patch']:
+            fallback_extensions['patch'] = ['.ips', '.bps', '.ups', '.xdelta']
+        
+        return fallback_extensions
     
     def get_file_type_description(self):
         return "Library File Ingestion"
@@ -268,16 +304,24 @@ class LibraryIngestionImporter(BaseImporter):
         """Check if file is supported based on extensions."""
         file_ext = file_path.suffix.lower()
         
+        # Use extension registry to detect file type
+        if file_type_info := self.extension_registry.detect_file_type(file_path.name):
+            # File is recognized by registry
+            return True
+        
+        # Check if extension is in our supported lists (fallback)
         # Check ROM extensions
-        rom_extensions = self.file_extensions.get('rom', [])
-        if file_ext in rom_extensions:
+        if file_ext in self.supported_extensions.get('rom', []):
             return True
         
         # Check archive extensions
-        if self.enable_archive_expansion:
-            archive_extensions = self.file_extensions.get('archive', [])
-            if file_ext in archive_extensions:
-                return True
+        if self.enable_archive_expansion and file_ext in self.supported_extensions.get('archive', []):
+            return True
+        
+        # If not recognized, record as unknown extension
+        if file_ext:
+            self.extension_registry.record_unknown_extension(file_ext)
+            logging.info(f"Unknown extension encountered: {file_ext} in {file_path}")
         
         return False
     
@@ -470,13 +514,19 @@ class LibraryIngestionImporter(BaseImporter):
             return None
     
     def _detect_platform(self, file_path: Path) -> Optional[int]:
-        """Detect platform from file path and extension."""
+        """Detect platform from file path and extension using extension registry."""
         try:
-            # Simple platform detection based on directory structure and file extensions
-            path_parts = [part.lower() for part in file_path.parts]
             file_ext = file_path.suffix.lower()
             
-            # Platform detection rules
+            # PRIMARY: Try to get platform from extension registry first
+            if file_ext and (platform_id := self._get_platform_from_extension_registry(file_ext)):
+                logging.info(f"Platform detected from extension registry: {file_ext} -> Platform ID {platform_id}")
+                return platform_id
+            
+            # SECONDARY: Fallback to path-based detection for unmapped extensions
+            path_parts = [part.lower() for part in file_path.parts]
+            
+            # Platform detection rules for path-based detection
             platform_rules = {
                 'nintendo': {
                     'nes': 'Nintendo Entertainment System',
@@ -506,13 +556,16 @@ class LibraryIngestionImporter(BaseImporter):
             }
             
             # Check path parts for platform indicators
+            path_text = ' '.join(path_parts)
             for manufacturer, platforms in platform_rules.items():
-                if manufacturer in ' '.join(path_parts):
+                if manufacturer in path_text:
                     for platform_key, platform_name in platforms.items():
-                        if platform_key in ' '.join(path_parts):
-                            return self._get_or_create_platform(platform_name)
+                        if platform_key in path_text:
+                            platform_id = self._get_or_create_platform(platform_name)
+                            logging.info(f"Platform detected from path: {platform_name} -> Platform ID {platform_id}")
+                            return platform_id
             
-            # Check file extensions for platform hints
+            # TERTIARY: Final fallback to hardcoded extension mapping
             ext_platform_map = {
                 '.nes': 'Nintendo Entertainment System',
                 '.sfc': 'Super Nintendo Entertainment System',
@@ -524,13 +577,40 @@ class LibraryIngestionImporter(BaseImporter):
                 '.iso': 'PlayStation'  # Generic ISO, could be any platform
             }
             
-            if file_ext in ext_platform_map:
-                return self._get_or_create_platform(ext_platform_map[file_ext])
+            if file_ext in ext_platform_map and (platform_id := self._get_or_create_platform(ext_platform_map[file_ext])):
+                logging.info(f"Platform detected from hardcoded mapping: {file_ext} -> {ext_platform_map[file_ext]} -> Platform ID {platform_id}")
+                return platform_id
+            
+            logging.info(f"No platform detected for {file_path} (extension: {file_ext})")
             
         except Exception as e:
-            print(f"Error detecting platform for {file_path}: {e}")
+            logging.error(f"Error detecting platform for {file_path}: {e}")
         
         return None
+    
+    def _get_platform_from_extension_registry(self, file_ext: str) -> Optional[int]:
+        """Get platform ID from extension registry for the given file extension."""
+        try:
+            # Get the extension info from registry
+            if not (extension_info := self.extension_registry.get_extension_by_name(file_ext)):
+                return None
+            
+            # Get platform mappings for this extension
+            if not (platform_mappings := self.extension_registry.get_platforms_for_extension(extension_info['extension_id'])):
+                return None
+            
+            # Prefer primary mappings, then highest confidence
+            if primary_mappings := [m for m in platform_mappings if m.get('is_primary', False)]:
+                # Return the first primary mapping
+                return primary_mappings[0]['platform_id']
+            
+            # If no primary mappings, return the highest confidence mapping
+            best_mapping = max(platform_mappings, key=lambda m: m.get('confidence', 0.0))
+            return best_mapping['platform_id']
+            
+        except Exception as e:
+            logging.error(f"Error getting platform from extension registry for {file_ext}: {e}")
+            return None
     
     def _get_or_create_platform(self, platform_name: str) -> Optional[int]:
         """Get or create platform in database."""

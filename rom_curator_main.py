@@ -22,6 +22,7 @@ import qdarkstyle
 from enhanced_importer_gui import ImporterApp
 from curation_gui import CurationMainWindow
 from platform_linking_gui import PlatformLinkingDialog
+from extension_registry_gui import ExtensionRegistryDialog
 
 # Import enhanced logging system (Work Item 2)
 from enhanced_logging import EnhancedLoggingManager
@@ -310,6 +311,11 @@ class RomCuratorMainWindow(QMainWindow):
         platform_linking_action.triggered.connect(self.open_platform_linking)
         db_menu.addAction(platform_linking_action)
         
+        extension_registry_action = QAction('&Extension Registry...', self)
+        extension_registry_action.setStatusTip('Manage file extensions, categories, and platform mappings')
+        extension_registry_action.triggered.connect(self.open_extension_registry)
+        db_menu.addAction(extension_registry_action)
+        
         # View Menu
         view_menu = menubar.addMenu('&View')
 
@@ -466,6 +472,51 @@ class RomCuratorMainWindow(QMainWindow):
             QMessageBox.critical(
                 self, "Error",
                 f"Failed to open platform linking dialog:\n{e}"
+            )
+    
+    def open_extension_registry(self):
+        """Open the extension registry dialog."""
+        try:
+            db_path = self.config.get('database_path')
+            
+            # Check if database exists
+            if not Path(db_path).exists():
+                QMessageBox.warning(
+                    self, "Database Required",
+                    "Please import some data first using File → Import Data."
+                )
+                return
+            
+            # Check if extension registry tables exist (v1.10+)
+            import sqlite3
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name='file_type_category'
+            """)
+            
+            if not cursor.fetchone():
+                QMessageBox.warning(
+                    self, "Schema Update Required",
+                    "Extension registry requires database schema v1.10 or later.\n"
+                    "Please ensure your database is up to date."
+                )
+                conn.close()
+                return
+            
+            conn.close()
+            
+            self.extension_registry_dialog = ExtensionRegistryDialog(db_path, self)
+            self.extension_registry_dialog.show()
+            
+            logging.info("Extension registry dialog opened")
+            
+        except Exception as e:
+            logging.error(f"Failed to open extension registry dialog: {e}")
+            QMessageBox.critical(
+                self, "Error",
+                f"Failed to open extension registry dialog:\n{e}"
             )
     
     def _setup_complete(self):
