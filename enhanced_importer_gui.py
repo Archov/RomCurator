@@ -244,13 +244,26 @@ class ImportWorkerThread(QThread):
         try:
             # Get database path and resolve it exactly like the original does
             db_path = Path(self.config.get('database_path')).resolve()
-            args = [
-                sys.executable,
-                str(self.script_path),
-                '--source_id', str(self.source_id),
-                '--db_path', str(db_path),
-                '--files', file_path
-            ]
+            
+            # Check if this is the library ingestion importer
+            if 'library_ingestion' in str(self.script_path):
+                # For library ingestion, pass the file_path as a library root directory
+                args = [
+                    sys.executable,
+                    str(self.script_path),
+                    '--source_id', str(self.source_id),
+                    '--db_path', str(db_path),
+                    '--files', file_path
+                ]
+            else:
+                # Standard importer behavior
+                args = [
+                    sys.executable,
+                    str(self.script_path),
+                    '--source_id', str(self.source_id),
+                    '--db_path', str(db_path),
+                    '--files', file_path
+                ]
             
             # Log the exact command being executed
             command_str = ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in args)
@@ -364,9 +377,9 @@ class EnhancedImporterWidget(QWidget):
         file_layout = QHBoxLayout()
         file_layout.addWidget(QLabel("Files to Import:"))
         
-        select_btn = QPushButton("Select Files...")
-        select_btn.clicked.connect(self.select_files)
-        file_layout.addWidget(select_btn)
+        self.select_btn = QPushButton("Select Files...")
+        self.select_btn.clicked.connect(self.select_files)
+        file_layout.addWidget(self.select_btn)
         
         layout.addLayout(file_layout)
         
@@ -481,10 +494,17 @@ class EnhancedImporterWidget(QWidget):
         if data:
             self.current_source_id, self.current_importer_script = data
             self.update_imported_files_list()
+            
+            # Update button text based on importer type
+            if 'library_ingestion' in str(self.current_importer_script):
+                self.select_btn.setText("Select Library Directory...")
+            else:
+                self.select_btn.setText("Select Files...")
         else:
             self.current_source_id = None
             self.current_importer_script = None
             self.imported_list.clear()
+            self.select_btn.setText("Select Files...")
     
     def update_imported_files_list(self):
         """Update the list of already imported files for the current source."""
@@ -495,28 +515,41 @@ class EnhancedImporterWidget(QWidget):
     
     def select_files(self):
         """Open file selection dialog."""
-        file_filter = "All Files (*)"
-        
-        # Determine file filter based on source schema
-        if self.current_source_id:
-            sources = self.db.get_metadata_sources()
-            for source_row in sources:
-                if source_row[0] == self.current_source_id and len(source_row) > 3 and source_row[3]:
-                    schema_path = source_row[3].lower()
-                    if schema_path.endswith('.json'):
-                        file_filter = "JSON Files (*.json);;All Files (*)"
-                    elif schema_path.endswith('.xsd'):
-                        file_filter = "DAT Files (*.dat);;XML Files (*.xml);;All Files (*)"
-                    break
-        
-        files, _ = QFileDialog.getOpenFileNames(
-            self, "Select Source Data Files", "", file_filter
-        )
-        
-        if files:
-            self.selected_files = files
-            self.files_list.clear()
-            self.files_list.addItems([Path(f).name for f in files])
+        # Check if this is the library ingestion importer
+        if self.current_importer_script and 'library_ingestion' in str(self.current_importer_script):
+            # For library ingestion, select directories
+            directory = QFileDialog.getExistingDirectory(
+                self, "Select Library Root Directory", ""
+            )
+            
+            if directory:
+                self.selected_files = [directory]
+                self.files_list.clear()
+                self.files_list.addItems([Path(directory).name])
+        else:
+            # Standard file selection for other importers
+            file_filter = "All Files (*)"
+            
+            # Determine file filter based on source schema
+            if self.current_source_id:
+                sources = self.db.get_metadata_sources()
+                for source_row in sources:
+                    if source_row[0] == self.current_source_id and len(source_row) > 3 and source_row[3]:
+                        schema_path = source_row[3].lower()
+                        if schema_path.endswith('.json'):
+                            file_filter = "JSON Files (*.json);;All Files (*)"
+                        elif schema_path.endswith('.xsd'):
+                            file_filter = "DAT Files (*.dat);;XML Files (*.xml);;All Files (*)"
+                        break
+            
+            files, _ = QFileDialog.getOpenFileNames(
+                self, "Select Source Data Files", "", file_filter
+            )
+            
+            if files:
+                self.selected_files = files
+                self.files_list.clear()
+                self.files_list.addItems([Path(f).name for f in files])
     
     def start_import(self):
         """Start the import process."""

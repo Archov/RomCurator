@@ -52,6 +52,21 @@ class ConfigManager:
                     "window_width": 1200,
                     "window_height": 800,
                     "theme": "dark"
+                },
+                "ingestion_settings": {
+                    "library_roots": [],
+                    "batch_size": 100,
+                    "enable_validation": True,
+                    "enable_archive_expansion": True,
+                    "hash_algorithms": ["sha1", "crc32", "md5", "sha256"],
+                    "file_extensions": {
+                        "rom": [".rom", ".bin", ".smd", ".sfc", ".nes", ".gb", ".gba", ".nds", ".iso", ".img"],
+                        "archive": [".zip", ".7z", ".rar", ".tar", ".gz"]
+                    },
+                    "max_file_size_mb": 1024,
+                    "exclude_patterns": ["*.tmp", "*.temp", "*.bak", "*.backup"],
+                    "enable_platform_detection": True,
+                    "enable_metadata_extraction": True
                 }
             }
             
