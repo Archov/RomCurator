@@ -633,184 +633,199 @@ class ExtensionRegistryManager:
         }
         
         try:
-            # Load data from file
-            if format.lower() == 'json':
-                import json
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    import_data = json.load(f)
-            
-            elif format.lower() == 'csv':
-                # CSV import is more complex, for now just return error
-                import_results['errors'].append("CSV import not yet implemented")
-                return import_results
-            
-            else:
-                import_results['errors'].append(f"Unsupported import format: {format}")
-                return import_results
+            import_data = self._load_import_data(file_path, format)
             
             with self._get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("BEGIN TRANSACTION")
-                
+
                 try:
-                    # Import categories
-                    if 'categories' in import_data:
-                        for cat_data in import_data['categories']:
-                            try:
-                                # Check if category exists
-                                cursor.execute("SELECT category_id FROM file_type_category WHERE name = ?", 
-                                             (cat_data['name'],))
-                                existing = cursor.fetchone()
-                                
-                                if existing and not overwrite:
-                                    continue  # Skip existing
-                                
-                                if existing and overwrite:
-                                    # Update existing
-                                    cursor.execute("""
-                                        UPDATE file_type_category 
-                                        SET description = ?, sort_order = ?, is_active = ?
-                                        WHERE category_id = ?
-                                    """, (cat_data.get('description'), cat_data.get('sort_order', 0),
-                                         cat_data.get('is_active', True), existing['category_id']))
-                                else:
-                                    # Create new
-                                    cursor.execute("""
-                                        INSERT INTO file_type_category (name, description, sort_order, is_active)
-                                        VALUES (?, ?, ?, ?)
-                                    """, (cat_data['name'], cat_data.get('description'),
-                                         cat_data.get('sort_order', 0), cat_data.get('is_active', True)))
-                                
-                                import_results['categories_imported'] += 1
-                                
-                            except Exception as e:
-                                import_results['errors'].append(f"Error importing category {cat_data.get('name', 'unknown')}: {e}")
+                    self._import_categories(cursor, import_data, overwrite, import_results)
+                    self._import_extensions(cursor, import_data, overwrite, import_results)
+                    self._import_mappings(cursor, import_data, overwrite, import_results)
+                    self._import_unknown_extensions(cursor, import_data, overwrite, import_results)
                     
-                    # Import extensions
-                    if 'extensions' in import_data:
-                        for ext_data in import_data['extensions']:
-                            try:
-                                # Check if extension exists
-                                cursor.execute("SELECT extension_id FROM file_extension WHERE extension = ?", 
-                                             (ext_data['extension'],))
-                                existing = cursor.fetchone()
-                                
-                                if existing and not overwrite:
-                                    continue  # Skip existing
-                                
-                                if existing and overwrite:
-                                    # Update existing
-                                    cursor.execute("""
-                                        UPDATE file_extension 
-                                        SET category_id = ?, description = ?, mime_type = ?, 
-                                            is_active = ?, is_rom = ?, is_archive = ?, is_save = ?, is_patch = ?
-                                        WHERE extension_id = ?
-                                    """, (ext_data.get('category_id'), ext_data.get('description'),
-                                         ext_data.get('mime_type'), ext_data.get('is_active', True),
-                                         ext_data.get('is_rom', False), ext_data.get('is_archive', False),
-                                         ext_data.get('is_save', False), ext_data.get('is_patch', False),
-                                         existing['extension_id']))
-                                else:
-                                    # Create new
-                                    cursor.execute("""
-                                        INSERT INTO file_extension 
-                                        (extension, category_id, description, mime_type, is_active, 
-                                         is_rom, is_archive, is_save, is_patch)
-                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                                    """, (ext_data['extension'], ext_data.get('category_id'),
-                                         ext_data.get('description'), ext_data.get('mime_type'),
-                                         ext_data.get('is_active', True), ext_data.get('is_rom', False),
-                                         ext_data.get('is_archive', False), ext_data.get('is_save', False),
-                                         ext_data.get('is_patch', False)))
-                                
-                                import_results['extensions_imported'] += 1
-                                
-                            except Exception as e:
-                                import_results['errors'].append(f"Error importing extension {ext_data.get('extension', 'unknown')}: {e}")
-                    
-                    # Import platform mappings
-                    if 'mappings' in import_data:
-                        for mapping_data in import_data['mappings']:
-                            try:
-                                # Check if mapping exists
-                                cursor.execute("""
-                                    SELECT platform_extension_id FROM platform_extension 
-                                    WHERE platform_id = ? AND extension_id = ?
-                                """, (mapping_data.get('platform_id'), mapping_data.get('extension_id')))
-                                existing = cursor.fetchone()
-                                
-                                if existing and not overwrite:
-                                    continue  # Skip existing
-                                
-                                if existing and overwrite:
-                                    # Update existing
-                                    cursor.execute("""
-                                        UPDATE platform_extension 
-                                        SET is_primary = ?, confidence = ?
-                                        WHERE platform_extension_id = ?
-                                    """, (mapping_data.get('is_primary', False),
-                                         mapping_data.get('confidence', 1.0), existing['platform_extension_id']))
-                                else:
-                                    # Create new
-                                    cursor.execute("""
-                                        INSERT INTO platform_extension (platform_id, extension_id, is_primary, confidence)
-                                        VALUES (?, ?, ?, ?)
-                                    """, (mapping_data.get('platform_id'), mapping_data.get('extension_id'),
-                                         mapping_data.get('is_primary', False), mapping_data.get('confidence', 1.0)))
-                                
-                                import_results['mappings_imported'] += 1
-                                
-                            except Exception as e:
-                                import_results['errors'].append(f"Error importing mapping: {e}")
-                    
-                    # Import unknown extensions
-                    if 'unknown_extensions' in import_data:
-                        for unknown_data in import_data['unknown_extensions']:
-                            try:
-                                # Check if unknown extension exists
-                                cursor.execute("SELECT unknown_extension_id FROM unknown_extension WHERE extension = ?", 
-                                             (unknown_data['extension'],))
-                                existing = cursor.fetchone()
-                                
-                                if existing and not overwrite:
-                                    continue  # Skip existing
-                                
-                                if existing and overwrite:
-                                    # Update existing
-                                    cursor.execute("""
-                                        UPDATE unknown_extension 
-                                        SET file_count = ?, status = ?, suggested_category_id = ?, 
-                                            suggested_platform_id = ?, notes = ?
-                                        WHERE unknown_extension_id = ?
-                                    """, (unknown_data.get('file_count', 1), unknown_data.get('status', 'pending'),
-                                         unknown_data.get('suggested_category_id'), unknown_data.get('suggested_platform_id'),
-                                         unknown_data.get('notes'), existing['unknown_extension_id']))
-                                else:
-                                    # Create new
-                                    cursor.execute("""
-                                        INSERT INTO unknown_extension 
-                                        (extension, file_count, status, suggested_category_id, suggested_platform_id, notes)
-                                        VALUES (?, ?, ?, ?, ?, ?)
-                                    """, (unknown_data['extension'], unknown_data.get('file_count', 1),
-                                         unknown_data.get('status', 'pending'), unknown_data.get('suggested_category_id'),
-                                         unknown_data.get('suggested_platform_id'), unknown_data.get('notes')))
-                                
-                                import_results['unknown_imported'] += 1
-                                
-                            except Exception as e:
-                                import_results['errors'].append(f"Error importing unknown extension {unknown_data.get('extension', 'unknown')}: {e}")
-                    
-                    cursor.execute("COMMIT")
-                    import_results['success'] = True
-                    self.logger.info(f"Imported extension registry from {file_path}")
+                    # Only commit if no errors occurred
+                    if not import_results['errors']:
+                        cursor.execute("COMMIT")
+                        import_results['success'] = True
+                        self.logger.info(f"Imported extension registry from {file_path}")
+                    else:
+                        cursor.execute("ROLLBACK")
+                        self.logger.warning(f"Import failed due to errors: {import_results['errors']}")
                     
                 except Exception as e:
                     cursor.execute("ROLLBACK")
                     import_results['errors'].append(f"Transaction failed: {e}")
                     raise
-                    
+
         except Exception as e:
             import_results['errors'].append(f"Import failed: {e}")
             self.logger.error(f"Failed to import extension registry: {e}")
-        
+
         return import_results
+    
+    def _load_import_data(self, file_path: str, format: str) -> Dict[str, Any]:
+        """Load import data from file."""
+        if format.lower() == 'json':
+            import json
+            with open(file_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        else:
+            raise ValueError(f"Unsupported import format: {format}. Only 'json' is currently supported.")
+    
+    def _import_categories(self, cursor, import_data: Dict[str, Any], overwrite: bool, import_results: Dict[str, Any]):
+        """Import categories from import data."""
+        if 'categories' not in import_data:
+            return
+            
+        for cat_data in import_data['categories']:
+            try:
+                self._import_single_category(cursor, cat_data, overwrite, import_results)
+            except Exception as e:
+                import_results['errors'].append(f"Error importing category {cat_data.get('name', 'unknown')}: {e}")
+    
+    def _import_single_category(self, cursor, cat_data: Dict[str, Any], overwrite: bool, import_results: Dict[str, Any]):
+        """Import a single category."""
+        cursor.execute("SELECT category_id FROM file_type_category WHERE name = ?", (cat_data['name'],))
+        existing = cursor.fetchone()
+
+        if existing and not overwrite:
+            return  # Skip existing
+
+        if existing and overwrite:
+            cursor.execute("""
+                UPDATE file_type_category 
+                SET description = ?, sort_order = ?, is_active = ?
+                WHERE category_id = ?
+            """, (cat_data.get('description'), cat_data.get('sort_order', 0),
+                 cat_data.get('is_active', True), existing['category_id']))
+        else:
+            cursor.execute("""
+                INSERT INTO file_type_category (name, description, sort_order, is_active)
+                VALUES (?, ?, ?, ?)
+            """, (cat_data['name'], cat_data.get('description'),
+                 cat_data.get('sort_order', 0), cat_data.get('is_active', True)))
+
+        import_results['categories_imported'] += 1
+    
+    def _import_extensions(self, cursor, import_data: Dict[str, Any], overwrite: bool, import_results: Dict[str, Any]):
+        """Import extensions from import data."""
+        if 'extensions' not in import_data:
+            return
+            
+        for ext_data in import_data['extensions']:
+            try:
+                self._import_single_extension(cursor, ext_data, overwrite, import_results)
+            except Exception as e:
+                import_results['errors'].append(f"Error importing extension {ext_data.get('extension', 'unknown')}: {e}")
+    
+    def _import_single_extension(self, cursor, ext_data: Dict[str, Any], overwrite: bool, import_results: Dict[str, Any]):
+        """Import a single extension."""
+        cursor.execute("SELECT extension_id FROM file_extension WHERE extension = ?", (ext_data['extension'],))
+        existing = cursor.fetchone()
+
+        if existing and not overwrite:
+            return  # Skip existing
+
+        if existing and overwrite:
+            cursor.execute("""
+                UPDATE file_extension 
+                SET category_id = ?, description = ?, mime_type = ?, 
+                    is_active = ?, is_rom = ?, is_archive = ?, is_save = ?, is_patch = ?
+                WHERE extension_id = ?
+            """, (ext_data.get('category_id'), ext_data.get('description'),
+                 ext_data.get('mime_type'), ext_data.get('is_active', True),
+                 ext_data.get('is_rom', False), ext_data.get('is_archive', False),
+                 ext_data.get('is_save', False), ext_data.get('is_patch', False),
+                 existing['extension_id']))
+        else:
+            cursor.execute("""
+                INSERT INTO file_extension 
+                (extension, category_id, description, mime_type, is_active, 
+                 is_rom, is_archive, is_save, is_patch)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (ext_data['extension'], ext_data.get('category_id'),
+                 ext_data.get('description'), ext_data.get('mime_type'),
+                 ext_data.get('is_active', True), ext_data.get('is_rom', False),
+                 ext_data.get('is_archive', False), ext_data.get('is_save', False),
+                 ext_data.get('is_patch', False)))
+
+        import_results['extensions_imported'] += 1
+    
+    def _import_mappings(self, cursor, import_data: Dict[str, Any], overwrite: bool, import_results: Dict[str, Any]):
+        """Import platform mappings from import data."""
+        if 'mappings' not in import_data:
+            return
+            
+        for mapping_data in import_data['mappings']:
+            try:
+                self._import_single_mapping(cursor, mapping_data, overwrite, import_results)
+            except Exception as e:
+                import_results['errors'].append(f"Error importing mapping: {e}")
+    
+    def _import_single_mapping(self, cursor, mapping_data: Dict[str, Any], overwrite: bool, import_results: Dict[str, Any]):
+        """Import a single platform mapping."""
+        cursor.execute("""
+            SELECT platform_extension_id FROM platform_extension 
+            WHERE platform_id = ? AND extension_id = ?
+        """, (mapping_data.get('platform_id'), mapping_data.get('extension_id')))
+        existing = cursor.fetchone()
+
+        if existing and not overwrite:
+            return  # Skip existing
+
+        if existing and overwrite:
+            cursor.execute("""
+                UPDATE platform_extension 
+                SET is_primary = ?, confidence = ?
+                WHERE platform_extension_id = ?
+            """, (mapping_data.get('is_primary', False),
+                 mapping_data.get('confidence', 1.0), existing['platform_extension_id']))
+        else:
+            cursor.execute("""
+                INSERT INTO platform_extension (platform_id, extension_id, is_primary, confidence)
+                VALUES (?, ?, ?, ?)
+            """, (mapping_data.get('platform_id'), mapping_data.get('extension_id'),
+                 mapping_data.get('is_primary', False), mapping_data.get('confidence', 1.0)))
+
+        import_results['mappings_imported'] += 1
+    
+    def _import_unknown_extensions(self, cursor, import_data: Dict[str, Any], overwrite: bool, import_results: Dict[str, Any]):
+        """Import unknown extensions from import data."""
+        if 'unknown_extensions' not in import_data:
+            return
+            
+        for unknown_data in import_data['unknown_extensions']:
+            try:
+                self._import_single_unknown_extension(cursor, unknown_data, overwrite, import_results)
+            except Exception as e:
+                import_results['errors'].append(f"Error importing unknown extension {unknown_data.get('extension', 'unknown')}: {e}")
+    
+    def _import_single_unknown_extension(self, cursor, unknown_data: Dict[str, Any], overwrite: bool, import_results: Dict[str, Any]):
+        """Import a single unknown extension."""
+        cursor.execute("SELECT unknown_extension_id FROM unknown_extension WHERE extension = ?", (unknown_data['extension'],))
+        existing = cursor.fetchone()
+
+        if existing and not overwrite:
+            return  # Skip existing
+
+        if existing and overwrite:
+            cursor.execute("""
+                UPDATE unknown_extension 
+                SET file_count = ?, status = ?, suggested_category_id = ?, 
+                    suggested_platform_id = ?, notes = ?
+                WHERE unknown_extension_id = ?
+            """, (unknown_data.get('file_count', 1), unknown_data.get('status', 'pending'),
+                 unknown_data.get('suggested_category_id'), unknown_data.get('suggested_platform_id'),
+                 unknown_data.get('notes'), existing['unknown_extension_id']))
+        else:
+            cursor.execute("""
+                INSERT INTO unknown_extension 
+                (extension, file_count, status, suggested_category_id, suggested_platform_id, notes)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (unknown_data['extension'], unknown_data.get('file_count', 1),
+                 unknown_data.get('status', 'pending'), unknown_data.get('suggested_category_id'),
+                 unknown_data.get('suggested_platform_id'), unknown_data.get('notes')))
+
+        import_results['unknown_imported'] += 1

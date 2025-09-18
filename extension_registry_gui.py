@@ -368,39 +368,20 @@ class ExtensionRegistryDialog(QDialog):
         layout = QVBoxLayout(tab)
         
         # Export section
-        export_group = QGroupBox("Export Extension Registry")
-        export_layout = QVBoxLayout(export_group)
-        
-        export_buttons_layout = QHBoxLayout()
-        
-        self.export_json_btn = QPushButton("📄 Export JSON")
-        self.export_json_btn.clicked.connect(lambda: self.export_data('json'))
-        export_buttons_layout.addWidget(self.export_json_btn)
-        
-        self.export_csv_btn = QPushButton("📊 Export CSV")
-        self.export_csv_btn.clicked.connect(lambda: self.export_data('csv'))
-        export_buttons_layout.addWidget(self.export_csv_btn)
-        
-        export_buttons_layout.addStretch()
-        export_layout.addLayout(export_buttons_layout)
-        
+        export_group = self._create_button_group("Export Extension Registry", [
+            ("📄 Export JSON", lambda: self.export_data('json')),
+            ("📊 Export CSV", lambda: self.export_data('csv'))
+        ])
         layout.addWidget(export_group)
         
         # Import section
         import_group = QGroupBox("Import Extension Registry")
         import_layout = QVBoxLayout(import_group)
         
-        import_buttons_layout = QHBoxLayout()
-        
-        self.import_json_btn = QPushButton("📄 Import JSON")
-        self.import_json_btn.clicked.connect(lambda: self.import_data('json'))
-        import_buttons_layout.addWidget(self.import_json_btn)
-        
-        self.import_csv_btn = QPushButton("📊 Import CSV")
-        self.import_csv_btn.clicked.connect(lambda: self.import_data('csv'))
-        import_buttons_layout.addWidget(self.import_csv_btn)
-        
-        import_buttons_layout.addStretch()
+        import_buttons_layout = self._create_button_layout([
+            ("📄 Import JSON", lambda: self.import_data('json')),
+            ("📊 Import CSV", lambda: self.import_data('csv'))
+        ])
         import_layout.addLayout(import_buttons_layout)
         
         # Import options
@@ -427,6 +408,28 @@ class ExtensionRegistryDialog(QDialog):
         layout.addWidget(status_group)
         
         return tab
+    
+    def _create_button_group(self, title: str, buttons: List[Tuple[str, callable]]) -> QGroupBox:
+        """Create a group box with buttons."""
+        group = QGroupBox(title)
+        layout = QVBoxLayout(group)
+        
+        button_layout = self._create_button_layout(buttons)
+        layout.addLayout(button_layout)
+        
+        return group
+    
+    def _create_button_layout(self, buttons: List[Tuple[str, callable]]) -> QHBoxLayout:
+        """Create a horizontal layout with buttons."""
+        layout = QHBoxLayout()
+        
+        for text, callback in buttons:
+            button = QPushButton(text)
+            button.clicked.connect(callback)
+            layout.addWidget(button)
+        
+        layout.addStretch()
+        return layout
     
     def load_data(self):
         """Load all data from the database."""
@@ -690,7 +693,7 @@ class ExtensionRegistryDialog(QDialog):
         if dialog.exec_() == QDialog.Accepted:
             extension = extension_edit.text().strip()
             if not extension.startswith('.'):
-                extension = '.' + extension
+                extension = f'.{extension}'
             
             category_id = category_combo.currentData()
             description = description_edit.text().strip() or None
@@ -805,9 +808,8 @@ class ExtensionRegistryDialog(QDialog):
     def on_extension_selected(self):
         """Handle extension selection in the table."""
         current_row = self.extensions_table.currentRow()
-        if current_row >= 0:
-            # Enable/disable action buttons based on selection
-            pass  # Implementation can be added here if needed
+        # Enable/disable action buttons based on selection
+        # Implementation can be added here if needed
     
     def delete_mapping(self, mapping_id: int):
         """Delete a platform-extension mapping."""
@@ -1037,20 +1039,28 @@ class ExtensionRegistryDialog(QDialog):
     
     def on_category_selected(self, item):
         """Handle category selection."""
-        if item:
-            category_id = item.data(Qt.UserRole)
-            category = self.manager.get_category(category_id)
+        if not item:
+            return
             
-            if category:
-                self.current_category_id = category_id
-                self.category_name_edit.setText(category['name'])
-                self.category_description_edit.setPlainText(category['description'] or "")
-                self.category_sort_order_edit.setText(str(category['sort_order']))
-                self.category_active_check.setChecked(bool(category['is_active']))
-                
-                # Enable update/delete buttons
-                self.update_category_btn.setEnabled(True)
-                self.delete_category_btn.setEnabled(True)
+        category_id = item.data(Qt.UserRole)
+        category = self.manager.get_category(category_id)
+        
+        if not category:
+            return
+            
+        self._populate_category_form(category_id, category)
+    
+    def _populate_category_form(self, category_id: int, category: Dict[str, Any]):
+        """Populate the category form with data."""
+        self.current_category_id = category_id
+        self.category_name_edit.setText(category['name'])
+        self.category_description_edit.setPlainText(category['description'] or "")
+        self.category_sort_order_edit.setText(str(category['sort_order']))
+        self.category_active_check.setChecked(bool(category['is_active']))
+
+        # Enable update/delete buttons
+        self.update_category_btn.setEnabled(True)
+        self.delete_category_btn.setEnabled(True)
     
     def update_category(self):
         """Update the selected category."""
@@ -1098,19 +1108,22 @@ class ExtensionRegistryDialog(QDialog):
             try:
                 if self.manager.delete_category(self.current_category_id):
                     self.load_categories()
-                    # Clear form
-                    self.category_name_edit.clear()
-                    self.category_description_edit.clear()
-                    self.category_sort_order_edit.setText("0")
-                    self.category_active_check.setChecked(True)
-                    self.update_category_btn.setEnabled(False)
-                    self.delete_category_btn.setEnabled(False)
-                    self.current_category_id = None
+                    self._clear_category_form()
                     QMessageBox.information(self, "Success", "Category deleted successfully.")
                 else:
                     QMessageBox.warning(self, "Warning", "Failed to delete category.")
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to delete category: {e}")
+    
+    def _clear_category_form(self):
+        """Clear the category form."""
+        self.category_name_edit.clear()
+        self.category_description_edit.clear()
+        self.category_sort_order_edit.setText("0")
+        self.category_active_check.setChecked(True)
+        self.update_category_btn.setEnabled(False)
+        self.delete_category_btn.setEnabled(False)
+        self.current_category_id = None
     
     def edit_extension(self, extension_id: int):
         """Edit an extension."""
@@ -1218,8 +1231,7 @@ class ExtensionRegistryDialog(QDialog):
             return
         
         try:
-            success = self.manager.export_extensions(file_path, format)
-            if success:
+            if success := self.manager.export_extensions(file_path, format):
                 self.status_text.append(f"✅ Export successful: {file_path}")
                 QMessageBox.information(self, "Export Successful", f"Extension registry exported to:\n{file_path}")
             else:
@@ -1248,33 +1260,41 @@ class ExtensionRegistryDialog(QDialog):
             results = self.manager.import_extensions(file_path, format, overwrite)
             
             if results['success']:
-                self.status_text.append(f"✅ Import successful: {file_path}")
-                self.status_text.append(f"   Categories: {results['categories_imported']}")
-                self.status_text.append(f"   Extensions: {results['extensions_imported']}")
-                self.status_text.append(f"   Mappings: {results['mappings_imported']}")
-                self.status_text.append(f"   Unknown: {results['unknown_imported']}")
-                
-                # Refresh all data
-                self.load_data()
-                
-                QMessageBox.information(
-                    self, "Import Successful", 
-                    f"Import completed successfully!\n\n"
-                    f"Categories: {results['categories_imported']}\n"
-                    f"Extensions: {results['extensions_imported']}\n"
-                    f"Mappings: {results['mappings_imported']}\n"
-                    f"Unknown: {results['unknown_imported']}"
-                )
+                self._handle_import_success(file_path, results)
             else:
-                self.status_text.append(f"❌ Import failed: {file_path}")
-                error_msg = "\n".join(results['errors'][:5])  # Show first 5 errors
-                if len(results['errors']) > 5:
-                    error_msg += f"\n... and {len(results['errors']) - 5} more errors"
-                QMessageBox.critical(self, "Import Failed", f"Import failed:\n{error_msg}")
+                self._handle_import_failure(file_path, results)
                 
         except Exception as e:
             self.status_text.append(f"❌ Import error: {e}")
             QMessageBox.critical(self, "Import Error", f"Import failed: {e}")
+    
+    def _handle_import_success(self, file_path: str, results: Dict[str, Any]):
+        """Handle successful import."""
+        self.status_text.append(f"✅ Import successful: {file_path}")
+        self.status_text.append(f"   Categories: {results['categories_imported']}")
+        self.status_text.append(f"   Extensions: {results['extensions_imported']}")
+        self.status_text.append(f"   Mappings: {results['mappings_imported']}")
+        self.status_text.append(f"   Unknown: {results['unknown_imported']}")
+
+        # Refresh all data
+        self.load_data()
+
+        QMessageBox.information(
+            self, "Import Successful", 
+            f"Import completed successfully!\n\n"
+            f"Categories: {results['categories_imported']}\n"
+            f"Extensions: {results['extensions_imported']}\n"
+            f"Mappings: {results['mappings_imported']}\n"
+            f"Unknown: {results['unknown_imported']}"
+        )
+    
+    def _handle_import_failure(self, file_path: str, results: Dict[str, Any]):
+        """Handle failed import."""
+        self.status_text.append(f"❌ Import failed: {file_path}")
+        error_msg = "\n".join(results['errors'][:5])  # Show first 5 errors
+        if len(results['errors']) > 5:
+            error_msg += f"\n... and {len(results['errors']) - 5} more errors"
+        QMessageBox.critical(self, "Import Failed", f"Import failed:\n{error_msg}")
 
     def closeEvent(self, event):
         """Handle dialog close event."""

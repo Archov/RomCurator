@@ -16,6 +16,7 @@ Features:
 
 import argparse
 import hashlib
+import logging
 import os
 import sqlite3
 import time
@@ -40,6 +41,9 @@ class LibraryIngestionImporter(BaseImporter):
     
     def __init__(self, db_path: str, config: Dict[str, Any] = None):
         super().__init__(db_path)
+        
+        # Initialize logger
+        self.logger = logging.getLogger(__name__)
         
         # Load config if not provided
         if config is None:
@@ -125,15 +129,17 @@ class LibraryIngestionImporter(BaseImporter):
                 if ext['is_patch']:
                     supported['patch'].append(ext_name)
             
-            print(f"Loaded {len(extensions)} supported extensions from registry")
+            self.logger.info(f"Loaded {len(extensions)} supported extensions from registry")
             return supported
             
         except Exception as e:
-            print(f"Warning: Failed to load extensions from registry: {e}")
+            self.logger.warning(f"Failed to load extensions from registry: {e}")
             # Fallback to config-based extensions
             return self.ingestion_settings.get('file_extensions', {
                 'rom': ['.rom', '.bin', '.nes', '.sfc', '.smd', '.gb', '.gba', '.nds'],
-                'archive': ['.zip', '.7z', '.rar', '.tar', '.gz']
+                'archive': ['.zip', '.7z', '.rar', '.tar', '.gz'],
+                'save': ['.sav', '.srm', '.state'],
+                'patch': ['.ips', '.ups', '.bps', '.xdelta']
             })
     
     def get_file_type_description(self):
@@ -316,9 +322,7 @@ class LibraryIngestionImporter(BaseImporter):
         file_ext = file_path.suffix.lower()
         
         # Use extension registry to detect file type
-        file_type_info = self.extension_registry.detect_file_type(file_path.name)
-        
-        if file_type_info:
+        if file_type_info := self.extension_registry.detect_file_type(file_path.name):
             # File is recognized by registry
             return True
         
@@ -337,7 +341,7 @@ class LibraryIngestionImporter(BaseImporter):
         # If not recognized, record as unknown extension
         if file_ext:
             self.extension_registry.record_unknown_extension(file_ext)
-            print(f"Unknown extension encountered: {file_ext} in {file_path}")
+            self.logger.info(f"Unknown extension encountered: {file_ext} in {file_path}")
         
         return False
     
@@ -535,11 +539,9 @@ class LibraryIngestionImporter(BaseImporter):
             file_ext = file_path.suffix.lower()
             
             # PRIMARY: Try to get platform from extension registry first
-            if file_ext:
-                platform_id = self._get_platform_from_extension_registry(file_ext)
-                if platform_id:
-                    print(f"Platform detected from extension registry: {file_ext} -> Platform ID {platform_id}")
-                    return platform_id
+            if file_ext and (platform_id := self._get_platform_from_extension_registry(file_ext)):
+                self.logger.debug(f"Platform detected from extension registry: {file_ext} -> Platform ID {platform_id}")
+                return platform_id
             
             # SECONDARY: Fallback to path-based detection for unmapped extensions
             path_parts = [part.lower() for part in file_path.parts]
@@ -579,7 +581,7 @@ class LibraryIngestionImporter(BaseImporter):
                     for platform_key, platform_name in platforms.items():
                         if platform_key in ' '.join(path_parts):
                             platform_id = self._get_or_create_platform(platform_name)
-                            print(f"Platform detected from path: {platform_name} -> Platform ID {platform_id}")
+                            self.logger.debug(f"Platform detected from path: {platform_name} -> Platform ID {platform_id}")
                             return platform_id
             
             # TERTIARY: Final fallback to hardcoded extension mapping
@@ -596,13 +598,13 @@ class LibraryIngestionImporter(BaseImporter):
             
             if file_ext in ext_platform_map:
                 platform_id = self._get_or_create_platform(ext_platform_map[file_ext])
-                print(f"Platform detected from hardcoded mapping: {file_ext} -> {ext_platform_map[file_ext]} -> Platform ID {platform_id}")
+                self.logger.debug(f"Platform detected from hardcoded mapping: {file_ext} -> {ext_platform_map[file_ext]} -> Platform ID {platform_id}")
                 return platform_id
             
-            print(f"No platform detected for {file_path} (extension: {file_ext})")
+            self.logger.debug(f"No platform detected for {file_path} (extension: {file_ext})")
             
         except Exception as e:
-            print(f"Error detecting platform for {file_path}: {e}")
+            self.logger.error(f"Error detecting platform for {file_path}: {e}")
         
         return None
     
@@ -610,14 +612,11 @@ class LibraryIngestionImporter(BaseImporter):
         """Get platform ID from extension registry for the given file extension."""
         try:
             # Get the extension info from registry
-            extension_info = self.extension_registry.get_extension_by_name(file_ext)
-            if not extension_info:
+            if not (extension_info := self.extension_registry.get_extension_by_name(file_ext)):
                 return None
-            
+
             # Get platform mappings for this extension
-            platform_mappings = self.extension_registry.get_platforms_for_extension(extension_info['extension_id'])
-            
-            if not platform_mappings:
+            if not (platform_mappings := self.extension_registry.get_platforms_for_extension(extension_info['extension_id'])):
                 return None
             
             # Prefer primary mappings, then highest confidence
