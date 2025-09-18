@@ -1042,10 +1042,10 @@ class ExtensionRegistryDialog(QDialog):
         if not item:
             return
             
-        category_id = item.data(Qt.UserRole)
-        category = self.manager.get_category(category_id)
-        
-        if not category:
+        if not (category_id := item.data(Qt.UserRole)):
+            return
+            
+        if not (category := self.manager.get_category(category_id)):
             return
             
         self._populate_category_form(category_id, category)

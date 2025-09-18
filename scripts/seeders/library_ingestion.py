@@ -620,8 +620,7 @@ class LibraryIngestionImporter(BaseImporter):
                 return None
             
             # Prefer primary mappings, then highest confidence
-            primary_mappings = [m for m in platform_mappings if m.get('is_primary', False)]
-            if primary_mappings:
+            if primary_mappings := [m for m in platform_mappings if m.get('is_primary', False)]:
                 # Return the first primary mapping
                 return primary_mappings[0]['platform_id']
             
@@ -630,7 +629,7 @@ class LibraryIngestionImporter(BaseImporter):
             return best_mapping['platform_id']
             
         except Exception as e:
-            print(f"Error getting platform from extension registry for {file_ext}: {e}")
+            self.logger.error(f"Error getting platform from extension registry for {file_ext}: {e}")
             return None
     
     def _get_or_create_platform(self, platform_name: str) -> Optional[int]:
@@ -648,7 +647,7 @@ class LibraryIngestionImporter(BaseImporter):
                 return cursor.lastrowid
                 
         except Exception as e:
-            print(f"Error getting/creating platform {platform_name}: {e}")
+            self.logger.error(f"Error getting/creating platform {platform_name}: {e}")
             return None
     
     def _get_or_create_library_root(self, file_path: Path) -> int:
@@ -706,7 +705,7 @@ class LibraryIngestionImporter(BaseImporter):
             return default_root_id
             
         except Exception as e:
-            print(f"Error getting/creating library root for {file_path}: {e}")
+            self.logger.error(f"Error getting/creating library root for {file_path}: {e}")
             # Return default root_id as fallback
             return 1
     
@@ -739,7 +738,7 @@ class LibraryIngestionImporter(BaseImporter):
             self.db.conn.commit()
             
         except Exception as e:
-            print(f"Error creating file discovery record for {file_path}: {e}")
+            self.logger.error(f"Error creating file discovery record for {file_path}: {e}")
     
     def _update_file_discovery(self, file_path: Path, rom_id: int, log_id: int):
         """Update existing file discovery record."""
@@ -753,12 +752,12 @@ class LibraryIngestionImporter(BaseImporter):
             """, (rom_id, datetime.now().isoformat(), str(file_path.absolute())))
             
             if cursor.rowcount == 0:
-                print(f"Warning: No file discovery record found to update for {file_path}")
+                self.logger.warning(f"No file discovery record found to update for {file_path}")
             
             self.db.conn.commit()
             
         except Exception as e:
-            print(f"Error updating file discovery record for {file_path}: {e}")
+            self.logger.error(f"Error updating file discovery record for {file_path}: {e}")
             self.stats['errors'] += 1
     
     def _is_archive_file(self, file_path: Path) -> bool:

@@ -667,12 +667,12 @@ class ExtensionRegistryManager:
     
     def _load_import_data(self, file_path: str, format: str) -> Dict[str, Any]:
         """Load import data from file."""
-        if format.lower() == 'json':
-            import json
-            with open(file_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        else:
+        if format.lower() != 'json':
             raise ValueError(f"Unsupported import format: {format}. Only 'json' is currently supported.")
+        
+        import json
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
     
     def _import_categories(self, cursor, import_data: Dict[str, Any], overwrite: bool, import_results: Dict[str, Any]):
         """Import categories from import data."""
@@ -693,7 +693,7 @@ class ExtensionRegistryManager:
         if existing and not overwrite:
             return  # Skip existing
 
-        if existing and overwrite:
+        if existing:
             cursor.execute("""
                 UPDATE file_type_category 
                 SET description = ?, sort_order = ?, is_active = ?
@@ -728,7 +728,7 @@ class ExtensionRegistryManager:
         if existing and not overwrite:
             return  # Skip existing
 
-        if existing and overwrite:
+        if existing:
             cursor.execute("""
                 UPDATE file_extension 
                 SET category_id = ?, description = ?, mime_type = ?, 
@@ -775,7 +775,7 @@ class ExtensionRegistryManager:
         if existing and not overwrite:
             return  # Skip existing
 
-        if existing and overwrite:
+        if existing:
             cursor.execute("""
                 UPDATE platform_extension 
                 SET is_primary = ?, confidence = ?
@@ -810,7 +810,7 @@ class ExtensionRegistryManager:
         if existing and not overwrite:
             return  # Skip existing
 
-        if existing and overwrite:
+        if existing:
             cursor.execute("""
                 UPDATE unknown_extension 
                 SET file_count = ?, status = ?, suggested_category_id = ?, 
