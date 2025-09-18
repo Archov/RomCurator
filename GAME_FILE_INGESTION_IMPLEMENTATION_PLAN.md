@@ -86,8 +86,9 @@ CREATE TABLE IF NOT EXISTS ingestion_queue (
 ### Work Item 2: Logging, Error Handling & Resilience
 - Add dedicated logging channels (`ingestion`, `ingestion.archive`, `ingestion.organizer`) via `LoggingManager` and ensure the ingestion worker, archive handlers, platform inference, and organizer emit structured events from the start.
 - Implement granular error handling that rolls back only the active batch while persisting prior progress; failed entries should stay in `file_discovery` with diagnostic messages and retry metadata.
-- Persist checkpoint state frequently, honor cancellation flags promptly, and surface recoverable issues (e.g., permission problems) in the session summary; integrate cancellation/resume paths into automated tests.
-- Capture resilience metrics (retries, checkpoint restores) so post-run reports can highlight areas needing attention.
+- Define a retry policy for transient ingestion failures (I/O, network share hiccups, temporary database locks) that performs up to **three attempts** per operation with exponential backoff (initial 30 seconds, doubling per retry) before marking the failure permanent; classify errors so permission denials, missing files, and schema violations skip retries and surface immediately.
+- Persist checkpoint state frequently, honor cancellation flags promptly, and surface recoverable issues (e.g., permission problems, read-only media) in the session summary; integrate cancellation/resume paths into automated tests.
+- Capture resilience metrics (retries, checkpoint restores, retry exhaustion) so post-run reports can highlight areas needing attention.
 
 ### Work Item 3: Metadata Source Integration & Job Wiring
 - Register a `file_ingestion` entry in `metadata_source`, seed scripts, and config defaults so the new workflow can be triggered from both CLI and GUI contexts.
@@ -138,7 +139,7 @@ CREATE TABLE IF NOT EXISTS platform_extension (
 - Cover heuristics and manual overrides with automated tests to avoid regressions in platform assignment accuracy.
 
 ### Work Item 6: Hash Cache Infrastructure
-- Introduce the hash cache sidecar database (`database/rom_curator_cache.db`) keyed by absolute path + modified time → SHA-1, with invalidation when file attributes change.
+- Introduce the hash cache sidecar database (`./database/rom_curator_cache.db`) keyed by absolute path + modified time → SHA-1, with invalidation when file attributes change.
 - Define a cache lifecycle policy (size limits, LRU eviction or age-out schedules) and expose maintenance commands for pruning or rebuilding the cache.
 - Provide migration tooling to backfill cache entries for existing `rom_file` rows without rehashing everything at once.
 - Make chunk size, cache usage, and cache statistics toggles configurable through `config.json` and the `ConfigManager` interface with upfront defaults.
@@ -157,6 +158,7 @@ CREATE TABLE IF NOT EXISTS platform_extension (
 - Insert or update rows in `file_discovery` capturing `log_id`, `root_id`, absolute/relative paths, size, modified timestamp, recursion depth, and initial `promotion_state='pending'`.
 - Persist and reload per-job checkpoint files so the walker can resume after interruption or cancellation; include resume behaviour in automated tests.
 - Implement incremental scan optimisations: detect unchanged directory trees via timestamp or hash caching, support quick-scan modes for new or modified content, and maintain a directory-state cache between runs.
+- Prove the discovery phase scales to collections of **at least 100,000 files** by batching database writes, monitoring SQLite page counts, and surfacing memory/queue utilisation telemetry so large sets remain tractable.
 
 ### Work Item 9: Pre-flight Validation & Configuration Guardrails
 - Provide a pre-flight validation report that classifies files as supported, unsupported, or requiring user action before ingestion begins.
@@ -164,6 +166,8 @@ CREATE TABLE IF NOT EXISTS platform_extension (
 - Validate that required `config.json` settings exist and meet schema requirements before launch; offer guided remediation for missing/invalid values inside the configuration UI.
 - Integrate pre-flight results into logging and session metadata for auditing; persist snapshots with the run log for later review.
 - Implement automated tests covering supported/unsupported detection, configuration validation, and cancellation pathways.
+- Estimate runtime and resource requirements before the user commits: leverage historical throughput metrics (from Work Item 7) to display “Processing this collection will take approximately **X hours**” broken down by discovery, hashing, and matching phases; calculate minimum required temporary space (default **10 GB**, configurable) and available destination free space, and warn when limits are exceeded.
+- Detect when source or destination roots sit on network storage/NAS volumes and annotate pre-flight with latency/throughput caveats plus suggested checkpoint intervals; flag read-only media, locked files, or symbolic links that require operator intervention ahead of the run.
 
 ### Work Item 10: Hashing & Promotion Pipeline
 - Implement chunked hashing (SHA-1 required, MD5/CRC32 when requested) that operates on disk files and streamed archive members without exhausting memory.
@@ -176,7 +180,8 @@ CREATE TABLE IF NOT EXISTS platform_extension (
 - Detect archives via the extension registry and signature probes; enumerate contents using streaming readers that handle nested archives up to the configured depth.
 - Record member relationships in `archive_member`, designating primary playable entries and capturing compressed/uncompressed sizes and modification metadata.
 - Implement failure handling for password-protected or corrupt archives, recording issues in `file_operation_log` and keeping `file_discovery` rows in a `promotion_state='failed'` state for operator review.
-- Detect solid archives (e.g., 7z solid blocks) and fall back to controlled extraction strategies with configurable temp-storage limits; support split archives (.001, .002, multi-part ZIP/7Z) by reassembling or sequentially streaming segments prior to hashing.
+- Detect solid archives (e.g., 7z solid blocks) and fall back to controlled extraction strategies with configurable temp-storage limits (default **10 GB** working directory cap, configurable); support split archives (.001, .002, multi-part ZIP/7Z) by reassembling or sequentially streaming segments prior to hashing.
+- Enforce ingestion memory ceilings with a default **2 GB** cap for concurrent hashing/extraction buffers; surface configuration hooks and throttle when in-process memory exceeds **80 %** of the configured limit to protect stability.
 - Classify non-ROM assets using `rom_file.content_role` (`auxiliary`, `patch`, `save`, etc.) so they remain traceable; provide tests or fixtures covering nested archives, password handling stubs, and failure reporting.
 
 ### Work Item 12: Metadata Extraction Enhancements
@@ -188,7 +193,7 @@ CREATE TABLE IF NOT EXISTS platform_extension (
 ## Phase 4 – Matching & Organization (Work Items 13–16)
 ### Work Item 13: DAT Correlation & Ingestion Candidate Pipeline
 - Implement hash-first matching between `rom_file.sha1` and `dat_entry.rom_sha1`; when successful, create/update `dat_atomic_link` with `match_type='automatic'` and confidence scores.
-- For unresolved files, invoke `GameMatcher` with platform hints derived from extensions and `platform_links`; generate candidate rows in the new `ingestion_candidate` table with provenance to the current `import_log`.
+- For unresolved files, invoke `GameMatcher` with platform hints derived from extensions and `platform_links`; generate candidate rows in the new `ingestion_candidate` table with provenance to the current `import_log` (`log_id` retained for every candidate to preserve auditability).
 - Annotate candidates with reasons/metrics and ensure `import_log` provenance is captured for auditing; prevent duplicate candidates when reprocessing the same file.
 - Provide automated tests covering direct hash matches, fuzzy candidate generation, and deduplication of links.
 
@@ -224,6 +229,7 @@ CREATE TABLE IF NOT EXISTS ingestion_candidate (
 - Provide a dry-run preview that includes a per-file before/after table and expose "Apply Library Organization" as an explicit post-ingestion action; persist manifests alongside session logs.
 - Offer an "undo last organization" command that replays the backup manifest to restore files to their prior locations.
 - Include automated tests verifying dry-run output, manifest generation, undo routines, and detection of external moves between runs.
+- Formalise quarantine handling: quarantine moves target `./quarantine/<YYYYMMDD>/<session_id>/` (configurable) with read-only manifests; files enter quarantine when organiser policy detects conflicts, hash mismatches, permission denials, or operator-requested holds. Provide tooling to promote items back into the library or delete them after review, and document retention policies.
 
 ## Phase 5 – User Experience (Work Items 17–19)
 ### Work Item 17: Bulk Platform Operations & Smart Defaults
@@ -236,7 +242,7 @@ CREATE TABLE IF NOT EXISTS ingestion_candidate (
 - Add "Tools → Library → Scan & Ingest Files..." to the main window, launching the ingestion dialog with progress, cancellation, and telemetry displays.
 - Enhance the enhanced importer UI to display ingestion metrics (files seen, hashed, matched, pending) and run summaries, linking to per-run log files and pre/post-flight reports.
 - Extend the configuration dialog to expose archive depth limit, password dictionary path, hash chunk size, database batch sizes, organizer defaults, and telemetry thresholds; ensure `ConfigManager` persists and applies these settings.
-- Implement adaptive batching controls with memory-pressure detection and automatic back-off tied to configuration values; verify via automated GUI/service tests.
+- Implement adaptive batching controls with memory-pressure detection and automatic back-off tied to configuration values (default 2 GB memory ceiling, throttling when utilisation exceeds 80 %, surfaced in the UI); verify via automated GUI/service tests.
 
 ### Work Item 19: UAT Readiness Reports & Post-run Verification
 - Generate a post-run verification report detailing files processed, actions taken, failures (with reasons), and any manual follow-ups required.
@@ -255,10 +261,11 @@ CREATE TABLE IF NOT EXISTS ingestion_candidate (
 - Implement adaptive batching that tunes batch sizes based on file size distribution and system load, with user-configurable ceilings in `config.json`.
 - Monitor memory, CPU, and disk I/O usage during ingestion; throttle or pause work when thresholds are exceeded, logging the adjustments through the performance monitoring framework.
 - Apply targeted optimizations (parallel hashing, pipelined staging) where profiling indicates bottlenecks, ensuring changes respect the resilience guardrails from earlier phases.
-- Capture before/after benchmarks to quantify throughput improvements and integrate regression tests or benchmark scripts into CI/CD where feasible.
+- Capture before/after benchmarks to quantify throughput improvements and integrate regression tests or benchmark scripts into CI/CD where feasible; establish the baseline during Phase 3 completion runs using representative datasets (including 100k-file libraries and NAS-backed paths) measuring files/minute, MB/sec, average queue latency, memory usage against the 2 GB ceiling, temp-storage consumption relative to the 10 GB default, and end-to-end ETA accuracy.
 
 ## Continuous Testing & Configuration Governance
 - Treat automated testing as a cross-cutting concern: every work item should land unit tests or integration coverage alongside implementation, and CI should run ingestion-specific suites on representative fixtures.
+- Schedule integration tests at the close of Phases 3 and 4 to exercise end-to-end discovery → matching → organization flows, and add a final UAT-style regression (including NAS and large-collection scenarios) before Phase 6 sign-off so broader issues surface before optimisation work lands.
 - Keep `config.json` authoritative—new keys must ship with defaults, validation, documentation, and UI controls before dependent work lands. Pre-flight validation should reject runs with missing or invalid configuration values.
 - Maintain deterministic fixtures for discovery, hashing, archive handling, and matching so regression suites remain stable across environments.
 
