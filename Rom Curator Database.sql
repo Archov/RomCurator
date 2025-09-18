@@ -647,7 +647,9 @@ JOIN metadata_source ms ON il.source_id = ms.source_id
 GROUP BY ms.name, dem.metadata_key, dem.metadata_value
 ORDER BY ms.name, dem.metadata_key, usage_count DESC;
 
--- View to flatten dat_entry with all associated metadata as columns
+-- View to flatten dat_entry with associated metadata as columns
+-- This view pivots the EAV metadata into columns for easier querying
+-- Only includes EAV columns that are not already in the main dat_entry table
 CREATE VIEW v_dat_entry_with_metadata AS
 SELECT 
     de.dat_entry_id,
@@ -665,22 +667,17 @@ SELECT
     de.development_status,
     de.dump_status,
     de.language_codes,
-    -- Pivot metadata into columns
-    MAX(CASE WHEN dem.metadata_key = 'extra_info' THEN dem.metadata_value END) as extra_info,
+    -- Multi-region metadata (for entries with region_normalized = 'MULTI')
     MAX(CASE WHEN dem.metadata_key = 'region_1' THEN dem.metadata_value END) as region_1,
     MAX(CASE WHEN dem.metadata_key = 'region_2' THEN dem.metadata_value END) as region_2,
     MAX(CASE WHEN dem.metadata_key = 'region_3' THEN dem.metadata_value END) as region_3,
     MAX(CASE WHEN dem.metadata_key = 'region_4' THEN dem.metadata_value END) as region_4,
-    MAX(CASE WHEN dem.metadata_key = 'region_5' THEN dem.metadata_value END) as region_5,
-    -- Add more metadata columns as needed
-    MAX(CASE WHEN dem.metadata_key = 'publisher' THEN dem.metadata_value END) as publisher,
-    MAX(CASE WHEN dem.metadata_key = 'developer' THEN dem.metadata_value END) as developer,
-    MAX(CASE WHEN dem.metadata_key = 'year' THEN dem.metadata_value END) as year,
-    MAX(CASE WHEN dem.metadata_key = 'genre' THEN dem.metadata_value END) as genre,
-    MAX(CASE WHEN dem.metadata_key = 'players' THEN dem.metadata_value END) as players,
-    MAX(CASE WHEN dem.metadata_key = 'rating' THEN dem.metadata_value END) as rating,
+    -- Format-specific metadata (only extra_info is stored in EAV)
+    MAX(CASE WHEN dem.metadata_key = 'extra_info' THEN dem.metadata_value END) as extra_info,
     -- Count total metadata entries for this dat_entry
-    COUNT(dem.metadata_key) as metadata_count
+    COUNT(dem.metadata_key) as metadata_count,
+    -- Create a comma-separated list of all metadata keys for this entry
+    GROUP_CONCAT(dem.metadata_key, ', ') as all_metadata_keys
 FROM dat_entry de
 LEFT JOIN dat_entry_metadata dem ON de.dat_entry_id = dem.dat_entry_id
 LEFT JOIN platform p ON de.platform_id = p.platform_id

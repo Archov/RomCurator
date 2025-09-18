@@ -163,20 +163,19 @@ def process_dat_rom_entry(cursor, log_id, platform_id, game_name, sha1, is_clone
             parsed_data['dump_status'], parsed_data['language_codes']
         ))
         
-        # Insert format-specific metadata if any extra_info exists
-        if parsed_data['extra_info']:
+        # Store only metadata that's NOT already in the main dat_entry table
+        dat_entry_id = cursor.lastrowid
+        
+        # Store extra_info if it exists (this is the only format-specific metadata not in main table)
+        if parsed_data.get('extra_info'):
             cursor.execute("""
                 INSERT OR IGNORE INTO dat_entry_metadata (
                     dat_entry_id, metadata_key, metadata_value
-                ) VALUES (
-                    (SELECT dat_entry_id FROM dat_entry WHERE rom_sha1 = ? AND log_id = ?),
-                    'extra_info', ?
-                )
-            """, (sha1.lower(), log_id, parsed_data['extra_info']))
+                ) VALUES (?, ?, ?)
+            """, (dat_entry_id, 'extra_info', parsed_data['extra_info']))
         
-        # Handle multi-region entries using existing EAV table
+        # Handle multi-region entries (store individual regions for MULTI entries)
         if parsed_data.get('region_normalized') == 'MULTI' and parsed_data.get('regions_list'):
-            dat_entry_id = cursor.lastrowid
             for i, region in enumerate(parsed_data['regions_list']):
                 cursor.execute("""
                     INSERT OR IGNORE INTO dat_entry_metadata (
