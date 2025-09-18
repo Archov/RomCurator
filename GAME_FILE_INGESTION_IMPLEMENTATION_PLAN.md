@@ -1,8 +1,8 @@
-# ROM Curator: Game File Ingestion Implementation Plan (v1.8 aligned)
+# ROM Curator: Game File Ingestion Implementation Plan
 
 ## Overview & Goals
 - Deliver a deterministic, resumable workflow that transforms loose files into `rom_file` records linked to releases through `release_artifact`, feeding the existing curation and organization surfaces.
-- Reuse the v1.8 architecture: `ImportWorkerThread` for background execution, `GameMatcher` for DAT alignment, `platform_links` for cross-platform resolution, and the curation and importer GUIs for user feedback.
+- Comply with existing architecture: `ImportWorkerThread` for background execution, `GameMatcher` for DAT alignment, `platform_links` for cross-platform resolution, and the curation and importer GUIs for user feedback.
 - Maintain a trustworthy library structure while keeping imports idempotent and observable through the logging and configuration systems already in place.
 
 ## End-to-End Workflow Summary
@@ -46,7 +46,7 @@
       description TEXT,
       is_active INTEGER DEFAULT 1
   );
-
+  
   CREATE TABLE IF NOT EXISTS file_extension (
       extension TEXT PRIMARY KEY,
       category_id INTEGER REFERENCES file_type_category(category_id),
@@ -58,7 +58,7 @@
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
   );
-
+  
   CREATE TABLE IF NOT EXISTS platform_extension (
       platform_id INTEGER REFERENCES platform(platform_id),
       extension TEXT REFERENCES file_extension(extension),
