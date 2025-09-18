@@ -35,7 +35,12 @@ class LibraryIngestionImporter(BaseImporter):
     
     def __init__(self, db_path: str, config: Dict[str, Any] = None):
         super().__init__(db_path)
-        self.config = config or {}
+        
+        # Load config if not provided
+        if config is None:
+            config = self._load_config()
+        
+        self.config = config
         self.ingestion_settings = self.config.get('ingestion_settings', {})
         self.library_roots = self.ingestion_settings.get('library_roots', [])
         self.batch_size = self.ingestion_settings.get('batch_size', 100)
@@ -59,6 +64,30 @@ class LibraryIngestionImporter(BaseImporter):
             'archives_expanded': 0,
             'errors': 0
         }
+    
+    def _load_config(self) -> Dict[str, Any]:
+        """Load configuration from project root."""
+        import json
+        from pathlib import Path
+        
+        # Look for config.json in the project root (two levels up from this script)
+        script_dir = Path(__file__).parent
+        project_root = script_dir.parent.parent
+        config_file = project_root / 'config.json'
+        
+        config = {}
+        if config_file.exists():
+            try:
+                with open(config_file, 'r') as f:
+                    config = json.load(f)
+            except (json.JSONDecodeError, IOError) as e:
+                print(f"Warning: Could not load config file {config_file}: {e}")
+                print("Using default configuration values.")
+        else:
+            print(f"Warning: Config file not found at {config_file}")
+            print("Using default configuration values.")
+        
+        return config
     
     def get_file_type_description(self):
         return "Library File Ingestion"
