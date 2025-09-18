@@ -98,20 +98,24 @@ class LibraryIngestionImporter(BaseImporter):
 
         print(f"\nAll {self.get_file_type_description()} directories processed.")
     
-    def _start_library_import_log(self, source_id, file_path):
+    def _start_library_import_log(self, source_id: int, file_path: Path) -> int:
         """Create a custom import log entry for library ingestion."""
-        cursor = self.db.conn.cursor()
-        # Use a dummy hash for directories
-        file_hash = f"directory_{file_path.name}_{hash(str(file_path))}"
-        cursor.execute(
-            """
-            INSERT INTO import_log (source_id, file_name, file_hash, status)
-            VALUES (?, ?, ?, 'running')
-            """,
-            (source_id, file_path.name, file_hash)
-        )
-        self.db.conn.commit()
-        return cursor.lastrowid
+        try:
+            cursor = self.db.conn.cursor()
+            # Use a dummy hash for directories
+            file_hash = f"directory_{file_path.name}_{hash(str(file_path))}"
+            cursor.execute(
+                """
+                INSERT INTO import_log (source_id, file_name, file_hash, status)
+                VALUES (?, ?, ?, 'running')
+                """,
+                (source_id, file_path.name, file_hash)
+            )
+            self.db.conn.commit()
+            return cursor.lastrowid
+        except Exception as e:
+            print(f"Error creating import log entry: {e}")
+            raise
     
     def create_argument_parser(self):
         """Create argument parser for CLI usage."""
@@ -143,6 +147,20 @@ class LibraryIngestionImporter(BaseImporter):
             
             if not self.library_roots:
                 return 0, "No library roots configured"
+            
+            # Validate that all library roots exist
+            valid_roots = []
+            for root_path in self.library_roots:
+                root_path = Path(root_path)
+                if root_path.exists() and root_path.is_dir():
+                    valid_roots.append(root_path)
+                else:
+                    print(f"Warning: Library root does not exist or is not a directory: {root_path}")
+            
+            if not valid_roots:
+                return 0, "No valid library roots found"
+            
+            self.library_roots = [str(r) for r in valid_roots]
             
             # Process all library roots
             total_processed = 0
@@ -280,6 +298,21 @@ class LibraryIngestionImporter(BaseImporter):
         hashes = {}
         
         try:
+            # Check if file exists and is readable
+            if not file_path.exists():
+                print(f"File does not exist: {file_path}")
+                return {}
+            
+            if not file_path.is_file():
+                print(f"Path is not a file: {file_path}")
+                return {}
+            
+            # Check file size before processing
+            file_size = file_path.stat().st_size
+            if file_size == 0:
+                print(f"File is empty: {file_path}")
+                return {}
+            
             with open(file_path, 'rb') as f:
                 # Read file in chunks for memory efficiency
                 chunk_size = 8192
@@ -298,12 +331,18 @@ class LibraryIngestionImporter(BaseImporter):
                         hash_objects['sha256'] = hashlib.sha256()
                 
                 # Process file in chunks
+                bytes_read = 0
                 while chunk := f.read(chunk_size):
+                    bytes_read += len(chunk)
                     for hash_obj in hash_objects.values():
                         if isinstance(hash_obj, int):  # CRC32
                             hash_obj = zlib.crc32(chunk, hash_obj)
                         else:
                             hash_obj.update(chunk)
+                
+                # Verify we read the entire file
+                if bytes_read != file_size:
+                    print(f"Warning: Only read {bytes_read} of {file_size} bytes from {file_path}")
                 
                 # Get final hash values
                 for algo, hash_obj in hash_objects.items():
@@ -312,6 +351,12 @@ class LibraryIngestionImporter(BaseImporter):
                     else:
                         hashes[algo] = hash_obj.hexdigest()
         
+        except PermissionError as e:
+            print(f"Permission denied reading file {file_path}: {e}")
+            return {}
+        except OSError as e:
+            print(f"OS error reading file {file_path}: {e}")
+            return {}
         except Exception as e:
             print(f"Error calculating hashes for {file_path}: {e}")
             return {}
@@ -320,28 +365,33 @@ class LibraryIngestionImporter(BaseImporter):
     
     def _find_existing_rom_file(self, hashes: Dict[str, str]) -> Optional[int]:
         """Find existing ROM file by hash."""
-        cursor = self.db.conn.cursor()
-        
-        # Try to find by SHA1 first (most common)
-        if 'sha1' in hashes and hashes['sha1']:
-            cursor.execute("SELECT rom_id FROM rom_file WHERE sha1 = ?", (hashes['sha1'],))
-            row = cursor.fetchone()
-            if row:
-                return row['rom_id']
-        
-        # Try other hash algorithms that exist in the schema
-        for algo, hash_value in hashes.items():
-            if algo == 'sha1' or not hash_value:
-                continue
+        try:
+            cursor = self.db.conn.cursor()
             
-            column_name = algo.lower()
-            if column_name in ['crc32', 'md5']:
-                cursor.execute(f"SELECT rom_id FROM rom_file WHERE {column_name} = ?", (hash_value,))
+            # Try to find by SHA1 first (most common)
+            if 'sha1' in hashes and hashes['sha1']:
+                cursor.execute("SELECT rom_id FROM rom_file WHERE sha1 = ?", (hashes['sha1'],))
                 row = cursor.fetchone()
                 if row:
                     return row['rom_id']
-        
-        return None
+            
+            # Try other hash algorithms that exist in the schema
+            for algo, hash_value in hashes.items():
+                if algo == 'sha1' or not hash_value:
+                    continue
+                
+                column_name = algo.lower()
+                if column_name in ['crc32', 'md5']:
+                    cursor.execute(f"SELECT rom_id FROM rom_file WHERE {column_name} = ?", (hash_value,))
+                    row = cursor.fetchone()
+                    if row:
+                        return row['rom_id']
+            
+            return None
+            
+        except Exception as e:
+            print(f"Error finding existing ROM file: {e}")
+            return None
     
     def _create_rom_file_record(self, file_path: Path, hashes: Dict[str, str], log_id: int) -> Optional[int]:
         """Create a new ROM file record in the database."""
@@ -352,6 +402,11 @@ class LibraryIngestionImporter(BaseImporter):
             stat = file_path.stat()
             file_size = stat.st_size
             modified_time = datetime.fromtimestamp(stat.st_mtime).isoformat()
+            
+            # Validate required hashes
+            if not hashes.get('sha1'):
+                print(f"Warning: No SHA1 hash available for {file_path}")
+                return None
             
             # Detect platform if enabled
             platform_id = None
@@ -376,6 +431,10 @@ class LibraryIngestionImporter(BaseImporter):
             
             return rom_id
             
+        except sqlite3.IntegrityError as e:
+            print(f"Database integrity error creating ROM file record for {file_path}: {e}")
+            self.db.conn.rollback()
+            return None
         except Exception as e:
             print(f"Error creating ROM file record for {file_path}: {e}")
             self.db.conn.rollback()
@@ -462,13 +521,72 @@ class LibraryIngestionImporter(BaseImporter):
             print(f"Error getting/creating platform {platform_name}: {e}")
             return None
     
+    def _get_or_create_library_root(self, file_path: Path) -> int:
+        """Get or create library root record for the given file path."""
+        try:
+            cursor = self.db.conn.cursor()
+            
+            # Find the library root by checking if the file path starts with any configured root
+            for root_path in self.library_roots:
+                root_path = Path(root_path)
+                try:
+                    # Check if file_path is within this root
+                    relative_path = file_path.relative_to(root_path)
+                    
+                    # Check if this root already exists in the database
+                    cursor.execute("""
+                        SELECT root_id FROM library_root 
+                        WHERE absolute_path = ?
+                    """, (str(root_path.absolute()),))
+                    
+                    row = cursor.fetchone()
+                    if row:
+                        return row['root_id']
+                    
+                    # Create new library root record
+                    cursor.execute("""
+                        INSERT INTO library_root (absolute_path, name, created_at)
+                        VALUES (?, ?, ?)
+                    """, (
+                        str(root_path.absolute()),
+                        root_path.name,
+                        datetime.now().isoformat()
+                    ))
+                    
+                    self.db.conn.commit()
+                    return cursor.lastrowid
+                    
+                except ValueError:
+                    # file_path is not within this root, continue to next
+                    continue
+            
+            # If no configured root matches, create a default one
+            default_root_id = 1
+            cursor.execute("""
+                INSERT OR IGNORE INTO library_root (root_id, absolute_path, name, created_at)
+                VALUES (?, ?, ?, ?)
+            """, (
+                default_root_id,
+                str(file_path.parent.absolute()),
+                "Default Library Root",
+                datetime.now().isoformat()
+            ))
+            
+            self.db.conn.commit()
+            return default_root_id
+            
+        except Exception as e:
+            print(f"Error getting/creating library root for {file_path}: {e}")
+            # Return default root_id as fallback
+            return 1
+    
     def _create_file_discovery_record(self, file_path: Path, rom_id: int, log_id: int):
         """Create file discovery record."""
         try:
             cursor = self.db.conn.cursor()
             
-            # For now, use a default root_id (this would need to be properly managed)
-            root_id = 1  # This should be managed properly in a real implementation
+            # Get or create library root record
+            root_id = self._get_or_create_library_root(file_path)
             
             cursor.execute("""
                 INSERT INTO file_discovery (
@@ -504,10 +622,14 @@ class LibraryIngestionImporter(BaseImporter):
                 WHERE absolute_path = ?
             """, (rom_id, datetime.now().isoformat(), str(file_path.absolute())))
             
+            if cursor.rowcount == 0:
+                print(f"Warning: No file discovery record found to update for {file_path}")
+            
             self.db.conn.commit()
             
         except Exception as e:
             print(f"Error updating file discovery record for {file_path}: {e}")
+            self.stats['errors'] += 1
     
     def _is_archive_file(self, file_path: Path) -> bool:
         """Check if file is an archive."""
@@ -516,9 +638,24 @@ class LibraryIngestionImporter(BaseImporter):
     
     def _expand_archive(self, file_path: Path, log_id: int, source_id: int):
         """Expand archive and process member files."""
-        # This is a placeholder for archive expansion
-        # In a real implementation, this would use libraries like zipfile, py7zr, etc.
-        print(f"Archive expansion not yet implemented for {file_path}")
+        try:
+            # This is a placeholder for archive expansion
+            # In a real implementation, this would use libraries like zipfile, py7zr, etc.
+            # For now, we just log that archive expansion is not implemented
+            print(f"Archive expansion not yet implemented for {file_path}")
+            
+            # TODO: Implement actual archive expansion
+            # - Use zipfile for .zip files
+            # - Use py7zr for .7z files
+            # - Use rarfile for .rar files
+            # - Extract member files to temporary directory
+            # - Process each member file as a ROM file
+            # - Create archive_member records linking parent to children
+            # - Clean up temporary files
+            
+        except Exception as e:
+            print(f"Error expanding archive {file_path}: {e}")
+            self.stats['errors'] += 1
     
     def _generate_summary(self) -> str:
         """Generate processing summary."""
