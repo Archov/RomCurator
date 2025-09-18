@@ -23,6 +23,12 @@ from enhanced_importer_gui import ImporterApp
 from curation_gui import CurationMainWindow
 from platform_linking_gui import PlatformLinkingDialog
 
+# Import enhanced logging system (Work Item 2)
+from enhanced_logging import EnhancedLoggingManager
+
+# Import resilient worker components (Work Item 2)
+from resilient_worker import ResilientWorkerThread
+
 
 class ConfigManager:
     """Centralized configuration management."""
@@ -109,45 +115,31 @@ class ConfigManager:
 
 
 class LoggingManager:
-    """Centralized logging management."""
-    
+    """Enhanced centralized logging management using Work Item 2 framework."""
+
     def __init__(self, config_manager):
         self.config = config_manager
-        self.setup_logging()
-    
-    def setup_logging(self):
-        """Set up application logging."""
-        log_dir = Path(self.config.get('log_directory'))
-        log_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Configure logging
-        log_level = getattr(logging, self.config.get('log_level', 'INFO').upper())
-        
-        # Create formatters
-        detailed_formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        )
-        simple_formatter = logging.Formatter('%(levelname)s: %(message)s')
-        
-        # File handler for detailed logs
-        file_handler = logging.FileHandler(log_dir / 'rom_curator.log', encoding='utf-8')
-        file_handler.setLevel(log_level)
-        file_handler.setFormatter(detailed_formatter)
-        
-        # Console handler for immediate feedback
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(log_level)
-        console_handler.setFormatter(simple_formatter)
-        # Set encoding to UTF-8 to handle Unicode characters
-        console_handler.stream.reconfigure(encoding='utf-8')
-        
-        # Configure root logger
-        root_logger = logging.getLogger()
-        root_logger.setLevel(log_level)
-        root_logger.addHandler(file_handler)
-        root_logger.addHandler(console_handler)
-        
-        logging.info("Logging system initialized")
+        self.enhanced_logging = EnhancedLoggingManager(config_manager)
+
+        # Keep backward compatibility by exposing loggers
+        self.root_logger = self.enhanced_logging.root_logger
+        self.ingestion_logger = self.enhanced_logging.ingestion_logger
+        self.archive_logger = self.enhanced_logging.archive_logger
+        self.organizer_logger = self.enhanced_logging.organizer_logger
+
+    def get_logger(self, name: str = None):
+        """Get a logger by name (backward compatibility)."""
+        if name:
+            return self.enhanced_logging.get_logger(name)
+        return self.root_logger
+
+    def log_performance_metric(self, operation: str, duration: float, item_count: int = 1):
+        """Log performance metrics."""
+        return self.enhanced_logging.log_performance_metric(operation, duration, item_count)
+
+    def get_performance_summary(self):
+        """Get performance summary."""
+        return self.enhanced_logging.get_performance_summary()
 
 
 class WelcomeWidget(QWidget):
@@ -258,7 +250,7 @@ class RomCuratorMainWindow(QMainWindow):
         
         # Import submenu
         import_menu = file_menu.addMenu('&Import Data')
-        
+
         import_action = QAction('&Metadata && DAT Importer...', self)
         import_action.setStatusTip('Import game metadata and DAT files')
         import_action.triggered.connect(self.open_data_importer)
@@ -274,20 +266,30 @@ class RomCuratorMainWindow(QMainWindow):
         
         # Tools Menu
         tools_menu = menubar.addMenu('&Tools')
-        
+
+        # Library submenu (Work Item 2 - Resilient Ingestion)
+        library_menu = tools_menu.addMenu('&Library')
+
+        ingestion_action = QAction('&Scan && Ingest Files...', self)
+        ingestion_action.setStatusTip('Scan library directories and ingest files with resilience features')
+        ingestion_action.triggered.connect(self.open_resilient_ingestion)
+        library_menu.addAction(ingestion_action)
+
+        tools_menu.addSeparator()
+
         # Curation submenu
         curation_menu = tools_menu.addMenu('&Curation')
-        
+
         curation_action = QAction('&DAT-Metadata Matching...', self)
         curation_action.setStatusTip('Review and curate metadata-DAT matches')
         curation_action.triggered.connect(self.open_curation_interface)
         curation_menu.addAction(curation_action)
-        
+
         tools_menu.addSeparator()
-        
+
         # Database tools
         db_menu = tools_menu.addMenu('&Database')
-        
+
         platform_linking_action = QAction('&Platform Linking...', self)
         platform_linking_action.setStatusTip('Manage platform links for accurate matching')
         platform_linking_action.triggered.connect(self.open_platform_linking)
@@ -295,11 +297,41 @@ class RomCuratorMainWindow(QMainWindow):
         
         # View Menu
         view_menu = menubar.addMenu('&View')
-        
+
         logs_action = QAction('&View Logs...', self)
         logs_action.setStatusTip('View application logs')
         logs_action.triggered.connect(self.view_logs)
         view_menu.addAction(logs_action)
+
+        # Enhanced logging options (Work Item 2)
+        logs_menu = view_menu.addMenu('&Logs')
+
+        ingestion_logs_action = QAction('&Ingestion Logs...', self)
+        ingestion_logs_action.setStatusTip('View ingestion-specific logs with filtering')
+        ingestion_logs_action.triggered.connect(self.view_ingestion_logs)
+        logs_menu.addAction(ingestion_logs_action)
+
+        archive_logs_action = QAction('&Archive Logs...', self)
+        archive_logs_action.setStatusTip('View archive processing logs')
+        archive_logs_action.triggered.connect(self.view_archive_logs)
+        logs_menu.addAction(archive_logs_action)
+
+        organizer_logs_action = QAction('&Organizer Logs...', self)
+        organizer_logs_action.setStatusTip('View file organization logs')
+        organizer_logs_action.triggered.connect(self.view_organizer_logs)
+        logs_menu.addAction(organizer_logs_action)
+
+        performance_logs_action = QAction('&Performance Metrics...', self)
+        performance_logs_action.setStatusTip('View performance metrics and statistics')
+        performance_logs_action.triggered.connect(self.view_performance_metrics)
+        logs_menu.addAction(performance_logs_action)
+
+        view_menu.addSeparator()
+
+        checkpoint_recovery_action = QAction('&Checkpoint Recovery...', self)
+        checkpoint_recovery_action.setStatusTip('Manage and recover from processing checkpoints')
+        checkpoint_recovery_action.triggered.connect(self.manage_checkpoints)
+        view_menu.addAction(checkpoint_recovery_action)
         
         # Help Menu
         help_menu = menubar.addMenu('&Help')
@@ -439,7 +471,7 @@ class RomCuratorMainWindow(QMainWindow):
             from log_viewer import LogViewerWindow
             self.log_viewer = LogViewerWindow(self.config)
             self.log_viewer.show()
-            
+
         except Exception as e:
             # Simple fallback log viewer
             log_file = Path(self.config.get('log_directory')) / 'rom_curator.log'
@@ -447,7 +479,7 @@ class RomCuratorMainWindow(QMainWindow):
                 try:
                     with open(log_file, 'r', encoding='utf-8') as f:
                         content = f.read()
-                    
+
                     log_dialog = QMessageBox(self)
                     log_dialog.setWindowTitle("Application Logs")
                     log_dialog.setText("Recent log entries:")
@@ -457,6 +489,322 @@ class RomCuratorMainWindow(QMainWindow):
                     QMessageBox.warning(self, "Error", f"Could not read log file:\n{read_error}")
             else:
                 QMessageBox.information(self, "Logs", "No log file found.")
+
+    # Work Item 2: Enhanced Logging UI Methods
+    def view_ingestion_logs(self):
+        """View ingestion-specific logs with filtering."""
+        self._view_enhanced_logs('ingestion', 'Ingestion Logs')
+
+    def view_archive_logs(self):
+        """View archive processing logs."""
+        self._view_enhanced_logs('ingestion.archive', 'Archive Processing Logs')
+
+    def view_organizer_logs(self):
+        """View file organization logs."""
+        self._view_enhanced_logs('ingestion.organizer', 'File Organization Logs')
+
+    def _view_enhanced_logs(self, logger_name, title):
+        """View enhanced logs with filtering capabilities."""
+        try:
+            log_dir = Path(self.config.get('log_directory'))
+
+            # Map logger names to log files
+            log_file_map = {
+                'ingestion': 'ingestion.log',
+                'ingestion.archive': 'archive.log',
+                'ingestion.organizer': 'organizer.log'
+            }
+
+            log_file = log_dir / log_file_map.get(logger_name, 'rom_curator.log')
+
+            if log_file.exists():
+                with open(log_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+
+                # Create enhanced log viewer dialog
+                from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QTextEdit, QPushButton, QComboBox, QLabel, QCheckBox
+                from PyQt5.QtCore import Qt
+
+                dialog = QDialog(self)
+                dialog.setWindowTitle(title)
+                dialog.setGeometry(200, 200, 900, 600)
+
+                layout = QVBoxLayout(dialog)
+
+                # Filter controls
+                filter_layout = QHBoxLayout()
+
+                filter_layout.addWidget(QLabel("Filter:"))
+                self.filter_combo = QComboBox()
+                self.filter_combo.addItems(['All', 'INFO', 'WARNING', 'ERROR', 'DEBUG'])
+                filter_layout.addWidget(self.filter_combo)
+
+                self.show_context_check = QCheckBox("Show Context")
+                self.show_context_check.setChecked(True)
+                filter_layout.addWidget(self.show_context_check)
+
+                refresh_btn = QPushButton("Refresh")
+                refresh_btn.clicked.connect(lambda: self._refresh_log_view(self.log_view, log_file, dialog))
+                filter_layout.addWidget(refresh_btn)
+
+                filter_layout.addStretch()
+                layout.addLayout(filter_layout)
+
+                # Log display
+                self.log_view = QTextEdit()
+                self.log_view.setReadOnly(True)
+                self.log_view.setFontFamily("Consolas")
+                self.log_view.setFontPointSize(9)
+                layout.addWidget(self.log_view)
+
+                # Button row
+                button_layout = QHBoxLayout()
+                button_layout.addStretch()
+
+                close_btn = QPushButton("Close")
+                close_btn.clicked.connect(dialog.accept)
+                button_layout.addWidget(close_btn)
+
+                layout.addLayout(button_layout)
+
+                # Load initial content
+                self._refresh_log_view(self.log_view, log_file, dialog)
+
+                dialog.exec_()
+            else:
+                QMessageBox.information(self, title, f"No {logger_name} log file found.")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to open log viewer:\n{e}")
+
+    def _refresh_log_view(self, log_view, log_file, dialog):
+        """Refresh the log view with current content and filters."""
+        try:
+            with open(log_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            # Apply filters
+            filter_level = self.filter_combo.currentText()
+            show_context = self.show_context_check.isChecked()
+
+            lines = content.split('\n')
+            filtered_lines = []
+
+            for line in lines:
+                if not line.strip():
+                    continue
+
+                # Apply level filter
+                if filter_level != 'All':
+                    if f'[{filter_level}]' not in line:
+                        continue
+
+                # Apply context filter
+                if not show_context and '|' in line:
+                    # Remove context part (everything after |)
+                    line = line.split('|')[0].strip()
+
+                filtered_lines.append(line)
+
+            log_view.setText('\n'.join(filtered_lines[-1000:]))  # Show last 1000 lines
+
+        except Exception as e:
+            log_view.setText(f"Error loading log file: {e}")
+
+    def view_performance_metrics(self):
+        """View performance metrics and statistics."""
+        try:
+            # Get performance summary from logging manager
+            summary = self.logging_manager.get_performance_summary()
+
+            if not summary:
+                QMessageBox.information(self, "Performance Metrics",
+                                      "No performance metrics available.\n\n"
+                                      "Run some ingestion operations to collect metrics.")
+                return
+
+            # Create performance dialog
+            from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QPushButton, QHBoxLayout
+
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Performance Metrics")
+            dialog.setGeometry(200, 200, 700, 500)
+
+            layout = QVBoxLayout(dialog)
+
+            metrics_text = QTextEdit()
+            metrics_text.setReadOnly(True)
+            metrics_text.setFontFamily("Consolas")
+            metrics_text.setFontPointSize(9)
+
+            # Format performance data
+            content = "📊 PERFORMANCE METRICS SUMMARY\n"
+            content += "=" * 50 + "\n\n"
+
+            for operation, stats in summary.items():
+                content += f"🔧 Operation: {operation}\n"
+                content += f"   Executions: {stats['count']}\n"
+                content += f"   Avg Duration: {stats['avg_duration']:.2f}s\n"
+                content += f"   Min Duration: {stats['min_duration']:.2f}s\n"
+                content += f"   Max Duration: {stats['max_duration']:.2f}s\n"
+                content += f"   Avg Rate: {stats['avg_rate']:.1f} items/sec\n"
+                content += f"   Total Items: {stats['total_items']}\n"
+                content += "\n"
+
+            metrics_text.setText(content)
+            layout.addWidget(metrics_text)
+
+            # Button row
+            button_layout = QHBoxLayout()
+            button_layout.addStretch()
+
+            close_btn = QPushButton("Close")
+            close_btn.clicked.connect(dialog.accept)
+            button_layout.addWidget(close_btn)
+
+            layout.addLayout(button_layout)
+
+            dialog.exec_()
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to load performance metrics:\n{e}")
+
+    def manage_checkpoints(self):
+        """Manage and recover from processing checkpoints."""
+        try:
+            from pathlib import Path
+            import json
+            from PyQt5.QtWidgets import QDialog, QVBoxLayout, QListWidget, QPushButton, QHBoxLayout, QLabel, QMessageBox
+
+            log_dir = Path(self.config.get('log_directory'))
+            checkpoint_files = list(log_dir.glob('*_checkpoint.json'))
+
+            if not checkpoint_files:
+                QMessageBox.information(self, "Checkpoint Recovery",
+                                      "No checkpoint files found.\n\n"
+                                      "Checkpoint files are created during long-running operations.")
+                return
+
+            # Create checkpoint management dialog
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Checkpoint Recovery")
+            dialog.setGeometry(200, 200, 600, 400)
+
+            layout = QVBoxLayout(dialog)
+
+            layout.addWidget(QLabel("Available Checkpoints:"))
+
+            checkpoint_list = QListWidget()
+
+            for cp_file in checkpoint_files:
+                try:
+                    with open(cp_file, 'r', encoding='utf-8') as f:
+                        cp_data = json.load(f)
+
+                    operation = cp_data.get('operation_name', 'Unknown')
+                    index = cp_data.get('current_index', 0)
+                    total = cp_data.get('total_items', '?')
+                    timestamp = cp_data.get('timestamp', 'Unknown')
+
+                    display_text = f"{operation} - {index}/{total} items - {timestamp[:19]}"
+                    checkpoint_list.addItem(display_text)
+
+                    # Store file path in item data
+                    checkpoint_list.item(checkpoint_list.count() - 1).setData(Qt.UserRole, str(cp_file))
+
+                except Exception as e:
+                    checkpoint_list.addItem(f"Invalid checkpoint: {cp_file.name} (Error: {e})")
+
+            layout.addWidget(checkpoint_list)
+
+            # Button row
+            button_layout = QHBoxLayout()
+
+            delete_btn = QPushButton("Delete Selected")
+            delete_btn.clicked.connect(lambda: self._delete_checkpoint(checkpoint_list, dialog))
+            button_layout.addWidget(delete_btn)
+
+            delete_all_btn = QPushButton("Delete All")
+            delete_all_btn.clicked.connect(lambda: self._delete_all_checkpoints(checkpoint_list, dialog))
+            button_layout.addWidget(delete_all_btn)
+
+            button_layout.addStretch()
+
+            close_btn = QPushButton("Close")
+            close_btn.clicked.connect(dialog.accept)
+            button_layout.addWidget(close_btn)
+
+            layout.addLayout(button_layout)
+
+            dialog.exec_()
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to manage checkpoints:\n{e}")
+
+    def _delete_checkpoint(self, checkpoint_list, dialog):
+        """Delete selected checkpoint."""
+        current_item = checkpoint_list.currentItem()
+        if not current_item:
+            QMessageBox.warning(dialog, "Warning", "Please select a checkpoint to delete.")
+            return
+
+        cp_file = current_item.data(Qt.UserRole)
+        if cp_file:
+            try:
+                Path(cp_file).unlink()
+                checkpoint_list.takeItem(checkpoint_list.currentRow())
+                QMessageBox.information(dialog, "Success", "Checkpoint deleted successfully.")
+            except Exception as e:
+                QMessageBox.critical(dialog, "Error", f"Failed to delete checkpoint:\n{e}")
+
+    def _delete_all_checkpoints(self, checkpoint_list, dialog):
+        """Delete all checkpoints."""
+        reply = QMessageBox.question(dialog, "Confirm",
+                                   "Are you sure you want to delete all checkpoints?\n\n"
+                                   "This action cannot be undone.",
+                                   QMessageBox.Yes | QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            deleted = 0
+            errors = 0
+
+            for i in range(checkpoint_list.count()):
+                item = checkpoint_list.item(i)
+                cp_file = item.data(Qt.UserRole)
+                if cp_file:
+                    try:
+                        Path(cp_file).unlink()
+                        deleted += 1
+                    except Exception:
+                        errors += 1
+
+            checkpoint_list.clear()
+
+            if errors > 0:
+                QMessageBox.warning(dialog, "Partial Success",
+                                  f"Deleted {deleted} checkpoints, {errors} failed.")
+            else:
+                QMessageBox.information(dialog, "Success",
+                                      f"All {deleted} checkpoints deleted successfully.")
+
+    def open_resilient_ingestion(self):
+        """Open the resilient ingestion interface."""
+        try:
+            # Import the resilient ingestion dialog
+            from resilient_ingestion_dialog import ResilientIngestionDialog
+
+            # Create the dialog
+            self.ingestion_dialog = ResilientIngestionDialog(self.config, self)
+            self.ingestion_dialog.show()
+
+            self.logging_manager.root_logger.info("Resilient ingestion dialog opened")
+
+        except ImportError:
+            QMessageBox.warning(self, "Feature Not Available",
+                              "Resilient ingestion dialog not yet implemented.\n\n"
+                              "This feature is part of Work Item 2 development.")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to open resilient ingestion:\n{e}")
     
     def show_matching_guide(self):
         """Show the matching guide."""
