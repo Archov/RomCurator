@@ -94,10 +94,15 @@ class NoIntroImporter(BaseImporter):
             roms = game_element.findall('rom')
             for rom_elem in roms:
                 sha1 = rom_elem.get('sha1')
-                if sha1 and process_dat_rom_entry(cursor, log_id, platform_id, game_name, sha1, is_clone, clone_of, "nointro"):
-                    processed_files += 1
-                elif not sha1:
-                    print(f"  - Warning: ROM in game '{game_name}' missing SHA1, skipping.")
+                crc32 = rom_elem.get('crc')  # No-Intro uses 'crc' not 'crc32'
+                md5 = rom_elem.get('md5')
+                sha256 = rom_elem.get('sha256')
+
+                if sha1 or crc32 or md5 or sha256:
+                    if process_dat_rom_entry(cursor, log_id, platform_id, game_name, sha1, crc32, md5, sha256, is_clone, clone_of, "nointro"):
+                        processed_files += 1
+                else:
+                    print(f"  - Warning: ROM in game '{game_name}' missing all hash values, skipping.")
             
             # Also check for source/file structure (alternative DAT format)
             sources = game_element.findall('source')
@@ -105,10 +110,15 @@ class NoIntroImporter(BaseImporter):
                 files = source.findall('file')
                 for file_elem in files:
                     sha1 = file_elem.get('sha1')
-                    if sha1 and process_dat_rom_entry(cursor, log_id, platform_id, game_name, sha1, is_clone, clone_of, "nointro"):
-                        processed_files += 1
-                    elif not sha1:
-                        print(f"  - Warning: File in game '{game_name}' missing SHA1, skipping.")
+                    crc32 = file_elem.get('crc')  # No-Intro uses 'crc' not 'crc32'
+                    md5 = file_elem.get('md5')
+                    sha256 = file_elem.get('sha256')
+
+                    if sha1 or crc32 or md5 or sha256:
+                        if process_dat_rom_entry(cursor, log_id, platform_id, game_name, sha1, crc32, md5, sha256, is_clone, clone_of, "nointro"):
+                            processed_files += 1
+                    else:
+                        print(f"  - Warning: File in game '{game_name}' missing all hash values, skipping.")
             
             # Also process release elements if they exist (scene releases)
             releases = game_element.findall('release')
@@ -116,8 +126,13 @@ class NoIntroImporter(BaseImporter):
                 files = release.findall('file')
                 for file_elem in files:
                     sha1 = file_elem.get('sha1')
-                    if sha1 and process_dat_rom_entry(cursor, log_id, platform_id, game_name, sha1, is_clone, clone_of, "nointro"):
-                        processed_files += 1
+                    crc32 = file_elem.get('crc')  # No-Intro uses 'crc' not 'crc32'
+                    md5 = file_elem.get('md5')
+                    sha256 = file_elem.get('sha256')
+
+                    if sha1 or crc32 or md5 or sha256:
+                        if process_dat_rom_entry(cursor, log_id, platform_id, game_name, sha1, crc32, md5, sha256, is_clone, clone_of, "nointro"):
+                            processed_files += 1
             
             if processed_files == 0:
                 print(f"  - Warning: Game '{game_name}' had no valid ROM files to process.")

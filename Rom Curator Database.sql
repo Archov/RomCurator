@@ -159,7 +159,11 @@ CREATE TABLE IF NOT EXISTS dat_entry (
   log_id INTEGER NOT NULL REFERENCES import_log(log_id),
   platform_id INTEGER NOT NULL REFERENCES platform(platform_id), -- Stored for context
   release_title TEXT NOT NULL, -- Original full title from DAT
-  rom_sha1 TEXT NOT NULL,
+  -- Hash values for ROM verification and matching
+  rom_sha1 TEXT, -- SHA1 hash (primary identifier, may be NULL if only other hashes available)
+  rom_crc32 TEXT, -- CRC32 hash (common in TOSEC)
+  rom_md5 TEXT, -- MD5 hash (common in some DAT formats)
+  rom_sha256 TEXT, -- SHA256 hash (provided by No-Intro)
   external_id TEXT, -- The ID from the DAT file that clone_of references
   is_clone BOOLEAN NOT NULL DEFAULT 0,
   clone_of TEXT,

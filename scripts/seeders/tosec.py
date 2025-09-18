@@ -119,19 +119,27 @@ class TosecImporter(BaseImporter):
             roms = game_element.findall('rom')
             for rom_elem in roms:
                 sha1 = rom_elem.get('sha1')
-                if sha1 and process_dat_rom_entry(cursor, log_id, platform_id, game_name, sha1, is_clone, clone_of, "tosec"):
-                    processed_files += 1
-                elif not sha1:
-                    print(f"  - Warning: ROM in game '{game_name}' missing SHA1, skipping.")
+                crc32 = rom_elem.get('crc')  # TOSEC uses 'crc' instead of 'crc32'
+                md5 = rom_elem.get('md5')
+
+                if sha1 or crc32 or md5:
+                    if process_dat_rom_entry(cursor, log_id, platform_id, game_name, sha1, crc32, md5, None, is_clone, clone_of, "tosec"):
+                        processed_files += 1
+                else:
+                    print(f"  - Warning: ROM in game '{game_name}' missing all hash values, skipping.")
             
             # TOSEC may also have disk elements for some platforms
             disks = game_element.findall('disk')
             for disk_elem in disks:
                 sha1 = disk_elem.get('sha1')
-                if sha1 and process_dat_rom_entry(cursor, log_id, platform_id, game_name, sha1, is_clone, clone_of, "tosec"):
-                    processed_files += 1
-                elif not sha1:
-                    print(f"  - Warning: Disk in game '{game_name}' missing SHA1, skipping.")
+                crc32 = disk_elem.get('crc')  # TOSEC uses 'crc' instead of 'crc32'
+                md5 = disk_elem.get('md5')
+
+                if sha1 or crc32 or md5:
+                    if process_dat_rom_entry(cursor, log_id, platform_id, game_name, sha1, crc32, md5, None, is_clone, clone_of, "tosec"):
+                        processed_files += 1
+                else:
+                    print(f"  - Warning: Disk in game '{game_name}' missing all hash values, skipping.")
             
             if processed_files == 0:
                 print(f"  - Warning: Game '{game_name}' had no valid ROM/disk files to process.")

@@ -129,9 +129,10 @@ def handle_schema_validation_warning(file_path, is_valid, validation_message, sc
         print(f"{schema_type} schema validation passed: {validation_message}")
 
 
-def process_dat_rom_entry(cursor, log_id, platform_id, game_name, sha1, is_clone=0, clone_of="", dat_format="auto"):
+def process_dat_rom_entry(cursor, log_id, platform_id, game_name, sha1=None, crc32=None, md5=None, sha256=None, is_clone=0, clone_of="", dat_format="auto"):
     """Insert a single ROM entry into the dat_entry table with enhanced parsing."""
-    if not sha1:
+    # Require at least one hash value
+    if not sha1 and not crc32 and not md5 and not sha256:
         return False
     
     # Import parser here to avoid circular imports
@@ -152,12 +153,17 @@ def process_dat_rom_entry(cursor, log_id, platform_id, game_name, sha1, is_clone
         # Use enhanced structure (v1.7)
         cursor.execute("""
             INSERT OR IGNORE INTO dat_entry (
-                log_id, platform_id, release_title, rom_sha1, is_clone, clone_of,
-                base_title, region_normalized, version_info, development_status,
-                dump_status, language_codes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                log_id, platform_id, release_title, rom_sha1, rom_crc32, rom_md5, rom_sha256,
+                is_clone, clone_of, base_title, region_normalized, version_info,
+                development_status, dump_status, language_codes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            log_id, platform_id, game_name, sha1.lower(), is_clone, clone_of,
+            log_id, platform_id, game_name,
+            sha1.lower() if sha1 else None,
+            crc32.lower() if crc32 else None,
+            md5.lower() if md5 else None,
+            sha256.lower() if sha256 else None,
+            is_clone, clone_of,
             parsed_data['base_title'], parsed_data['region_normalized'],
             parsed_data['version_info'], parsed_data['development_status'],
             parsed_data['dump_status'], parsed_data['language_codes']

@@ -1,0 +1,422 @@
+# ROM Curator - Cursor IDE Rules
+# This file provides comprehensive guidance for AI assistants and developers working on the ROM Curator project
+
+## Project Overview
+ROM Curator is a desktop application for managing ROM collections with database-driven metadata parsing, curation workflows, and platform linking capabilities. The application is currently in a rapid prototype/POC phase with active development.
+
+## Architecture Patterns
+
+### Database Layer
+- **SQLite3** with foreign key constraints enabled (`PRAGMA foreign_keys = ON`)
+- **Schema versioning** tracked in comments (current: v1.8)
+- **Entity-Attribute-Value (EAV)** pattern for format-specific metadata in `dat_entry_metadata`
+- **Normalized design** with separate tables for companies, platforms, regions
+- **Views for analytics** and health checks
+- **Note**: The application is still in a rapid prototype/POC phase. No effort should be spent on migration when updates to the database schema need to be made.
+
+### GUI Layer (PyQt5)
+- **Single entry point**: `rom_curator_main.py` with unified menu system
+- **Dark theme**: Uses `qdarkstyle` for consistent appearance
+- **Signal-slot pattern**: Proper PyQt5 event handling
+- **Threading**: Long-running operations use worker threads with signals
+- **Configuration**: Centralized `ConfigManager` class
+- **Frameless dialogs**: Custom title bars with drag functionality for platform linking
+
+### Import/Data Processing Layer
+- **Base importer pattern**: `BaseImporter` abstract class
+- **Format-specific parsers**: No-Intro, TOSEC, GoodTools, Redump
+- **XML processing**: Uses `lxml` for DAT file parsing
+- **Hash extraction**: Supports SHA1, CRC32, MD5, SHA256
+- **Progress reporting**: Status updates via signals
+- **Explicit format specification**: No auto-detection, format must be passed explicitly
+
+## Core Concepts
+
+### Database Schema (32 Tables)
+**Core Governance & Metadata (8 tables):**
+- `company`, `company_alias_group`, `company_alias` - Company name normalization
+- `genre`, `platform`, `region` - Canonical lookup tables
+- `atomic_game_unit` - Central game concept table
+- `atomic_core_metadata` - Fixed columns for core attributes
+- `atomic_metadata_extension` - EAV for extended metadata
+
+**Release & Artifact Model (8 tables):**
+- `game_release` - Specific product releases
+- `release_developer`, `release_publisher`, `release_genre`, `release_region` - Junction tables
+- `rom_file` - Digital file storage with hash values
+- `release_artifact` - Links between releases and ROM files
+
+**Import & Validation Model (8 tables):**
+- `metadata_source` - Data provider lookup
+- `import_log` - Master import job log
+- `dat_entry` - DAT file entries with parsed metadata
+- `dat_entry_metadata` - EAV for format-specific metadata
+- `dat_atomic_link` - Links between atomic games and DAT entries
+- `platform_links` - Platform linking for matching
+- `file_discovery` - File system discovery tracking
+- `file_instance` - File instance tracking
+
+**Matching & Curation (8 tables):**
+- `matching_session` - Curation session tracking
+- `matching_candidate` - Potential matches
+- `matching_decision` - User decisions
+- `matching_confidence` - Confidence scoring
+- `curation_queue` - Items awaiting curation
+- `curation_rule` - Automated curation rules
+- `curation_audit` - Audit trail
+- `playlist` - Export playlists
+
+### Key Features
+- **Data Import System**: Multi-format DAT file processing with intelligent metadata parsing
+- **Platform Linking**: Canonical platform management with alias support
+- **Fuzzy String Matching**: Intelligent game title matching with confidence scoring
+- **Curation Interface**: Manual and automated curation workflows
+- **Hash Verification**: Multi-algorithm ROM verification (SHA1, CRC32, MD5, SHA256)
+- **Region Standardization**: Unified region handling across formats
+
+## Naming Conventions
+
+### Python Files
+- **Main application**: `rom_curator_main.py`
+- **GUI modules**: `{feature}_gui.py` (e.g., `enhanced_importer_gui.py`)
+- **Importer scripts**: `scripts/seeders/{format}.py` (e.g., `no_intro.py`)
+- **Utilities**: `scripts/seeders/{purpose}_utils.py` (e.g., `xml_utils.py`)
+
+### Database Tables
+- **Core entities**: Singular nouns (`platform`, `company`, `genre`)
+- **Relationships**: `{entity1}_{entity2}` (e.g., `company_alias_group`)
+- **Junction tables**: `{entity1}_{entity2}` (e.g., `release_publisher`)
+- **Metadata**: `{entity}_metadata` (e.g., `dat_entry_metadata`)
+
+### SQL Files
+- **Schema**: `Rom Curator Database.sql` (unversioned)
+- **Seed scripts**: `seed-scripts/NN_description.sql`
+- **Validation queries**: `dat_validation_queries.sql`
+
+## Code Style Guidelines
+
+### Python Standards
+- **Type hints**: Use `typing` module for function signatures
+- **Docstrings**: Comprehensive docstrings for classes and methods
+- **Error handling**: Try/except blocks with specific exception types
+- **Imports**: Group by standard library, third-party, local modules
+- **Constants**: Uppercase for configuration constants
+- **Unicode handling**: Always use `encoding='utf-8'` for file operations
+
+### Database Standards
+- **Foreign keys**: Always define and use foreign key constraints
+- **Indexes**: Create indexes on frequently queried columns
+- **Views**: Use views for complex queries and analytics
+- **Triggers**: Consider triggers for data integrity
+- **Comments**: Document table purposes and relationships
+- **Parameterized queries**: Always use parameterized queries to prevent SQL injection
+
+### GUI Standards
+- **Dark theme**: Apply `qdarkstyle` consistently
+- **Frameless dialogs**: Use custom title bars for platform linking
+- **Threading**: Use `QThread` for long-running operations
+- **Signals**: Use PyQt5 signals for UI updates from threads
+- **Error dialogs**: Show user-friendly error messages
+
+## Development Workflow
+
+### File Organization
+```
+/
+├── rom_curator_main.py          # Main application entry point
+├── config.json                  # Application configuration
+├── requirements.txt             # Python dependencies
+├── database/                    # SQLite database files
+├── logs/                        # Application logs
+├── scripts/seeders/             # Data import scripts
+│   ├── base_importer.py         # Abstract base class
+│   ├── xml_utils.py             # XML processing utilities
+│   ├── dat_parser.py            # DAT filename parser
+│   ├── matching_engine.py       # Game matching logic
+│   └── {format}.py              # Format-specific importers
+├── seed-data/                   # DAT files and metadata
+├── seed-scripts/                # Database seeding scripts
+└── external reference documentation/  # Format specifications
+```
+
+### Common Patterns
+
+**GUI Dialog Creation:**
+```python
+class MyDialog(QDialog):
+    def __init__(self, db_path: str, parent=None):
+        super().__init__(parent)
+        self.db_path = db_path
+        self.setWindowTitle("My Dialog Title")
+        self.setModal(True)
+        self.resize(800, 600)
+        self.init_ui()
+
+    def init_ui(self):
+        # Set up UI components
+        layout = QVBoxLayout()
+        # ... add widgets ...
+        self.setLayout(layout)
+```
+
+**Database Operations:**
+```python
+def get_data(self, db_path: str, query_params: Dict[str, Any]) -> List[Dict]:
+    with sqlite3.connect(db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT * FROM table_name
+            WHERE column_name = ?
+        """, (query_params['value'],))
+
+        return [dict(row) for row in cursor.fetchall()]
+```
+
+**Importer Structure:**
+```python
+class FormatImporter(BaseImporter):
+    def get_file_type_description(self) -> str:
+        return "Format Name DAT"
+
+    def process_single_file(self, file_path: str) -> bool:
+        # Parse DAT file and process entries
+        # Return True on success
+        pass
+```
+
+**Threading Pattern:**
+```python
+class WorkerThread(QThread):
+    progress = pyqtSignal(int)
+    finished = pyqtSignal(bool)
+    error = pyqtSignal(str)
+
+    def run(self):
+        try:
+            # Long-running operation
+            self.finished.emit(True)
+        except Exception as e:
+            self.error.emit(str(e))
+```
+
+## Configuration Management
+
+### ConfigManager Usage
+```python
+# Always use ConfigManager for configuration access
+config = ConfigManager()
+db_path = config.get('database_path')
+log_level = config.get('log_level', 'INFO')
+
+# Let ConfigManager create directories
+config.ensure_directories()
+```
+
+### Configuration Structure
+```json
+{
+    "database_path": "./database/RomCurator.db",
+    "importer_scripts_directory": "./scripts/seeders/",
+    "log_directory": "./logs/",
+    "log_level": "INFO",
+    "auto_create_directories": true,
+    "progress_update_interval": 100,
+    "gui_settings": {
+        "window_width": 1200,
+        "window_height": 800,
+        "theme": "dark"
+    }
+}
+```
+
+## Logging Standards
+
+### Logging Setup
+```python
+# Use centralized LoggingManager
+logging_manager = LoggingManager(config_manager)
+
+# Always use encoding='utf-8' for file handlers
+file_handler = logging.FileHandler(log_file, encoding='utf-8')
+console_handler = logging.StreamHandler()
+console_handler.stream.reconfigure(encoding='utf-8')
+```
+
+### Log Levels
+- **DEBUG**: Detailed diagnostic information
+- **INFO**: General information about program execution
+- **WARNING**: Something unexpected happened
+- **ERROR**: A serious problem occurred
+- **CRITICAL**: A very serious error occurred
+
+## Error Handling Patterns
+
+### Database Operations
+```python
+try:
+    with sqlite3.connect(db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM table WHERE id = ?", (id,))
+        return cursor.fetchall()
+except sqlite3.Error as e:
+    logging.error(f"Database error: {e}")
+    raise
+```
+
+### File Operations
+```python
+try:
+    with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+except (IOError, UnicodeDecodeError) as e:
+    logging.error(f"File operation failed: {e}")
+    raise
+```
+
+### GUI Operations
+```python
+try:
+    # GUI operation
+    result = some_gui_operation()
+except Exception as e:
+    QMessageBox.critical(self, "Error", f"Operation failed: {e}")
+    logging.error(f"GUI operation failed: {e}")
+```
+
+## Testing Approach
+
+### Unit Tests
+- Test individual functions and classes
+- Mock database connections for isolated testing
+- Test error conditions and edge cases
+
+### Integration Tests
+- Test database operations with real SQLite database
+- Test file processing with sample DAT files
+- Test GUI interactions with automated testing
+
+### Data Validation
+- Verify imported data integrity
+- Test hash verification accuracy
+- Validate metadata parsing correctness
+
+## Performance Considerations
+
+### Database Performance
+- Use transactions for bulk operations
+- Create indexes on frequently queried columns
+- Use views for complex queries
+- Batch insert operations when possible
+
+### Memory Management
+- Process large DAT files in chunks
+- Use generators for large datasets
+- Clean up resources in `closeEvent` methods
+- Monitor memory usage during long operations
+
+### GUI Performance
+- Use threading for long-running operations
+- Update UI only when necessary
+- Use progress indicators for user feedback
+- Implement cancellation for long operations
+
+## Security Considerations
+
+### Input Validation
+- Validate all user inputs and file paths
+- Sanitize file names before processing
+- Check file permissions before access
+- Validate configuration values
+
+### SQL Injection Prevention
+- Always use parameterized queries
+- Never concatenate user input into SQL
+- Validate input types and ranges
+- Use prepared statements
+
+### File Access Security
+- Validate file paths before opening
+- Check file permissions
+- Handle file not found gracefully
+- Log security-related events
+
+## Key Dependencies
+
+- **PyQt5**: GUI framework with threading support
+- **qdarkstyle**: Dark theme for PyQt5 applications
+- **lxml**: XML processing and validation
+- **jsonschema**: JSON schema validation for metadata
+- **sqlite3**: Database operations (built-in)
+
+## Deployment Considerations
+
+### Single Executable
+- Use PyInstaller for distribution
+- Include all dependencies
+- Test on target systems
+- Provide installation instructions
+
+### Database Management
+- Schema changes require recreation during development
+- Provide migration scripts for production
+- Backup database before major changes
+- Document schema changes
+
+### Configuration
+- External config file for user customization
+- Provide default configuration
+- Validate configuration on startup
+- Handle configuration errors gracefully
+
+## Future Enhancements
+
+### Planned Features
+- **Additional formats**: Support for Redump, MAME, etc.
+- **Cloud sync**: Synchronization with remote databases
+- **Advanced curation**: Machine learning for metadata improvement
+- **Multi-platform**: Web interface and mobile apps
+- **Export system**: Playlist generation and library scanning
+- **Advanced matching**: Machine learning-based matching algorithms
+
+### Technical Debt
+- Migrate legacy importer to enhanced importer
+- Implement comprehensive test suite
+- Add performance monitoring
+- Improve error recovery mechanisms
+
+## Troubleshooting
+
+### Common Issues
+- **Database locked**: Check for lingering Python processes
+- **Unicode errors**: Ensure UTF-8 encoding is used consistently
+- **Import failures**: Check file paths and permissions
+- **GUI freezing**: Ensure long operations use threading
+
+### Debugging
+- Check log files in `logs/` directory
+- Use debug logging level for detailed information
+- Test with small sample files first
+- Verify database schema is up to date
+
+## Code Quality Standards
+
+### Documentation
+- Document all public methods and classes
+- Include usage examples in docstrings
+- Keep README files up to date
+- Document configuration options
+
+### Code Review
+- Review all database schema changes
+- Test GUI changes on different screen sizes
+- Verify error handling is comprehensive
+- Check for memory leaks in long-running operations
+
+### Maintenance
+- Regular dependency updates
+- Performance monitoring
+- Security vulnerability scanning
+- User feedback incorporation

@@ -4,6 +4,10 @@
 - Deliver a deterministic desktop workflow that turns messy ROM collections into a curated, versioned library backed by validated DAT data and rich metadata.
 - Favor reliability and repeatability: predictable database writes, resumable workflows, and clear user feedback beat experimental features.
 
+## Current phase 
+- Rapid development of Prototype/POC
+- All changes are OK to be breaking and do not need to be backwards compatible or migration tools, no code is deployed, nothing needs to be preserved if it leads to a better shippable product.
+
 ## Architecture Snapshot
 - **Unified GUI (`rom_curator_main.py`)**: Single PyQt5 entry point with menu routing to the importer, curation interface, platform linking dialog, and log viewer. Persists configuration through `ConfigManager`, applies `qdarkstyle`, and exposes a global status bar plus progress widget.
 - **Importer (`enhanced_importer_gui.py`)**: Modern import surface that drives the seeder scripts. `ImportWorkerThread` launches the selected script per file, streams console output, tracks per-session logs via `ImportLogger`, supports cancellation, and surfaces success/failure counts.
