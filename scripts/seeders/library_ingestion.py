@@ -29,6 +29,11 @@ try:
 except ImportError:
     from base_importer import BaseImporter, DatabaseHandler
 
+# Import extension registry manager
+import sys
+sys.path.append(str(Path(__file__).parent.parent.parent))
+from extension_registry_manager import ExtensionRegistryManager
+
 
 class LibraryIngestionImporter(BaseImporter):
     """Library file ingestion importer that processes files from configured directories."""
@@ -48,11 +53,16 @@ class LibraryIngestionImporter(BaseImporter):
         self.enable_archive_expansion = self.ingestion_settings.get('enable_archive_expansion', True)
         # Only use hash algorithms that exist in the current database schema
         self.hash_algorithms = self.ingestion_settings.get('hash_algorithms', ['sha1', 'crc32', 'md5'])
-        self.file_extensions = self.ingestion_settings.get('file_extensions', {})
         self.max_file_size_mb = self.ingestion_settings.get('max_file_size_mb', 1024)
         self.exclude_patterns = self.ingestion_settings.get('exclude_patterns', [])
         self.enable_platform_detection = self.ingestion_settings.get('enable_platform_detection', True)
         self.enable_metadata_extraction = self.ingestion_settings.get('enable_metadata_extraction', True)
+        
+        # Initialize extension registry manager
+        self.extension_registry = ExtensionRegistryManager(db_path)
+        
+        # Load supported file extensions from registry
+        self.supported_extensions = self._load_supported_extensions()
         
         # Statistics tracking
         self.stats = {
@@ -88,6 +98,43 @@ class LibraryIngestionImporter(BaseImporter):
             print("Using default configuration values.")
         
         return config
+    
+    def _load_supported_extensions(self) -> Dict[str, List[str]]:
+        """Load supported file extensions from the extension registry."""
+        try:
+            # Get all active extensions
+            extensions = self.extension_registry.get_extensions(active_only=True)
+            
+            # Group by type
+            supported = {
+                'rom': [],
+                'archive': [],
+                'save': [],
+                'patch': []
+            }
+            
+            for ext in extensions:
+                ext_name = ext['extension']
+                
+                if ext['is_rom']:
+                    supported['rom'].append(ext_name)
+                if ext['is_archive']:
+                    supported['archive'].append(ext_name)
+                if ext['is_save']:
+                    supported['save'].append(ext_name)
+                if ext['is_patch']:
+                    supported['patch'].append(ext_name)
+            
+            print(f"Loaded {len(extensions)} supported extensions from registry")
+            return supported
+            
+        except Exception as e:
+            print(f"Warning: Failed to load extensions from registry: {e}")
+            # Fallback to config-based extensions
+            return self.ingestion_settings.get('file_extensions', {
+                'rom': ['.rom', '.bin', '.nes', '.sfc', '.smd', '.gb', '.gba', '.nds'],
+                'archive': ['.zip', '.7z', '.rar', '.tar', '.gz']
+            })
     
     def get_file_type_description(self):
         return "Library File Ingestion"
@@ -268,16 +315,29 @@ class LibraryIngestionImporter(BaseImporter):
         """Check if file is supported based on extensions."""
         file_ext = file_path.suffix.lower()
         
+        # Use extension registry to detect file type
+        file_type_info = self.extension_registry.detect_file_type(file_path.name)
+        
+        if file_type_info:
+            # File is recognized by registry
+            return True
+        
+        # Check if extension is in our supported lists (fallback)
         # Check ROM extensions
-        rom_extensions = self.file_extensions.get('rom', [])
+        rom_extensions = self.supported_extensions.get('rom', [])
         if file_ext in rom_extensions:
             return True
         
         # Check archive extensions
         if self.enable_archive_expansion:
-            archive_extensions = self.file_extensions.get('archive', [])
+            archive_extensions = self.supported_extensions.get('archive', [])
             if file_ext in archive_extensions:
                 return True
+        
+        # If not recognized, record as unknown extension
+        if file_ext:
+            self.extension_registry.record_unknown_extension(file_ext)
+            print(f"Unknown extension encountered: {file_ext} in {file_path}")
         
         return False
     
@@ -662,7 +722,14 @@ class LibraryIngestionImporter(BaseImporter):
     
     def _is_archive_file(self, file_path: Path) -> bool:
         """Check if file is an archive."""
-        archive_extensions = self.file_extensions.get('archive', [])
+        # Use extension registry to detect archive files
+        file_type_info = self.extension_registry.detect_file_type(file_path.name)
+        
+        if file_type_info and file_type_info.get('is_archive'):
+            return True
+        
+        # Fallback to supported extensions list
+        archive_extensions = self.supported_extensions.get('archive', [])
         return file_path.suffix.lower() in archive_extensions
     
     def _expand_archive(self, file_path: Path, log_id: int, source_id: int):
