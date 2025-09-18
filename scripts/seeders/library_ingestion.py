@@ -323,8 +323,9 @@ class LibraryIngestionImporter(BaseImporter):
         
         # Use extension registry to detect file type
         if file_type_info := self.extension_registry.detect_file_type(file_path.name):
-            # File is recognized by registry
-            return True
+            # Only return True if it's a ROM or archive file (not save/patch files)
+            if file_type_info.get('is_rom') or (self.enable_archive_expansion and file_type_info.get('is_archive')):
+                return True
         
         # Check if extension is in our supported lists (fallback)
         # Check ROM extensions

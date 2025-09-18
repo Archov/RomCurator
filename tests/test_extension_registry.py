@@ -596,6 +596,78 @@ class TestImportExport(unittest.TestCase):
         extensions = self.manager.get_extensions()
         self.assertEqual(extensions[0]['description'], 'Updated Extension')
     
+    def test_import_partial_overwrite(self):
+        """Test import with partial overlap - only matching entities should be overwritten."""
+        # Create initial data
+        cat1_id = self.manager.create_category("Category 1", "Original 1", 1, True)
+        cat2_id = self.manager.create_category("Category 2", "Original 2", 2, True)
+        ext1_id = self.manager.create_extension(".ext1", cat1_id, "Extension 1", None, True, False, True, False, False)
+        ext2_id = self.manager.create_extension(".ext2", cat2_id, "Extension 2", None, True, False, True, False, False)
+        
+        # Create import data with partial overlap
+        self.export_file = "/tmp/test_partial_overwrite.json"
+        export_data = {
+            'metadata': {'export_date': '2025-01-01', 'version': '1.0', 'format': 'json'},
+            'categories': [
+                {'name': 'Category 1', 'description': 'Updated Category 1', 'sort_order': 10, 'is_active': True},  # Overwrite existing
+                {'name': 'Category 3', 'description': 'New Category 3', 'sort_order': 3, 'is_active': True}  # New category
+            ],
+            'extensions': [
+                {'extension': '.ext1', 'category_id': 1, 'description': 'Updated Extension 1', 'is_active': True, 'is_rom': True, 'is_archive': False, 'is_save': False, 'is_patch': False},  # Overwrite existing
+                {'extension': '.ext3', 'category_id': 1, 'description': 'New Extension 3', 'is_active': True, 'is_rom': True, 'is_archive': False, 'is_save': False, 'is_patch': False}  # New extension
+            ],
+            'mappings': [],
+            'unknown_extensions': []
+        }
+        
+        with open(self.export_file, 'w') as f:
+            json.dump(export_data, f)
+        
+        # Import with overwrite
+        results = self.manager.import_extensions(self.export_file, "json", overwrite=True)
+        self.assertTrue(results['success'])
+        self.assertEqual(results['categories_imported'], 2)  # 1 updated + 1 new
+        self.assertEqual(results['extensions_imported'], 2)  # 1 updated + 1 new
+        
+        # Verify partial overwrite results
+        categories = self.manager.get_categories()
+        self.assertEqual(len(categories), 3)  # Original 2 + 1 new
+        
+        # Find specific categories
+        cat1 = next(c for c in categories if c['name'] == 'Category 1')
+        cat2 = next(c for c in categories if c['name'] == 'Category 2')
+        cat3 = next(c for c in categories if c['name'] == 'Category 3')
+        
+        # Category 1 should be updated
+        self.assertEqual(cat1['description'], 'Updated Category 1')
+        self.assertEqual(cat1['sort_order'], 10)
+        
+        # Category 2 should remain unchanged
+        self.assertEqual(cat2['description'], 'Original 2')
+        self.assertEqual(cat2['sort_order'], 2)
+        
+        # Category 3 should be new
+        self.assertEqual(cat3['description'], 'New Category 3')
+        self.assertEqual(cat3['sort_order'], 3)
+        
+        # Verify extensions
+        extensions = self.manager.get_extensions()
+        self.assertEqual(len(extensions), 3)  # Original 2 + 1 new
+        
+        # Find specific extensions
+        ext1 = next(e for e in extensions if e['extension'] == '.ext1')
+        ext2 = next(e for e in extensions if e['extension'] == '.ext2')
+        ext3 = next(e for e in extensions if e['extension'] == '.ext3')
+        
+        # Extension 1 should be updated
+        self.assertEqual(ext1['description'], 'Updated Extension 1')
+        
+        # Extension 2 should remain unchanged
+        self.assertEqual(ext2['description'], 'Extension 2')
+        
+        # Extension 3 should be new
+        self.assertEqual(ext3['description'], 'New Extension 3')
+    
     def test_csv_import_not_implemented(self):
         """Test that importing a CSV file raises the correct error and does not import data."""
         csv_path = self._create_test_csv_file()
@@ -654,14 +726,45 @@ class TestImportExport(unittest.TestCase):
         finally:
             os.remove(tmp_path)
     
+    def test_import_json_extra_fields(self):
+        """Test import with extra/unknown fields in JSON."""
+        extra_fields_json = '''{
+            "metadata": {"export_date": "2025-01-01", "version": "1.0", "format": "json"},
+            "categories": [{"name": "Test Category", "description": "Test", "sort_order": 1, "is_active": true, "extra_field": "should_be_ignored"}],
+            "extensions": [{"extension": ".test", "category_id": 1, "description": "Test Extension", "is_active": true, "is_rom": true, "is_archive": false, "is_save": false, "is_patch": false, "unknown_field": "should_be_ignored"}],
+            "mappings": [],
+            "unknown_extensions": [],
+            "extra_section": "should_be_ignored"
+        }'''
+        
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False) as tmp:
+            tmp.write(extra_fields_json)
+            tmp_path = tmp.name
+
+        try:
+            results = self.manager.import_extensions(tmp_path, "json")
+            # Should succeed and ignore extra fields
+            self.assertTrue(results['success'])
+            self.assertEqual(results['categories_imported'], 1)
+            self.assertEqual(results['extensions_imported'], 1)
+            
+            # Verify data was imported correctly (extra fields ignored)
+            categories = self.manager.get_categories()
+            self.assertEqual(len(categories), 1)
+            self.assertEqual(categories[0]['name'], 'Test Category')
+            self.assertEqual(categories[0]['description'], 'Test')
+            
+            extensions = self.manager.get_extensions()
+            self.assertEqual(len(extensions), 1)
+            self.assertEqual(extensions[0]['extension'], '.test')
+            self.assertEqual(extensions[0]['description'], 'Test Extension')
+        finally:
+            os.remove(tmp_path)
+    
     def test_export_csv_functionality(self):
         """Test CSV export functionality and verify correct formatting and data completeness."""
         # Create test data
-        cat_id = self.manager.create_category("Test Category", "Test Description", 1, True)
-        ext_id = self.manager.create_extension(".test", cat_id, "Test Extension", "application/octet-stream", True, False, True, False, False)
-        platform_id = self._create_test_platform("Test Platform")
-        mapping_id = self.manager.create_platform_extension(platform_id, ext_id, True, 0.9)
-        unknown_id = self.manager.record_unknown_extension(".unknown", 3)
+        self._create_csv_test_data()
         
         # Export to CSV
         self.export_file = "/tmp/test_export.csv"
@@ -670,26 +773,53 @@ class TestImportExport(unittest.TestCase):
         self.assertTrue(os.path.exists(self.export_file))
         
         # Verify export content
-        with open(self.export_file, 'r', encoding='utf-8') as f:
-            content = f.read()
+        content = self._read_csv_export_content()
         
         # Check that all sections are present
+        self._verify_csv_sections_present(content)
+        
+        # Check specific data is present
+        self._verify_csv_data_present(content)
+        
+        # Verify CSV structure
+        self._verify_csv_structure(content)
+    
+    def _create_csv_test_data(self):
+        """Helper method to create test data for CSV export tests."""
+        cat_id = self.manager.create_category("Test Category", "Test Description", 1, True)
+        ext_id = self.manager.create_extension(".test", cat_id, "Test Extension", "application/octet-stream", True, False, True, False, False)
+        platform_id = self._create_test_platform("Test Platform")
+        mapping_id = self.manager.create_platform_extension(platform_id, ext_id, True, 0.9)
+        unknown_id = self.manager.record_unknown_extension(".unknown", 3)
+    
+    def _read_csv_export_content(self):
+        """Helper method to read CSV export content."""
+        with open(self.export_file, 'r', encoding='utf-8') as f:
+            return f.read()
+    
+    def _verify_csv_sections_present(self, content):
+        """Helper method to verify CSV sections are present."""
         self.assertIn('CATEGORIES', content)
         self.assertIn('EXTENSIONS', content)
         self.assertIn('PLATFORM MAPPINGS', content)
-        
-        # Check specific data is present
+        self.assertIn('UNKNOWN EXTENSIONS', content)
+    
+    def _verify_csv_data_present(self, content):
+        """Helper method to verify specific data is present in CSV."""
         self.assertIn('Test Category', content)
         self.assertIn('.test', content)
         self.assertIn('Test Platform', content)
-        
-        # Verify CSV structure by reading line by line
+        self.assertIn('.unknown', content)
+    
+    def _verify_csv_structure(self, content):
+        """Helper method to verify CSV structure and headers."""
         lines = content.strip().split('\n')
         
         # Find section boundaries
         categories_start = next(i for i, line in enumerate(lines) if line.strip() == 'CATEGORIES')
         extensions_start = next(i for i, line in enumerate(lines) if line.strip() == 'EXTENSIONS')
         mappings_start = next(i for i, line in enumerate(lines) if line.strip() == 'PLATFORM MAPPINGS')
+        unknown_start = next(i for i, line in enumerate(lines) if line.strip() == 'UNKNOWN EXTENSIONS')
         
         # Verify categories section
         cat_header_line = lines[categories_start + 1]
@@ -709,6 +839,13 @@ class TestImportExport(unittest.TestCase):
         self.assertIn('platform_name', map_header_line)
         self.assertIn('is_primary', map_header_line)
         self.assertIn('confidence', map_header_line)
+        
+        # Verify unknown extensions section
+        unknown_header_line = lines[unknown_start + 1]
+        self.assertIn('unknown_extension_id', unknown_header_line)
+        self.assertIn('extension', unknown_header_line)
+        self.assertIn('file_count', unknown_header_line)
+        self.assertIn('status', unknown_header_line)
 
 
 class TestUnknownExtensionHandling(unittest.TestCase):
@@ -1083,6 +1220,22 @@ class TestPlatformDetectionIntegration(unittest.TestCase):
         self.assertEqual(len(unknown_exts), 1)
         self.assertEqual(unknown_exts[0]['extension'], ".unknown")
     
+    def test_file_type_detection_case_insensitive(self):
+        """Test file type detection is case-insensitive for extensions."""
+        # Create test data
+        cat_id = self.manager.create_category("ROM Files", "Game ROM files", 1, True)
+        ext_id = self.manager.create_extension(".nes", cat_id, "NES ROM", None, True, False, True, False, False)
+        
+        # Test various case combinations
+        test_extensions = ['.NES', '.NeS', '.nes', '.Nes']
+        expected_type = 'NES ROM'
+        
+        for ext in test_extensions:
+            file_info = self.manager.detect_file_type(f"game{ext}")
+            self.assertIsNotNone(file_info, f"Failed for extension: {ext}")
+            self.assertEqual(file_info['extension'], '.nes')  # Should normalize to lowercase
+            self.assertEqual(file_info['description'], expected_type)
+    
     def test_platform_detection_from_extension_registry(self):
         """Test platform detection using extension registry data."""
         # Create test data
@@ -1189,6 +1342,62 @@ class TestPlatformDetectionIntegration(unittest.TestCase):
         best_mapping = max(platform_mappings, key=lambda m: m['confidence'])
         self.assertEqual(best_mapping['confidence'], 0.0)
         self.assertIn(best_mapping['platform_id'], [platform1_id, platform2_id, platform3_id])
+    
+    def test_platform_detection_multiple_primary(self):
+        """Test platform detection when multiple mappings are set as primary."""
+        # Create test data
+        cat_id = self.manager.create_category("ROM Files", "Game ROM files", 1, True)
+        ext_id = self.manager.create_extension(".multi", cat_id, "Multi Platform Extension", None, True, False, True, False, False)
+        
+        # Create platforms
+        platform1_id = self._create_test_platform("Primary Platform 1")
+        platform2_id = self._create_test_platform("Primary Platform 2")
+        platform3_id = self._create_test_platform("Non-Primary Platform")
+        
+        # Create multiple primary mappings
+        self.manager.create_platform_extension(platform1_id, ext_id, True, 0.9)
+        self.manager.create_platform_extension(platform2_id, ext_id, True, 0.8)
+        self.manager.create_platform_extension(platform3_id, ext_id, False, 0.7)
+        
+        # Test platform detection - should return the first primary mapping
+        platform_mappings = self.manager.get_platforms_for_extension(ext_id)
+        self.assertEqual(len(platform_mappings), 3)
+        
+        # Find primary mappings
+        primary_mappings = [m for m in platform_mappings if m['is_primary']]
+        self.assertEqual(len(primary_mappings), 2)
+        
+        # Should return one of the primary platforms (first one found)
+        primary_platform_ids = [m['platform_id'] for m in primary_mappings]
+        self.assertIn(platform1_id, primary_platform_ids)
+        self.assertIn(platform2_id, primary_platform_ids)
+        self.assertNotIn(platform3_id, primary_platform_ids)
+    
+    def test_platform_detection_missing_confidence(self):
+        """Test platform detection when confidence field is missing from mappings."""
+        # Create test data
+        cat_id = self.manager.create_category("ROM Files", "Game ROM files", 1, True)
+        ext_id = self.manager.create_extension(".missing", cat_id, "Missing Confidence ROM", None, True, False, True, False, False)
+        
+        # Create platform
+        platform_id = self._create_test_platform("Test Platform")
+        
+        # Create mapping without confidence field (should use default 1.0)
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO platform_extension (platform_id, extension_id, is_primary)
+            VALUES (?, ?, ?)
+        """, (platform_id, ext_id, False))
+        conn.commit()
+        conn.close()
+        
+        # Test platform detection
+        platform_mappings = self.manager.get_platforms_for_extension(ext_id)
+        self.assertEqual(len(platform_mappings), 1)
+        self.assertEqual(platform_mappings[0]['platform_id'], platform_id)
+        self.assertEqual(platform_mappings[0]['confidence'], 1.0)  # Should use default
+        self.assertFalse(platform_mappings[0]['is_primary'])
     
     def test_extension_registry_summary(self):
         """Test extension registry summary functionality."""
