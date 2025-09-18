@@ -1,13 +1,13 @@
 -- =============================================================================
--- ATOMIC GAME DATABASE SCHEMA v1.9 (Game File Ingestion Foundations)
+-- ATOMIC GAME DATABASE SCHEMA v1.10 (Extension Registry & Platform Extension UI)
 --
 -- Author:      Project Contributor
 -- Created:     2025-09-16
 -- Updated:     2025-09-18
--- Description: This version adds database foundations for game file ingestion:
---              file_discovery, archive_member, rom_file_metadata, file_operation_log,
---              and ingestion_queue tables. Also adds columns to existing tables for
---              enhanced file tracking and artifact sequencing.
+-- Description: This version adds extension registry system for file type management:
+--              file_type_category, file_extension, platform_extension, and unknown_extension
+--              tables with comprehensive views and CRUD operations for managing file
+--              extensions, platform mappings, and discovery suggestions.
 --              SQLite Compatible.
 -- =============================================================================
 
@@ -416,6 +416,16 @@ CREATE INDEX IF NOT EXISTS idx_file_instance_status ON file_instance(status);
 CREATE INDEX IF NOT EXISTS idx_release_artifact_sequence ON release_artifact(artifact_sequence);
 CREATE INDEX IF NOT EXISTS idx_rom_file_content_role ON rom_file(content_role);
 
+-- Indexes for extension registry tables (v1.10)
+CREATE INDEX IF NOT EXISTS idx_file_extension_category ON file_extension(category_id);
+CREATE INDEX IF NOT EXISTS idx_file_extension_active ON file_extension(is_active);
+CREATE INDEX IF NOT EXISTS idx_file_extension_type ON file_extension(is_rom, is_archive, is_save, is_patch);
+CREATE INDEX IF NOT EXISTS idx_platform_extension_platform ON platform_extension(platform_id);
+CREATE INDEX IF NOT EXISTS idx_platform_extension_extension ON platform_extension(extension_id);
+CREATE INDEX IF NOT EXISTS idx_platform_extension_primary ON platform_extension(is_primary);
+CREATE INDEX IF NOT EXISTS idx_unknown_extension_status ON unknown_extension(status);
+CREATE INDEX IF NOT EXISTS idx_unknown_extension_extension ON unknown_extension(extension);
+
 
 -- =============================================================================
 -- SECTION 6: Views
@@ -819,6 +829,60 @@ WHERE de.base_title IS NOT NULL
 ORDER BY match_status, de.base_title;
 
 -- =============================================================================
+-- EXTENSION REGISTRY TABLES (New in v1.10)
+-- =============================================================================
+
+-- File type categories for organizing extensions
+CREATE TABLE IF NOT EXISTS file_type_category (
+    category_id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    description TEXT,
+    sort_order INTEGER DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT 1
+);
+
+-- File extensions with their categories and metadata
+CREATE TABLE IF NOT EXISTS file_extension (
+    extension_id INTEGER PRIMARY KEY,
+    extension TEXT NOT NULL UNIQUE,
+    category_id INTEGER NOT NULL REFERENCES file_type_category(category_id),
+    description TEXT,
+    mime_type TEXT,
+    is_active BOOLEAN NOT NULL DEFAULT 1,
+    is_archive BOOLEAN NOT NULL DEFAULT 0,
+    is_rom BOOLEAN NOT NULL DEFAULT 0,
+    is_save BOOLEAN NOT NULL DEFAULT 0,
+    is_patch BOOLEAN NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Platform-specific extension mappings
+CREATE TABLE IF NOT EXISTS platform_extension (
+    platform_extension_id INTEGER PRIMARY KEY,
+    platform_id INTEGER NOT NULL REFERENCES platform(platform_id),
+    extension_id INTEGER NOT NULL REFERENCES file_extension(extension_id),
+    is_primary BOOLEAN NOT NULL DEFAULT 0,
+    confidence REAL DEFAULT 1.0 CHECK (confidence >= 0.0 AND confidence <= 1.0),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(platform_id, extension_id)
+);
+
+-- Unknown extensions discovered during file scanning
+CREATE TABLE IF NOT EXISTS unknown_extension (
+    unknown_extension_id INTEGER PRIMARY KEY,
+    extension TEXT NOT NULL,
+    first_seen TEXT NOT NULL DEFAULT (datetime('now')),
+    last_seen TEXT NOT NULL DEFAULT (datetime('now')),
+    file_count INTEGER DEFAULT 1,
+    suggested_category_id INTEGER REFERENCES file_type_category(category_id),
+    suggested_platform_id INTEGER REFERENCES platform(platform_id),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'ignored')),
+    notes TEXT,
+    UNIQUE(extension)
+);
+
+-- =============================================================================
 -- INGESTION FOUNDATION VIEWS (New in v1.9)
 -- =============================================================================
 
@@ -904,3 +968,100 @@ SELECT
 FROM rom_file rf
 LEFT JOIN rom_file_metadata rfm ON rf.rom_id = rfm.rom_id
 GROUP BY rf.rom_id, rf.filename, rf.sha1, rf.size_bytes, rf.content_role;
+
+-- =============================================================================
+-- EXTENSION REGISTRY VIEWS (New in v1.10)
+-- =============================================================================
+
+-- View to show extensions with their categories and platform mappings
+CREATE VIEW v_extension_registry AS
+SELECT
+    fe.extension_id,
+    fe.extension,
+    fe.description,
+    fe.mime_type,
+    fe.is_active,
+    fe.is_archive,
+    fe.is_rom,
+    fe.is_save,
+    fe.is_patch,
+    fe.created_at,
+    fe.updated_at,
+    ftc.category_id,
+    ftc.name as category_name,
+    ftc.description as category_description,
+    GROUP_CONCAT(DISTINCT p.name, '|') as platform_names,
+    GROUP_CONCAT(DISTINCT pe.is_primary, '|') as platform_primary_flags,
+    COUNT(DISTINCT pe.platform_id) as platform_count
+FROM file_extension fe
+JOIN file_type_category ftc ON fe.category_id = ftc.category_id
+LEFT JOIN platform_extension pe ON fe.extension_id = pe.extension_id
+LEFT JOIN platform p ON pe.platform_id = p.platform_id
+GROUP BY fe.extension_id, fe.extension, fe.description, fe.mime_type, 
+         fe.is_active, fe.is_archive, fe.is_rom, fe.is_save, fe.is_patch,
+         fe.created_at, fe.updated_at, ftc.category_id, ftc.name, ftc.description;
+
+-- View to show unknown extensions with suggestions
+CREATE VIEW v_unknown_extensions AS
+SELECT
+    ue.unknown_extension_id,
+    ue.extension,
+    ue.first_seen,
+    ue.last_seen,
+    ue.file_count,
+    ue.status,
+    ue.notes,
+    ftc.name as suggested_category,
+    p.name as suggested_platform,
+    CASE 
+        WHEN ue.status = 'pending' THEN '🟡'
+        WHEN ue.status = 'approved' THEN '✅'
+        WHEN ue.status = 'rejected' THEN '❌'
+        WHEN ue.status = 'ignored' THEN '⚪'
+        ELSE '❓'
+    END as status_icon
+FROM unknown_extension ue
+LEFT JOIN file_type_category ftc ON ue.suggested_category_id = ftc.category_id
+LEFT JOIN platform p ON ue.suggested_platform_id = p.platform_id
+ORDER BY ue.file_count DESC, ue.first_seen DESC;
+
+-- View to show platform extension mappings
+CREATE VIEW v_platform_extensions AS
+SELECT
+    pe.platform_extension_id,
+    p.name as platform_name,
+    fe.extension,
+    fe.description as extension_description,
+    ftc.name as category_name,
+    pe.is_primary,
+    pe.confidence,
+    pe.created_at,
+    CASE 
+        WHEN pe.is_primary = 1 THEN '⭐'
+        ELSE '📄'
+    END as primary_icon
+FROM platform_extension pe
+JOIN platform p ON pe.platform_id = p.platform_id
+JOIN file_extension fe ON pe.extension_id = fe.extension_id
+JOIN file_type_category ftc ON fe.category_id = ftc.category_id
+WHERE fe.is_active = 1
+ORDER BY p.name, pe.is_primary DESC, fe.extension;
+
+-- View to show extension statistics by category
+CREATE VIEW v_extension_category_stats AS
+SELECT
+    ftc.category_id,
+    ftc.name as category_name,
+    ftc.description,
+    COUNT(fe.extension_id) as total_extensions,
+    COUNT(CASE WHEN fe.is_active = 1 THEN 1 END) as active_extensions,
+    COUNT(CASE WHEN fe.is_rom = 1 THEN 1 END) as rom_extensions,
+    COUNT(CASE WHEN fe.is_archive = 1 THEN 1 END) as archive_extensions,
+    COUNT(CASE WHEN fe.is_save = 1 THEN 1 END) as save_extensions,
+    COUNT(CASE WHEN fe.is_patch = 1 THEN 1 END) as patch_extensions,
+    COUNT(DISTINCT pe.platform_id) as platforms_using
+FROM file_type_category ftc
+LEFT JOIN file_extension fe ON ftc.category_id = fe.category_id
+LEFT JOIN platform_extension pe ON fe.extension_id = pe.extension_id
+GROUP BY ftc.category_id, ftc.name, ftc.description
+ORDER BY ftc.sort_order, ftc.name;
