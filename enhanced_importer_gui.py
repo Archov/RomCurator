@@ -8,6 +8,7 @@ This provides a comprehensive interface for importing data with:
 - Error reporting and recovery
 """
 
+import os
 import sys
 import json
 import sqlite3
@@ -129,10 +130,23 @@ class ImportWorkerThread(QThread):
         self.files = files
         self.logger = logger
         self.should_stop = False
+        self.current_process = None
     
     def stop(self):
         """Request the import to stop."""
         self.should_stop = True
+        if self.current_process:
+            try:
+                self.logger.log_message("info", "Terminating running import process")
+                self.current_process.terminate()
+                # Give it a moment to terminate gracefully
+                try:
+                    self.current_process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    self.logger.log_message("warning", "Process did not terminate gracefully, forcing kill")
+                    self.current_process.kill()
+            except Exception as e:
+                self.logger.log_message("error", f"Error terminating process: {e}")
     
     def run(self):
         """Run the import process."""
@@ -240,17 +254,30 @@ class ImportWorkerThread(QThread):
             self.error_occurred.emit(error_msg)
     
     def _run_single_import(self, file_path):
-        """Run the importer for a single file."""
+        """Run the importer for a single file with real-time streaming and cancellation."""
         try:
             # Get database path and resolve it exactly like the original does
             db_path = Path(self.config.get('database_path')).resolve()
-            args = [
-                sys.executable,
-                str(self.script_path),
-                '--source_id', str(self.source_id),
-                '--db_path', str(db_path),
-                '--files', file_path
-            ]
+            
+            # Check if this is the library ingestion importer
+            if 'library_ingestion' in str(self.script_path):
+                # For library ingestion, pass the file_path as a library root directory
+                args = [
+                    sys.executable,
+                    str(self.script_path),
+                    '--source_id', str(self.source_id),
+                    '--db_path', str(db_path),
+                    '--files', file_path
+                ]
+            else:
+                # Standard importer behavior
+                args = [
+                    sys.executable,
+                    str(self.script_path),
+                    '--source_id', str(self.source_id),
+                    '--db_path', str(db_path),
+                    '--files', file_path
+                ]
             
             # Log the exact command being executed
             command_str = ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in args)
@@ -259,22 +286,167 @@ class ImportWorkerThread(QThread):
             # Emit command to console output using the worker's signal
             self.output_received.emit(f"Executing: {command_str}")
             
-            # Run the import process
-            result = subprocess.run(
-                args, 
-                capture_output=True, 
-                text=True, 
-                timeout=300,  # 5 minute timeout per file
+            # Use Popen for real-time streaming and cancellation support
+            process = subprocess.Popen(
+                args,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
                 encoding='utf-8',
-                errors='replace'
+                errors='replace',
+                bufsize=1,  # Line buffered
+                universal_newlines=True
             )
             
-            if result.returncode == 0:
-                # Check the output for actual success indicators
-                output = result.stdout
+            # Store process reference for cancellation
+            self.current_process = process
+            
+            # Stream output in real-time
+            stdout_lines = []
+            stderr_lines = []
+            
+            # Read output line by line with timeout
+            import select
+            import time
+            
+            timeout_seconds = 300  # 5 minute timeout per file
+            start_time = time.time()
+            
+            # Set up Windows threading infrastructure once, outside the loop
+            stdout_queue = None
+            stderr_queue = None
+            stdout_thread = None
+            stderr_thread = None
+            
+            if os.name == 'nt' or not hasattr(select, 'select'):
+                # Use threading for Windows and fallback
+                import threading
+                import queue
                 
-                # Look for signs of database failures even with exit code 0
-                if any(phrase in output for phrase in [
+                def read_output(pipe, output_queue):
+                    for line in iter(pipe.readline, ''):
+                        output_queue.put(line.rstrip())
+                    # Don't close the pipe here - let communicate() handle it
+                
+                stdout_queue = queue.Queue()
+                stderr_queue = queue.Queue()
+                
+                stdout_thread = threading.Thread(target=read_output, args=(process.stdout, stdout_queue))
+                stderr_thread = threading.Thread(target=read_output, args=(process.stderr, stderr_queue))
+                
+                stdout_thread.daemon = True
+                stderr_thread.daemon = True
+                stdout_thread.start()
+                stderr_thread.start()
+            
+            while process.poll() is None:
+                # Check for cancellation
+                if self.should_stop:
+                    self.logger.log_message("warning", "Import cancelled by user")
+                    process.terminate()
+                    try:
+                        process.wait(timeout=5)  # Give it 5 seconds to terminate gracefully
+                    except subprocess.TimeoutExpired:
+                        process.kill()  # Force kill if it doesn't terminate
+                    return False, '\n'.join(stdout_lines), "Import cancelled by user"
+                
+                # Check for timeout
+                if time.time() - start_time > timeout_seconds:
+                    self.logger.log_message("error", "Import timed out")
+                    process.terminate()
+                    try:
+                        process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                    return False, '\n'.join(stdout_lines), "Import timed out (>5 minutes)"
+                
+                # Read available output
+                try:
+                    # Use select for non-blocking read (Unix/Linux only)
+                    if os.name != 'nt' and hasattr(select, 'select'):
+                        ready, _, _ = select.select([process.stdout, process.stderr], [], [], 0.1)
+                        
+                        if process.stdout in ready:
+                            line = process.stdout.readline()
+                            if line:
+                                stdout_lines.append(line.rstrip())
+                                self.output_received.emit(line.rstrip())
+                                self.logger.log_message("debug", f"STDOUT: {line.rstrip()}")
+                        
+                        if process.stderr in ready:
+                            line = process.stderr.readline()
+                            if line:
+                                stderr_lines.append(line.rstrip())
+                                self.output_received.emit(f"STDERR: {line.rstrip()}")
+                                self.logger.log_message("debug", f"STDERR: {line.rstrip()}")
+                    else:
+                        # Use the pre-created threads and queues for Windows
+                        # Process available output from the queues
+                        while not stdout_queue.empty():
+                            line = stdout_queue.get_nowait()
+                            stdout_lines.append(line)
+                            self.output_received.emit(line)
+                            self.logger.log_message("debug", f"STDOUT: {line}")
+                        
+                        while not stderr_queue.empty():
+                            line = stderr_queue.get_nowait()
+                            stderr_lines.append(line)
+                            self.output_received.emit(f"STDERR: {line}")
+                            self.logger.log_message("debug", f"STDERR: {line}")
+                        
+                        time.sleep(0.1)  # Small delay to prevent busy waiting
+                        
+                except Exception as e:
+                    self.logger.log_message("error", f"Error reading process output: {e}")
+                    break
+            
+            # Wait for process to complete
+            return_code = process.wait()
+            
+            # Clear process reference
+            self.current_process = None
+            
+            # Get any remaining output
+            if os.name != 'nt' and hasattr(select, 'select'):
+                # For Unix/Linux, use communicate() to get remaining output
+                remaining_stdout, remaining_stderr = process.communicate()
+                if remaining_stdout:
+                    stdout_lines.extend(remaining_stdout.splitlines())
+                    for line in remaining_stdout.splitlines():
+                        self.output_received.emit(line)
+                if remaining_stderr:
+                    stderr_lines.extend(remaining_stderr.splitlines())
+                    for line in remaining_stderr.splitlines():
+                        self.output_received.emit(f"STDERR: {line}")
+            else:
+                # For Windows, drain any remaining output from the queues
+                # Wait a moment for threads to finish reading
+                if stdout_thread and stdout_thread.is_alive():
+                    stdout_thread.join(timeout=1)
+                if stderr_thread and stderr_thread.is_alive():
+                    stderr_thread.join(timeout=1)
+                
+                # Drain any remaining output from queues
+                while not stdout_queue.empty():
+                    line = stdout_queue.get_nowait()
+                    stdout_lines.append(line)
+                    self.output_received.emit(line)
+                
+                while not stderr_queue.empty():
+                    line = stderr_queue.get_nowait()
+                    stderr_lines.append(line)
+                    self.output_received.emit(f"STDERR: {line}")
+                
+                # Now it's safe to call communicate() to close pipes
+                process.communicate()
+            
+            # Combine all output
+            stdout_output = '\n'.join(stdout_lines)
+            stderr_output = '\n'.join(stderr_lines)
+            
+            if return_code == 0:
+                # Check the output for actual success indicators
+                if any(phrase in stdout_output for phrase in [
                     "Critical error:",
                     "records failed",
                     "All changes for this file have been rolled back",
@@ -282,23 +454,21 @@ class ImportWorkerThread(QThread):
                     "ERROR processing game"
                 ]):
                     # Extract the actual error information
-                    lines = output.split('\n')
+                    lines = stdout_output.split('\n')
                     error_lines = [line for line in lines if any(err in line for err in [
                         "Critical error:", "ERROR processing", "records failed"
                     ])]
                     
                     if error_lines:
                         error_summary = '\n'.join(error_lines[:5])  # Show first 5 errors
-                        return False, output, f"Database operations failed:\n{error_summary}"
+                        return False, stdout_output, f"Database operations failed:\n{error_summary}"
                     else:
-                        return False, output, "Database operations failed (see output for details)"
+                        return False, stdout_output, "Database operations failed (see output for details)"
                 
-                return True, result.stdout, None
+                return True, stdout_output, None
             else:
-                return False, result.stdout, result.stderr
+                return False, stdout_output, stderr_output
                 
-        except subprocess.TimeoutExpired:
-            return False, "", "Import timed out (>5 minutes)"
         except Exception as e:
             return False, "", str(e)
 
@@ -364,9 +534,9 @@ class EnhancedImporterWidget(QWidget):
         file_layout = QHBoxLayout()
         file_layout.addWidget(QLabel("Files to Import:"))
         
-        select_btn = QPushButton("Select Files...")
-        select_btn.clicked.connect(self.select_files)
-        file_layout.addWidget(select_btn)
+        self.select_btn = QPushButton("Select Files...")
+        self.select_btn.clicked.connect(self.select_files)
+        file_layout.addWidget(self.select_btn)
         
         layout.addLayout(file_layout)
         
@@ -481,10 +651,17 @@ class EnhancedImporterWidget(QWidget):
         if data:
             self.current_source_id, self.current_importer_script = data
             self.update_imported_files_list()
+            
+            # Update button text based on importer type
+            if 'library_ingestion' in str(self.current_importer_script):
+                self.select_btn.setText("Select Library Directory...")
+            else:
+                self.select_btn.setText("Select Files...")
         else:
             self.current_source_id = None
             self.current_importer_script = None
             self.imported_list.clear()
+            self.select_btn.setText("Select Files...")
     
     def update_imported_files_list(self):
         """Update the list of already imported files for the current source."""
@@ -495,28 +672,41 @@ class EnhancedImporterWidget(QWidget):
     
     def select_files(self):
         """Open file selection dialog."""
-        file_filter = "All Files (*)"
-        
-        # Determine file filter based on source schema
-        if self.current_source_id:
-            sources = self.db.get_metadata_sources()
-            for source_row in sources:
-                if source_row[0] == self.current_source_id and len(source_row) > 3 and source_row[3]:
-                    schema_path = source_row[3].lower()
-                    if schema_path.endswith('.json'):
-                        file_filter = "JSON Files (*.json);;All Files (*)"
-                    elif schema_path.endswith('.xsd'):
-                        file_filter = "DAT Files (*.dat);;XML Files (*.xml);;All Files (*)"
-                    break
-        
-        files, _ = QFileDialog.getOpenFileNames(
-            self, "Select Source Data Files", "", file_filter
-        )
-        
-        if files:
-            self.selected_files = files
-            self.files_list.clear()
-            self.files_list.addItems([Path(f).name for f in files])
+        # Check if this is the library ingestion importer
+        if self.current_importer_script and 'library_ingestion' in str(self.current_importer_script):
+            # For library ingestion, select directories
+            directory = QFileDialog.getExistingDirectory(
+                self, "Select Library Root Directory", ""
+            )
+            
+            if directory:
+                self.selected_files = [directory]
+                self.files_list.clear()
+                self.files_list.addItems([Path(directory).name])
+        else:
+            # Standard file selection for other importers
+            file_filter = "All Files (*)"
+            
+            # Determine file filter based on source schema
+            if self.current_source_id:
+                sources = self.db.get_metadata_sources()
+                for source_row in sources:
+                    if source_row[0] == self.current_source_id and len(source_row) > 3 and source_row[3]:
+                        schema_path = source_row[3].lower()
+                        if schema_path.endswith('.json'):
+                            file_filter = "JSON Files (*.json);;All Files (*)"
+                        elif schema_path.endswith('.xsd'):
+                            file_filter = "DAT Files (*.dat);;XML Files (*.xml);;All Files (*)"
+                        break
+            
+            files, _ = QFileDialog.getOpenFileNames(
+                self, "Select Source Data Files", "", file_filter
+            )
+            
+            if files:
+                self.selected_files = files
+                self.files_list.clear()
+                self.files_list.addItems([Path(f).name for f in files])
     
     def start_import(self):
         """Start the import process."""

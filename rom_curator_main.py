@@ -52,6 +52,21 @@ class ConfigManager:
                     "window_width": 1200,
                     "window_height": 800,
                     "theme": "dark"
+                },
+                "ingestion_settings": {
+                    "library_roots": [],
+                    "batch_size": 100,
+                    "enable_validation": True,
+                    "enable_archive_expansion": True,
+                    "hash_algorithms": ["sha1", "crc32", "md5", "sha256"],
+                    "file_extensions": {
+                        "rom": [".rom", ".bin", ".smd", ".sfc", ".nes", ".gb", ".gba", ".nds", ".iso", ".img"],
+                        "archive": [".zip", ".7z", ".rar", ".tar", ".gz"]
+                    },
+                    "max_file_size_mb": 1024,
+                    "exclude_patterns": ["*.tmp", "*.temp", "*.bak", "*.backup"],
+                    "enable_platform_detection": True,
+                    "enable_metadata_extraction": True
                 }
             }
             
@@ -788,23 +803,26 @@ class RomCuratorMainWindow(QMainWindow):
                                       f"All {deleted} checkpoints deleted successfully.")
 
     def open_resilient_ingestion(self):
-        """Open the resilient ingestion interface."""
+        """Open the library file ingestion interface."""
         try:
-            # Import the resilient ingestion dialog
-            from resilient_ingestion_dialog import ResilientIngestionDialog
-
-            # Create the dialog
-            self.ingestion_dialog = ResilientIngestionDialog(self.config, self)
+            # Use the enhanced importer with library ingestion support
+            from enhanced_importer_gui import ImporterApp
+            
+            # Create the enhanced importer window
+            self.ingestion_dialog = ImporterApp(self.config)
             self.ingestion_dialog.show()
+            
+            # Set the window title to indicate this is for library ingestion
+            self.ingestion_dialog.setWindowTitle('ROM Curator - Library File Ingestion')
+            
+            # Connect progress signals if available
+            if hasattr(self.ingestion_dialog, 'progress_signal'):
+                self.ingestion_dialog.progress_signal.connect(self.update_progress)
+            
+            self.logging_manager.root_logger.info("Library file ingestion dialog opened")
 
-            self.logging_manager.root_logger.info("Resilient ingestion dialog opened")
-
-        except ImportError:
-            QMessageBox.warning(self, "Feature Not Available",
-                              "Resilient ingestion dialog not yet implemented.\n\n"
-                              "This feature is part of Work Item 2 development.")
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to open resilient ingestion:\n{e}")
+            QMessageBox.critical(self, "Error", f"Failed to open library ingestion:\n{e}")
     
     def show_matching_guide(self):
         """Show the matching guide."""
