@@ -684,10 +684,51 @@ class ExtensionRegistryManager:
         """Load import data from file."""
         if format.lower() != 'json':
             raise ValueError(f"Unsupported import format: {format}. Only 'json' is currently supported.")
-        
+
         import json
         with open(file_path, 'r', encoding='utf-8') as f:
             return json.load(f)
+
+    def _get_category_id_by_name(self, cursor, category_name: Optional[str]) -> Optional[int]:
+        """Resolve a category ID from its name."""
+        if not category_name:
+            return None
+
+        cursor.execute("SELECT category_id FROM file_type_category WHERE name = ?", (category_name,))
+        row = cursor.fetchone()
+        return row['category_id'] if row else None
+
+    def _get_extension_id_by_name(self, cursor, extension_name: Optional[str]) -> Optional[int]:
+        """Resolve an extension ID from its extension string."""
+        if not extension_name:
+            return None
+
+        cursor.execute("SELECT extension_id FROM file_extension WHERE extension = ?", (extension_name,))
+        row = cursor.fetchone()
+        return row['extension_id'] if row else None
+
+    def _get_platform_id_by_name(self, cursor, platform_name: Optional[str], create_if_missing: bool = False) -> Optional[int]:
+        """Resolve a platform ID from its name, optionally creating it."""
+        if not platform_name:
+            return None
+
+        cursor.execute("SELECT platform_id FROM platform WHERE name = ?", (platform_name,))
+        row = cursor.fetchone()
+        if row:
+            return row['platform_id']
+
+        if create_if_missing:
+            cursor.execute("INSERT INTO platform (name) VALUES (?)", (platform_name,))
+            return cursor.lastrowid
+
+        return None
+
+    @staticmethod
+    def _normalize_optional_id(value: Any) -> Optional[int]:
+        """Normalize optional identifier values from import data."""
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
     
     def _import_categories(self, cursor, import_data: Dict[str, Any], overwrite: bool, import_results: Dict[str, Any]):
         """Import categories from import data."""
@@ -740,27 +781,38 @@ class ExtensionRegistryManager:
         cursor.execute("SELECT extension_id FROM file_extension WHERE extension = ?", (ext_data['extension'],))
         existing = cursor.fetchone()
 
+        category_id = self._normalize_optional_id(ext_data.get('category_id'))
+        category_name = (ext_data.get('category_name') or ext_data.get('category') or '').strip()
+        if category_name:
+            resolved_category_id = self._get_category_id_by_name(cursor, category_name)
+            if resolved_category_id is None:
+                raise ValueError(f"Category '{category_name}' not found for extension {ext_data['extension']}")
+            category_id = resolved_category_id
+
+        if not category_id:
+            raise ValueError(f"No category reference provided for extension {ext_data['extension']}")
+
         if existing and not overwrite:
             return  # Skip existing
 
         if existing:
             cursor.execute("""
-                UPDATE file_extension 
-                SET category_id = ?, description = ?, mime_type = ?, 
+                UPDATE file_extension
+                SET category_id = ?, description = ?, mime_type = ?,
                     is_active = ?, is_rom = ?, is_archive = ?, is_save = ?, is_patch = ?
                 WHERE extension_id = ?
-            """, (ext_data.get('category_id'), ext_data.get('description'),
+            """, (category_id, ext_data.get('description'),
                  ext_data.get('mime_type'), ext_data.get('is_active', True),
                  ext_data.get('is_rom', False), ext_data.get('is_archive', False),
                  ext_data.get('is_save', False), ext_data.get('is_patch', False),
                  existing['extension_id']))
         else:
             cursor.execute("""
-                INSERT INTO file_extension 
-                (extension, category_id, description, mime_type, is_active, 
+                INSERT INTO file_extension
+                (extension, category_id, description, mime_type, is_active,
                  is_rom, is_archive, is_save, is_patch)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (ext_data['extension'], ext_data.get('category_id'),
+            """, (ext_data['extension'], category_id,
                  ext_data.get('description'), ext_data.get('mime_type'),
                  ext_data.get('is_active', True), ext_data.get('is_rom', False),
                  ext_data.get('is_archive', False), ext_data.get('is_save', False),
@@ -781,10 +833,25 @@ class ExtensionRegistryManager:
     
     def _import_single_mapping(self, cursor, mapping_data: Dict[str, Any], overwrite: bool, import_results: Dict[str, Any]):
         """Import a single platform mapping."""
+        platform_id = self._normalize_optional_id(mapping_data.get('platform_id'))
+        platform_name = (mapping_data.get('platform_name') or '').strip()
+        if platform_name:
+            platform_id = self._get_platform_id_by_name(cursor, platform_name, create_if_missing=True)
+
+        extension_id = self._normalize_optional_id(mapping_data.get('extension_id'))
+        extension_name = (mapping_data.get('extension') or '').strip()
+        if extension_name:
+            extension_id = self._get_extension_id_by_name(cursor, extension_name)
+
+        if not extension_id:
+            raise ValueError(f"Extension reference missing for mapping: {mapping_data}")
+        if not platform_id:
+            raise ValueError(f"Platform reference missing for mapping: {mapping_data}")
+
         cursor.execute("""
-            SELECT platform_extension_id FROM platform_extension 
+            SELECT platform_extension_id FROM platform_extension
             WHERE platform_id = ? AND extension_id = ?
-        """, (mapping_data.get('platform_id'), mapping_data.get('extension_id')))
+        """, (platform_id, extension_id))
         existing = cursor.fetchone()
 
         if existing and not overwrite:
@@ -792,7 +859,7 @@ class ExtensionRegistryManager:
 
         if existing:
             cursor.execute("""
-                UPDATE platform_extension 
+                UPDATE platform_extension
                 SET is_primary = ?, confidence = ?
                 WHERE platform_extension_id = ?
             """, (mapping_data.get('is_primary', False),
@@ -801,7 +868,7 @@ class ExtensionRegistryManager:
             cursor.execute("""
                 INSERT INTO platform_extension (platform_id, extension_id, is_primary, confidence)
                 VALUES (?, ?, ?, ?)
-            """, (mapping_data.get('platform_id'), mapping_data.get('extension_id'),
+            """, (platform_id, extension_id,
                  mapping_data.get('is_primary', False), mapping_data.get('confidence', 1.0)))
 
         import_results['mappings_imported'] += 1
@@ -822,25 +889,37 @@ class ExtensionRegistryManager:
         cursor.execute("SELECT unknown_extension_id FROM unknown_extension WHERE extension = ?", (unknown_data['extension'],))
         existing = cursor.fetchone()
 
+        suggested_category_id = self._normalize_optional_id(unknown_data.get('suggested_category_id'))
+        suggested_platform_id = self._normalize_optional_id(unknown_data.get('suggested_platform_id'))
+
+        if category_name := (unknown_data.get('suggested_category') or '').strip():
+            resolved_category_id = self._get_category_id_by_name(cursor, category_name)
+            if resolved_category_id is None and category_name:
+                raise ValueError(f"Suggested category '{category_name}' not found for unknown extension {unknown_data['extension']}")
+            suggested_category_id = resolved_category_id
+
+        if platform_name := (unknown_data.get('suggested_platform') or '').strip():
+            suggested_platform_id = self._get_platform_id_by_name(cursor, platform_name, create_if_missing=True)
+
         if existing and not overwrite:
             return  # Skip existing
 
         if existing:
             cursor.execute("""
-                UPDATE unknown_extension 
-                SET file_count = ?, status = ?, suggested_category_id = ?, 
+                UPDATE unknown_extension
+                SET file_count = ?, status = ?, suggested_category_id = ?,
                     suggested_platform_id = ?, notes = ?
                 WHERE unknown_extension_id = ?
             """, (unknown_data.get('file_count', 1), unknown_data.get('status', 'pending'),
-                 unknown_data.get('suggested_category_id'), unknown_data.get('suggested_platform_id'),
+                 suggested_category_id, suggested_platform_id,
                  unknown_data.get('notes'), existing['unknown_extension_id']))
         else:
             cursor.execute("""
-                INSERT INTO unknown_extension 
+                INSERT INTO unknown_extension
                 (extension, file_count, status, suggested_category_id, suggested_platform_id, notes)
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (unknown_data['extension'], unknown_data.get('file_count', 1),
-                 unknown_data.get('status', 'pending'), unknown_data.get('suggested_category_id'),
-                 unknown_data.get('suggested_platform_id'), unknown_data.get('notes')))
+                 unknown_data.get('status', 'pending'), suggested_category_id,
+                 suggested_platform_id, unknown_data.get('notes')))
 
         import_results['unknown_imported'] += 1

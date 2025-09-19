@@ -667,7 +667,90 @@ class TestImportExport(unittest.TestCase):
         
         # Extension 3 should be new
         self.assertEqual(ext3['description'], 'New Extension 3')
-    
+
+    def test_import_resolves_foreign_keys_by_name(self):
+        """Test that import resolves foreign keys using natural keys when IDs differ."""
+        existing_category_id = self.manager.create_category("Existing Category", "Original", 1, True)
+        self.manager.create_category("Secondary Category", "Secondary", 2, True)
+        existing_platform_id = self._create_test_platform("Existing Platform")
+
+        self.export_file = "/tmp/test_foreign_key_import.json"
+        export_data = {
+            'metadata': {'export_date': '2025-01-01', 'version': '1.0', 'format': 'json'},
+            'categories': [
+                {'name': 'Existing Category', 'description': 'Updated Description', 'sort_order': 10, 'is_active': True}
+            ],
+            'extensions': [
+                {
+                    'extension': '.fx',
+                    'category_id': 999,
+                    'category_name': 'Existing Category',
+                    'description': 'FX Extension',
+                    'is_active': True,
+                    'is_rom': True,
+                    'is_archive': False,
+                    'is_save': False,
+                    'is_patch': False
+                }
+            ],
+            'mappings': [
+                {
+                    'platform_id': 555,
+                    'platform_name': 'Existing Platform',
+                    'extension_id': 777,
+                    'extension': '.fx',
+                    'is_primary': True,
+                    'confidence': 0.95
+                },
+                {
+                    'platform_name': 'Created Platform',
+                    'extension': '.fx',
+                    'is_primary': False,
+                    'confidence': 0.5
+                }
+            ],
+            'unknown_extensions': [
+                {
+                    'extension': '.mystery',
+                    'file_count': 2,
+                    'status': 'pending',
+                    'suggested_category_id': 123,
+                    'suggested_category': 'Existing Category',
+                    'suggested_platform_id': 456,
+                    'suggested_platform': 'Existing Platform',
+                    'notes': 'Needs review'
+                }
+            ]
+        }
+
+        with open(self.export_file, 'w') as f:
+            json.dump(export_data, f)
+
+        results = self.manager.import_extensions(self.export_file, "json", overwrite=True)
+        self.assertTrue(results['success'])
+
+        extension = self.manager.get_extension_by_name('.fx')
+        self.assertIsNotNone(extension)
+        self.assertEqual(extension['category_id'], existing_category_id)
+
+        mappings = self.manager.get_platform_extensions(extension_id=extension['extension_id'])
+        self.assertEqual(len(mappings), 2)
+        self.assertTrue(any(m['platform_id'] == existing_platform_id for m in mappings))
+        self.assertTrue(any(m['platform_name'] == 'Created Platform' for m in mappings))
+
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT platform_id FROM platform WHERE name = ?", ("Created Platform",))
+        created_platform_row = cursor.fetchone()
+        conn.close()
+        self.assertIsNotNone(created_platform_row)
+
+        unknown_entries = self.manager.get_unknown_extensions()
+        self.assertTrue(any(ue['extension'] == '.mystery' for ue in unknown_entries))
+        mystery_entry = next(ue for ue in unknown_entries if ue['extension'] == '.mystery')
+        self.assertEqual(mystery_entry['suggested_category_id'], existing_category_id)
+        self.assertEqual(mystery_entry['suggested_platform_id'], existing_platform_id)
+
     def test_csv_import_not_implemented(self):
         """Test that importing a CSV file raises the correct error and does not import data."""
         csv_path = self._create_test_csv_file()

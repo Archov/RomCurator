@@ -379,8 +379,7 @@ class ExtensionRegistryDialog(QDialog):
         import_layout = QVBoxLayout(import_group)
         
         import_buttons_layout = self._create_button_layout([
-            ("📄 Import JSON", lambda: self.import_data('json')),
-            ("📊 Import CSV", lambda: self.import_data('csv'))
+            ("📄 Import JSON", lambda: self.import_data('json'))
         ])
         import_layout.addLayout(import_buttons_layout)
         
@@ -1245,11 +1244,19 @@ class ExtensionRegistryDialog(QDialog):
         """Import extension registry data."""
         from PyQt5.QtWidgets import QFileDialog
         
+        if format != 'json':
+            self.status_text.append("⚠️ Import cancelled: Only JSON imports are supported.")
+            QMessageBox.warning(
+                self,
+                "Unsupported Import Format",
+                "Only JSON import is currently supported."
+            )
+            return
+
         # Get file path
-        file_filter = "JSON files (*.json)" if format == 'json' else "CSV files (*.csv)"
         file_path, _ = QFileDialog.getOpenFileName(
-            self, f"Import Extension Registry ({format.upper()})", 
-            "", file_filter
+            self, "Import Extension Registry (JSON)",
+            "", "JSON files (*.json)"
         )
         
         if not file_path:
@@ -1279,14 +1286,14 @@ class ExtensionRegistryDialog(QDialog):
         # Refresh all data
         self.load_data()
 
-        QMessageBox.information(
-            self, "Import Successful", 
-            f"Import completed successfully!\n\n"
+        success_message = (
+            "Import completed successfully!\n\n"
             f"Categories: {results['categories_imported']}\n"
             f"Extensions: {results['extensions_imported']}\n"
             f"Mappings: {results['mappings_imported']}\n"
             f"Unknown: {results['unknown_imported']}"
         )
+        QMessageBox.information(self, "Import Successful", success_message)
     
     def _handle_import_failure(self, file_path: str, results: Dict[str, Any]):
         """Handle failed import."""
