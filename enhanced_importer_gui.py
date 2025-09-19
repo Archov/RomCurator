@@ -966,10 +966,12 @@ class ImporterApp(EnhancedImporterWidget):
     """Compatibility wrapper for the main application."""
     
     def __init__(self, config_manager=None):
-        """
-        Initialize the ImporterApp window.
+        """Initialize the ImporterApp window.
         
         If no ConfigManager is provided, lazily imports and instantiates the default ConfigManager, then delegates initialization to EnhancedImporterWidget. Sets the window title to "ROM Curator - Enhanced Data Importer".
+
+        Parameters:
+            config_manager (ConfigManager, optional): An existing ConfigManager instance. If None, a new one is created. Defaults to None.
         """
         if not config_manager:
             from config_manager import ConfigManager
