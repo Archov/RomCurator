@@ -22,8 +22,10 @@ import sqlite3
 from pathlib import Path
 import sys
 
-# Add the workspace to Python path
-sys.path.append('/workspace')
+# Ensure project root is on the Python path
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from extension_registry_manager import ExtensionRegistryManager
 
@@ -129,6 +131,13 @@ class TestExtensionRegistryCRUD(unittest.TestCase):
         conn.commit()
         conn.close()
         return platform_id
+
+    def _assert_detects_case_insensitive(self, extension: str, expected_description: str):
+        """Assert that detection handles case-insensitive extensions."""
+        file_info = self.manager.detect_file_type(f"game{extension}")
+        self.assertIsNotNone(file_info, f"Failed for extension: {extension}")
+        self.assertEqual(file_info['extension'], '.nes')
+        self.assertEqual(file_info['description'], expected_description)
     
     def test_category_crud_operations(self):
         """Test complete category CRUD operations."""
@@ -667,6 +676,93 @@ class TestImportExport(unittest.TestCase):
         
         # Extension 3 should be new
         self.assertEqual(ext3['description'], 'New Extension 3')
+
+    def test_import_extension_missing_category_skips(self):
+        """Extensions referencing unknown categories should be skipped with errors."""
+        self.export_file = "/tmp/test_missing_category.json"
+        export_data = {
+            'metadata': {'export_date': '2025-01-01', 'version': '1.0', 'format': 'json'},
+            'categories': [],
+            'extensions': [
+                {
+                    'extension': '.skip',
+                    'category_name': 'Missing Category',
+                    'description': 'Should not import',
+                    'is_active': True,
+                    'is_rom': True,
+                    'is_archive': False,
+                    'is_save': False,
+                    'is_patch': False,
+                }
+            ],
+            'mappings': [],
+            'unknown_extensions': [],
+        }
+
+        with open(self.export_file, 'w') as f:
+            json.dump(export_data, f)
+
+        results = self.manager.import_extensions(self.export_file, "json", overwrite=True)
+        self.assertFalse(results['success'])
+        self.assertEqual(results['extensions_imported'], 0)
+        self.assertTrue(any('Missing Category' in error for error in results['errors']))
+        self.assertEqual(len(self.manager.get_extensions()), 0)
+
+    def test_import_mapping_missing_extension_skips(self):
+        """Platform mappings referencing unknown extensions should be skipped."""
+        self.export_file = "/tmp/test_missing_extension_mapping.json"
+        export_data = {
+            'metadata': {'export_date': '2025-01-01', 'version': '1.0', 'format': 'json'},
+            'categories': [],
+            'extensions': [],
+            'mappings': [
+                {
+                    'platform_name': 'Example Platform',
+                    'extension': '.missing',
+                    'is_primary': True,
+                    'confidence': 0.9,
+                }
+            ],
+            'unknown_extensions': [],
+        }
+
+        with open(self.export_file, 'w') as f:
+            json.dump(export_data, f)
+
+        results = self.manager.import_extensions(self.export_file, "json", overwrite=True)
+        self.assertFalse(results['success'])
+        self.assertEqual(results['mappings_imported'], 0)
+        self.assertTrue(any('Extension' in error for error in results['errors']))
+        self.assertEqual(len(self.manager.get_platform_extensions()), 0)
+
+    def test_import_unknown_extension_invalid_suggestions_skip(self):
+        """Unknown extensions with invalid suggestions should be skipped."""
+        self.export_file = "/tmp/test_invalid_unknown_extension.json"
+        export_data = {
+            'metadata': {'export_date': '2025-01-01', 'version': '1.0', 'format': 'json'},
+            'categories': [],
+            'extensions': [],
+            'mappings': [],
+            'unknown_extensions': [
+                {
+                    'extension': '.mystery',
+                    'file_count': 2,
+                    'status': 'pending',
+                    'suggested_category': 'Nonexistent',
+                    'suggested_platform': 'Unknown Platform',
+                    'notes': 'Should be skipped',
+                }
+            ],
+        }
+
+        with open(self.export_file, 'w') as f:
+            json.dump(export_data, f)
+
+        results = self.manager.import_extensions(self.export_file, "json", overwrite=True)
+        self.assertFalse(results['success'])
+        self.assertEqual(results['unknown_imported'], 0)
+        self.assertTrue(any('Could not resolve suggested category' in error for error in results['errors']))
+        self.assertEqual(len(self.manager.get_unknown_extensions()), 0)
 
     def test_import_resolves_foreign_keys_by_name(self):
         """Test that import resolves foreign keys using natural keys when IDs differ."""
@@ -1280,7 +1376,14 @@ class TestPlatformDetectionIntegration(unittest.TestCase):
         conn.commit()
         conn.close()
         return platform_id
-    
+
+    def _assert_detects_case_insensitive(self, extension: str, expected_description: str):
+        """Assert that detection handles case-insensitive extensions."""
+        file_info = self.manager.detect_file_type(f"game{extension}")
+        self.assertIsNotNone(file_info, f"Failed for extension: {extension}")
+        self.assertEqual(file_info['extension'], '.nes')
+        self.assertEqual(file_info['description'], expected_description)
+
     def test_file_type_detection_with_registry(self):
         """Test file type detection using extension registry."""
         # Create test data
@@ -1310,14 +1413,12 @@ class TestPlatformDetectionIntegration(unittest.TestCase):
         ext_id = self.manager.create_extension(".nes", cat_id, "NES ROM", None, True, False, True, False, False)
         
         # Test various case combinations
-        test_extensions = ['.NES', '.NeS', '.nes', '.Nes']
         expected_type = 'NES ROM'
-        
-        for ext in test_extensions:
-            file_info = self.manager.detect_file_type(f"game{ext}")
-            self.assertIsNotNone(file_info, f"Failed for extension: {ext}")
-            self.assertEqual(file_info['extension'], '.nes')  # Should normalize to lowercase
-            self.assertEqual(file_info['description'], expected_type)
+
+        self._assert_detects_case_insensitive('.NES', expected_type)
+        self._assert_detects_case_insensitive('.NeS', expected_type)
+        self._assert_detects_case_insensitive('.nes', expected_type)
+        self._assert_detects_case_insensitive('.Nes', expected_type)
     
     def test_platform_detection_from_extension_registry(self):
         """Test platform detection using extension registry data."""
