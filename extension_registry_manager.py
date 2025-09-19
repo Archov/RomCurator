@@ -106,24 +106,58 @@ class ExtensionRegistryManager:
     # FILE EXTENSION OPERATIONS
     # =============================================================================
     
-    def create_extension(self, extension: str, category_id: int, description: str = None, 
-                        is_active: bool = True, treat_as_archive: bool = False,
-                        treat_as_disc: bool = False, treat_as_auxiliary: bool = False) -> str:
+    def create_extension(
+        self,
+        extension: str,
+        category_id: int,
+        description: str = None,
+        is_active: bool = True,
+        treat_as_archive: bool = False,
+        treat_as_disc: bool = False,
+        treat_as_auxiliary: bool = False,
+        *legacy_flags,
+        **legacy_kwargs,
+    ) -> str:
         """Create a new file extension."""
+        if legacy_flags:
+            if len(legacy_flags) >= 1:
+                treat_as_archive = bool(legacy_flags[0])
+            if len(legacy_flags) >= 3 and legacy_flags[2]:
+                treat_as_auxiliary = True
+            if len(legacy_flags) >= 4 and legacy_flags[3]:
+                treat_as_auxiliary = True
+
+        if 'is_archive' in legacy_kwargs:
+            treat_as_archive = bool(legacy_kwargs['is_archive'])
+        if legacy_kwargs.get('is_save') or legacy_kwargs.get('is_patch'):
+            treat_as_auxiliary = True
+        if legacy_kwargs.get('is_disc'):
+            treat_as_disc = True
+
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO file_extension 
+            cursor.execute(
+                """
+                INSERT INTO file_extension
                 (extension, category_id, description, is_active, treat_as_archive, treat_as_disc, treat_as_auxiliary)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (extension, category_id, description, is_active, 
-                  treat_as_archive, treat_as_disc, treat_as_auxiliary))
+                """,
+                (
+                    extension,
+                    category_id,
+                    description,
+                    is_active,
+                    treat_as_archive,
+                    treat_as_disc,
+                    treat_as_auxiliary,
+                ),
+            )
             conn.commit()
-            
+
             self.logger.info(f"Created file extension: {extension}")
             return extension
     
-    def get_extensions(self, category_id: int = None, active_only: bool = True, 
+    def get_extensions(self, category_id: int = None, active_only: bool = True,
                       extension_type: str = None) -> List[Dict]:
         """Get file extensions with optional filtering."""
         with self._get_connection() as conn:
@@ -155,7 +189,7 @@ class ExtensionRegistryManager:
             query += " ORDER BY ftc.sort_order, ftc.name, fe.extension"
             
             cursor.execute(query, params)
-            return [dict(row) for row in cursor.fetchall()]
+            return [self._format_extension_record(row) for row in cursor.fetchall()]
     
     def get_extension(self, extension: str) -> Optional[Dict]:
         """Get a specific file extension."""
@@ -168,7 +202,7 @@ class ExtensionRegistryManager:
                 WHERE fe.extension = ?
             """, (extension,))
             row = cursor.fetchone()
-            return dict(row) if row else None
+            return self._format_extension_record(row) if row else None
     
     def get_extension_by_name(self, extension: str) -> Optional[Dict]:
         """Get a file extension by its name (e.g., '.rom')."""
@@ -181,7 +215,23 @@ class ExtensionRegistryManager:
                 WHERE fe.extension = ?
             """, (extension,))
             row = cursor.fetchone()
-            return dict(row) if row else None
+            return self._format_extension_record(row) if row else None
+
+    @staticmethod
+    def _format_extension_record(row: sqlite3.Row) -> Dict[str, Any]:
+        """Format extension rows with derived fields for compatibility."""
+        data = dict(row)
+        data.setdefault('treat_as_archive', 0)
+        data.setdefault('treat_as_disc', 0)
+        data.setdefault('treat_as_auxiliary', 0)
+        data['is_archive'] = bool(data['treat_as_archive'])
+        data['is_save'] = bool(data['treat_as_auxiliary'])
+        data['is_patch'] = bool(data['treat_as_auxiliary'])
+        data['is_rom'] = not (
+            data['is_archive'] or data['is_save'] or bool(data['treat_as_disc'])
+        )
+        data.setdefault('mime_type', None)
+        return data
     
     def update_extension(self, extension: str, **kwargs) -> bool:
         """Update a file extension."""
@@ -225,13 +275,18 @@ class ExtensionRegistryManager:
     # PLATFORM EXTENSION MAPPING OPERATIONS
     # =============================================================================
     
-    def create_platform_extension(self, platform_id: int, extension: str, 
-                                 is_primary: bool = False) -> bool:
+    def create_platform_extension(
+        self,
+        platform_id: int,
+        extension: str,
+        is_primary: bool = False,
+        confidence: float = None,
+    ) -> bool:
         """Create a platform-extension mapping."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT OR REPLACE INTO platform_extension 
+                INSERT OR REPLACE INTO platform_extension
                 (platform_id, extension, is_primary)
                 VALUES (?, ?, ?)
             """, (platform_id, extension, is_primary))
@@ -399,8 +454,13 @@ class ExtensionRegistryManager:
             self.logger.info(f"Updated unknown extension ID {unknown_extension_id}")
             return cursor.rowcount > 0
     
-    def approve_unknown_extension(self, unknown_extension_id: int, category_id: int, 
-                                 platform_id: int = None, notes: str = None) -> bool:
+    def approve_unknown_extension(
+        self,
+        unknown_extension_id: int,
+        category_id: int,
+        platform_id: Optional[int] = None,
+        notes: Optional[str] = None,
+    ) -> bool:
         """Approve an unknown extension and create the corresponding extension record."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
@@ -416,21 +476,30 @@ class ExtensionRegistryManager:
                 if not unknown_ext:
                     return False
                 
-                # Create the file extension
-                cursor.execute("""
-                    INSERT INTO file_extension 
-                    (extension, category_id, description, is_active, is_rom, is_archive, is_save, is_patch)
-                    VALUES (?, ?, ?, 1, 1, 0, 0, 0)
-                """, (unknown_ext['extension'], category_id, notes or f"Auto-created from unknown extension"))
-                
-                extension_id = cursor.lastrowid
-                
+                # Create the file extension if it does not already exist
+                cursor.execute(
+                    """
+                    INSERT OR IGNORE INTO file_extension
+                    (extension, category_id, description, is_active,
+                     treat_as_archive, treat_as_disc, treat_as_auxiliary)
+                    VALUES (?, ?, ?, 1, 0, 0, 0)
+                    """,
+                    (
+                        unknown_ext["extension"],
+                        category_id,
+                        notes or "Auto-created from unknown extension",
+                    ),
+                )
+
                 # Create platform mapping if platform specified
                 if platform_id:
-                    cursor.execute("""
-                        INSERT INTO platform_extension (platform_id, extension_id, is_primary, confidence)
-                        VALUES (?, ?, 1, 1.0)
-                    """, (platform_id, extension_id))
+                    cursor.execute(
+                        """
+                        INSERT OR REPLACE INTO platform_extension (platform_id, extension, is_primary)
+                        VALUES (?, ?, 1)
+                        """,
+                        (platform_id, unknown_ext["extension"]),
+                    )
                 
                 # Update unknown extension status
                 cursor.execute("""
@@ -441,7 +510,9 @@ class ExtensionRegistryManager:
                 
                 cursor.execute("COMMIT")
                 
-                self.logger.info(f"Approved unknown extension: {unknown_ext['extension']} -> Extension ID {extension_id}")
+                self.logger.info(
+                    "Approved unknown extension: %s", unknown_ext["extension"]
+                )
                 return True
                 
             except Exception as e:
@@ -475,15 +546,24 @@ class ExtensionRegistryManager:
             category_stats = dict(cursor.fetchone())
             
             # Get extension counts
-            cursor.execute("""
-                SELECT COUNT(*) as total_extensions,
-                       COUNT(CASE WHEN is_active = 1 THEN 1 END) as active_extensions,
-                       COUNT(CASE WHEN is_rom = 1 THEN 1 END) as rom_extensions,
-                       COUNT(CASE WHEN is_archive = 1 THEN 1 END) as archive_extensions,
-                       COUNT(CASE WHEN is_save = 1 THEN 1 END) as save_extensions,
-                       COUNT(CASE WHEN is_patch = 1 THEN 1 END) as patch_extensions
+            cursor.execute(
+                """
+                SELECT
+                    COUNT(*) as total_extensions,
+                    COUNT(CASE WHEN is_active = 1 THEN 1 END) as active_extensions,
+                    COUNT(CASE WHEN treat_as_archive = 1 THEN 1 END) as archive_extensions,
+                    COUNT(CASE WHEN treat_as_disc = 1 THEN 1 END) as disc_extensions,
+                    COUNT(CASE WHEN treat_as_auxiliary = 1 THEN 1 END) as auxiliary_extensions,
+                    COUNT(
+                        CASE
+                            WHEN treat_as_archive = 0
+                             AND treat_as_disc = 0
+                             AND treat_as_auxiliary = 0 THEN 1
+                        END
+                    ) as rom_extensions
                 FROM file_extension
-            """)
+                """
+            )
             extension_stats = dict(cursor.fetchone())
             
             # Get platform mapping counts
@@ -532,10 +612,10 @@ class ExtensionRegistryManager:
     def get_extensions_for_platform(self, platform_id: int) -> List[Dict]:
         """Get all extensions associated with a platform."""
         return self.get_platform_extensions(platform_id=platform_id)
-    
-    def get_platforms_for_extension(self, extension_id: int) -> List[Dict]:
-        """Get all platforms associated with an extension."""
-        return self.get_platform_extensions(extension_id=extension_id)
+
+    def get_platforms_for_extension(self, extension: str) -> List[Dict]:
+        """Get all platforms associated with an extension string."""
+        return self.get_platform_extensions(extension=extension)
     
     # =============================================================================
     # IMPORT/EXPORT FUNCTIONALITY
@@ -586,25 +666,42 @@ class ExtensionRegistryManager:
                     
                     # Write extensions
                     writer.writerow(['EXTENSIONS'])
-                    writer.writerow(['extension_id', 'extension', 'category_id', 'description', 
-                                   'mime_type', 'is_active', 'is_rom', 'is_archive', 'is_save', 'is_patch'])
+                    writer.writerow([
+                        'extension',
+                        'category_id',
+                        'description',
+                        'is_active',
+                        'treat_as_archive',
+                        'treat_as_disc',
+                        'treat_as_auxiliary',
+                    ])
                     for ext in extensions:
                         writer.writerow([
-                            ext['extension_id'], ext['extension'], ext['category_id'],
-                            ext['description'] or '', ext['mime_type'] or '', ext['is_active'],
-                            ext['is_rom'], ext['is_archive'], ext['is_save'], ext['is_patch']
+                            ext['extension'],
+                            ext['category_id'],
+                            ext['description'] or '',
+                            ext['is_active'],
+                            ext['treat_as_archive'],
+                            ext['treat_as_disc'],
+                            ext['treat_as_auxiliary'],
                         ])
-                    
+
                     writer.writerow([])  # Empty row
-                    
+
                     # Write mappings
                     writer.writerow(['PLATFORM MAPPINGS'])
-                    writer.writerow(['platform_extension_id', 'platform_id', 'platform_name', 
-                                   'extension_id', 'extension', 'is_primary', 'confidence'])
+                    writer.writerow([
+                        'platform_id',
+                        'platform_name',
+                        'extension',
+                        'is_primary',
+                    ])
                     for mapping in mappings:
                         writer.writerow([
-                            mapping['platform_extension_id'], mapping['platform_id'], mapping['platform_name'],
-                            mapping['extension_id'], mapping['extension'], mapping['is_primary'], mapping['confidence']
+                            mapping['platform_id'],
+                            mapping['platform_name'],
+                            mapping['extension'],
+                            mapping['is_primary'],
                         ])
                     
                     writer.writerow([])  # Empty row
@@ -695,14 +792,16 @@ class ExtensionRegistryManager:
         row = cursor.fetchone()
         return row['category_id'] if row else None
 
-    def _get_extension_id_by_name(self, cursor, extension_name: Optional[str]) -> Optional[int]:
-        """Resolve an extension ID from its extension string."""
+    def _extension_exists(self, cursor, extension_name: Optional[str]) -> bool:
+        """Check if an extension with the given name exists."""
         if not extension_name:
-            return None
+            return False
 
-        cursor.execute("SELECT extension_id FROM file_extension WHERE extension = ?", (extension_name,))
-        row = cursor.fetchone()
-        return row['extension_id'] if row else None
+        cursor.execute(
+            "SELECT 1 FROM file_extension WHERE extension = ?",
+            (extension_name,),
+        )
+        return cursor.fetchone() is not None
 
     def _get_platform_id_by_name(self, cursor, platform_name: Optional[str], create_if_missing: bool = False) -> Optional[int]:
         """Resolve a platform ID from its name, optionally creating it."""
@@ -732,17 +831,6 @@ class ExtensionRegistryManager:
         cursor.execute(
             "SELECT 1 FROM file_type_category WHERE category_id = ?",
             (category_id,),
-        )
-        return cursor.fetchone() is not None
-
-    def _extension_exists(self, cursor, extension_id: Optional[int]) -> bool:
-        """Check if an extension with the given ID exists."""
-        if not extension_id:
-            return False
-
-        cursor.execute(
-            "SELECT 1 FROM file_extension WHERE extension_id = ?",
-            (extension_id,),
         )
         return cursor.fetchone() is not None
 
@@ -800,34 +888,21 @@ class ExtensionRegistryManager:
         data: Dict[str, Any],
         import_results: Dict[str, Any],
         context: str,
-    ) -> Optional[int]:
-        """Resolve extension ID using natural keys."""
+    ) -> Optional[str]:
+        """Resolve extension using its natural key."""
 
-        extension_name = (data.get('extension') or '').strip()
+        extension_name = (data.get("extension") or "").strip()
         if extension_name:
-            extension_id = self._get_extension_id_by_name(cursor, extension_name)
-            if extension_id is not None:
-                return extension_id
+            if self._extension_exists(cursor, extension_name):
+                return extension_name
 
-            error = (
-                f"Extension '{extension_name}' not found while importing {context}."
-            )
-            import_results['errors'].append(error)
+            error = f"Extension '{extension_name}' not found while importing {context}."
+            import_results["errors"].append(error)
             self.logger.error(error)
             return None
 
-        extension_id = self._normalize_optional_id(data.get('extension_id'))
-        if extension_id and self._extension_exists(cursor, extension_id):
-            return extension_id
-
-        if extension_id:
-            error = (
-                f"Extension ID {extension_id} not found while importing {context}."
-            )
-        else:
-            error = f"Extension reference missing while importing {context}."
-
-        import_results['errors'].append(error)
+        error = f"Extension reference missing while importing {context}."
+        import_results["errors"].append(error)
         self.logger.error(error)
         return None
 
@@ -930,7 +1005,10 @@ class ExtensionRegistryManager:
     def _import_single_extension(self, cursor, ext_data: Dict[str, Any], overwrite: bool, import_results: Dict[str, Any]):
         """Import a single extension."""
         extension_name = ext_data['extension']
-        cursor.execute("SELECT extension_id FROM file_extension WHERE extension = ?", (extension_name,))
+        cursor.execute(
+            "SELECT extension, category_id FROM file_extension WHERE extension = ?",
+            (extension_name,),
+        )
         existing = cursor.fetchone()
 
         category_id = self._resolve_category_reference(
@@ -942,31 +1020,60 @@ class ExtensionRegistryManager:
         if not category_id:
             return
 
+        treat_as_archive = bool(
+            ext_data.get("treat_as_archive", ext_data.get("is_archive", False))
+        )
+        treat_as_disc = bool(ext_data.get("treat_as_disc", False))
+        treat_as_auxiliary = bool(
+            ext_data.get("treat_as_auxiliary")
+            if ext_data.get("treat_as_auxiliary") is not None
+            else ext_data.get("is_save", False) or ext_data.get("is_patch", False)
+        )
+
         if existing:
             if not overwrite:
                 return
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 UPDATE file_extension
-                SET category_id = ?, description = ?, mime_type = ?,
-                    is_active = ?, is_rom = ?, is_archive = ?, is_save = ?, is_patch = ?
-                WHERE extension_id = ?
-            """, (category_id, ext_data.get('description'),
-                 ext_data.get('mime_type'), ext_data.get('is_active', True),
-                 ext_data.get('is_rom', False), ext_data.get('is_archive', False),
-                 ext_data.get('is_save', False), ext_data.get('is_patch', False),
-                 existing['extension_id']))
+                SET category_id = ?,
+                    description = ?,
+                    is_active = ?,
+                    treat_as_archive = ?,
+                    treat_as_disc = ?,
+                    treat_as_auxiliary = ?,
+                    updated_at = datetime('now')
+                WHERE extension = ?
+                """,
+                (
+                    category_id,
+                    ext_data.get("description"),
+                    ext_data.get("is_active", True),
+                    treat_as_archive,
+                    treat_as_disc,
+                    treat_as_auxiliary,
+                    extension_name,
+                ),
+            )
         else:
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO file_extension
-                (extension, category_id, description, mime_type, is_active,
-                 is_rom, is_archive, is_save, is_patch)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (extension_name, category_id,
-                 ext_data.get('description'), ext_data.get('mime_type'),
-                 ext_data.get('is_active', True), ext_data.get('is_rom', False),
-                 ext_data.get('is_archive', False), ext_data.get('is_save', False),
-                 ext_data.get('is_patch', False)))
+                (extension, category_id, description, is_active,
+                 treat_as_archive, treat_as_disc, treat_as_auxiliary)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    extension_name,
+                    category_id,
+                    ext_data.get("description"),
+                    ext_data.get("is_active", True),
+                    treat_as_archive,
+                    treat_as_disc,
+                    treat_as_auxiliary,
+                ),
+            )
 
         import_results['extensions_imported'] += 1
     
@@ -987,43 +1094,58 @@ class ExtensionRegistryManager:
             cursor,
             mapping_data,
             import_results,
-            f"mapping for extension {mapping_data.get('extension') or mapping_data.get('extension_id')}",
+            f"mapping for extension {mapping_data.get('extension') or '[unknown extension]'}",
             create_if_missing=True,
         )
         if not platform_id:
             return
 
-        extension_id = self._resolve_extension_reference(
+        extension_name = self._resolve_extension_reference(
             cursor,
             mapping_data,
             import_results,
             f"mapping for platform {mapping_data.get('platform_name') or platform_id}",
         )
-        if not extension_id:
+        if not extension_name:
             return
 
-        cursor.execute("""
-            SELECT platform_extension_id FROM platform_extension
-            WHERE platform_id = ? AND extension_id = ?
-        """, (platform_id, extension_id))
+        cursor.execute(
+            """
+            SELECT 1 FROM platform_extension
+            WHERE platform_id = ? AND extension = ?
+            """,
+            (platform_id, extension_name),
+        )
         existing = cursor.fetchone()
 
         if existing:
             if not overwrite:
                 return
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 UPDATE platform_extension
-                SET is_primary = ?, confidence = ?
-                WHERE platform_extension_id = ?
-            """, (mapping_data.get('is_primary', False),
-                 mapping_data.get('confidence', 1.0), existing['platform_extension_id']))
+                SET is_primary = ?
+                WHERE platform_id = ? AND extension = ?
+                """,
+                (
+                    mapping_data.get("is_primary", False),
+                    platform_id,
+                    extension_name,
+                ),
+            )
         else:
-            cursor.execute("""
-                INSERT INTO platform_extension (platform_id, extension_id, is_primary, confidence)
-                VALUES (?, ?, ?, ?)
-            """, (platform_id, extension_id,
-                 mapping_data.get('is_primary', False), mapping_data.get('confidence', 1.0)))
+            cursor.execute(
+                """
+                INSERT INTO platform_extension (platform_id, extension, is_primary)
+                VALUES (?, ?, ?)
+                """,
+                (
+                    platform_id,
+                    extension_name,
+                    mapping_data.get("is_primary", False),
+                ),
+            )
 
         import_results['mappings_imported'] += 1
     

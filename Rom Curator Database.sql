@@ -419,9 +419,9 @@ CREATE INDEX IF NOT EXISTS idx_rom_file_content_role ON rom_file(content_role);
 -- Indexes for extension registry tables (v1.10)
 CREATE INDEX IF NOT EXISTS idx_file_extension_category ON file_extension(category_id);
 CREATE INDEX IF NOT EXISTS idx_file_extension_active ON file_extension(is_active);
-CREATE INDEX IF NOT EXISTS idx_file_extension_type ON file_extension(is_rom, is_archive, is_save, is_patch);
+CREATE INDEX IF NOT EXISTS idx_file_extension_type ON file_extension(treat_as_archive, treat_as_disc, treat_as_auxiliary);
 CREATE INDEX IF NOT EXISTS idx_platform_extension_platform ON platform_extension(platform_id);
-CREATE INDEX IF NOT EXISTS idx_platform_extension_extension ON platform_extension(extension_id);
+CREATE INDEX IF NOT EXISTS idx_platform_extension_extension ON platform_extension(extension);
 CREATE INDEX IF NOT EXISTS idx_platform_extension_primary ON platform_extension(is_primary);
 CREATE INDEX IF NOT EXISTS idx_unknown_extension_status ON unknown_extension(status);
 CREATE INDEX IF NOT EXISTS idx_unknown_extension_extension ON unknown_extension(extension);
@@ -1019,21 +1019,19 @@ ORDER BY ue.file_count DESC, ue.first_seen DESC;
 -- View to show platform extension mappings
 CREATE VIEW v_platform_extensions AS
 SELECT
-    pe.platform_extension_id,
+    pe.platform_id,
     p.name as platform_name,
     fe.extension,
     fe.description as extension_description,
     ftc.name as category_name,
     pe.is_primary,
-    pe.confidence,
-    pe.created_at,
-    CASE 
+    CASE
         WHEN pe.is_primary = 1 THEN '⭐'
         ELSE '📄'
     END as primary_icon
 FROM platform_extension pe
 JOIN platform p ON pe.platform_id = p.platform_id
-JOIN file_extension fe ON pe.extension_id = fe.extension_id
+JOIN file_extension fe ON pe.extension = fe.extension
 JOIN file_type_category ftc ON fe.category_id = ftc.category_id
 WHERE fe.is_active = 1
 ORDER BY p.name, pe.is_primary DESC, fe.extension;
@@ -1044,15 +1042,21 @@ SELECT
     ftc.category_id,
     ftc.name as category_name,
     ftc.description,
-    COUNT(fe.extension_id) as total_extensions,
+    COUNT(fe.extension) as total_extensions,
     COUNT(CASE WHEN fe.is_active = 1 THEN 1 END) as active_extensions,
-    COUNT(CASE WHEN fe.is_rom = 1 THEN 1 END) as rom_extensions,
-    COUNT(CASE WHEN fe.is_archive = 1 THEN 1 END) as archive_extensions,
-    COUNT(CASE WHEN fe.is_save = 1 THEN 1 END) as save_extensions,
-    COUNT(CASE WHEN fe.is_patch = 1 THEN 1 END) as patch_extensions,
+    COUNT(
+        CASE
+            WHEN fe.treat_as_archive = 0
+             AND fe.treat_as_disc = 0
+             AND fe.treat_as_auxiliary = 0 THEN 1
+        END
+    ) as rom_extensions,
+    COUNT(CASE WHEN fe.treat_as_archive = 1 THEN 1 END) as archive_extensions,
+    COUNT(CASE WHEN fe.treat_as_disc = 1 THEN 1 END) as disc_extensions,
+    COUNT(CASE WHEN fe.treat_as_auxiliary = 1 THEN 1 END) as auxiliary_extensions,
     COUNT(DISTINCT pe.platform_id) as platforms_using
 FROM file_type_category ftc
 LEFT JOIN file_extension fe ON ftc.category_id = fe.category_id
-LEFT JOIN platform_extension pe ON fe.extension_id = pe.extension_id
+LEFT JOIN platform_extension pe ON fe.extension = pe.extension
 GROUP BY ftc.category_id, ftc.name, ftc.description
 ORDER BY ftc.sort_order, ftc.name;

@@ -115,33 +115,27 @@ class LibraryIngestionImporter(BaseImporter):
             supported = {
                 'rom': [],
                 'archive': [],
-                'save': [],
-                'patch': []
             }
-            
+
             for ext in extensions:
                 ext_name = ext['extension']
-                
-                if ext['is_rom']:
-                    supported['rom'].append(ext_name)
-                if ext['is_archive']:
+
+                if ext['treat_as_archive']:
                     supported['archive'].append(ext_name)
-                if ext['is_save']:
-                    supported['save'].append(ext_name)
-                if ext['is_patch']:
-                    supported['patch'].append(ext_name)
-            
+
+                # Treat any non-auxiliary extension as ROM-compatible
+                if not ext['treat_as_auxiliary']:
+                    supported['rom'].append(ext_name)
+
             self.logger.info(f"Loaded {len(extensions)} supported extensions from registry")
             return supported
-            
+
         except Exception as e:
             self.logger.warning(f"Failed to load extensions from registry: {e}")
             # Fallback to config-based extensions
             return self.ingestion_settings.get('file_extensions', {
                 'rom': ['.rom', '.bin', '.nes', '.sfc', '.smd', '.gb', '.gba', '.nds'],
                 'archive': ['.zip', '.7z', '.rar', '.tar', '.gz'],
-                'save': ['.sav', '.srm', '.state'],
-                'patch': ['.ips', '.ups', '.bps', '.xdelta']
             })
     
     def get_file_type_description(self):
@@ -340,9 +334,14 @@ class LibraryIngestionImporter(BaseImporter):
         
         # Use extension registry to detect file type
         if file_type_info := self.extension_registry.detect_file_type(file_path.name):
-            # Only return True if it's a ROM or archive file (not save/patch files)
-            if file_type_info.get('is_rom') or (self.enable_archive_expansion and file_type_info.get('is_archive')):
-                return True
+            if file_type_info.get('treat_as_auxiliary'):
+                return False
+
+            if file_type_info.get('treat_as_archive'):
+                return self.enable_archive_expansion
+
+            # Disc and generic ROM types fall through here
+            return True
         
         # Check if extension is in our supported lists (fallback)
         # Check ROM extensions
@@ -647,22 +646,16 @@ class LibraryIngestionImporter(BaseImporter):
                 return None
 
             # Get platform mappings for this extension
-            if not (platform_mappings := self.extension_registry.get_platforms_for_extension(extension_info['extension_id'])):
+            platform_mappings = self.extension_registry.get_platforms_for_extension(
+                extension_info['extension']
+            )
+            if not platform_mappings:
                 return None
-            
-            # Prefer primary mappings, using confidence and platform ID for deterministic ordering
-            def _mapping_sort_key(mapping: Dict[str, Any]) -> Tuple[float, int]:
-                confidence = mapping.get('confidence')
-                try:
-                    numeric_confidence = float(confidence) if confidence is not None else 0.0
-                except (TypeError, ValueError):
-                    numeric_confidence = 0.0
-                platform_id = mapping.get('platform_id') or 0
-                return (-numeric_confidence, platform_id)
 
+            # Prefer primary mappings, using platform ID for deterministic ordering
             primary_mappings = sorted(
                 (m for m in platform_mappings if m.get('is_primary', False)),
-                key=_mapping_sort_key,
+                key=lambda mapping: mapping.get('platform_id') or 0,
             )
 
             if primary_mappings:
@@ -675,8 +668,11 @@ class LibraryIngestionImporter(BaseImporter):
                     )
                 return primary_mappings[0]['platform_id']
 
-            # If no primary mappings, return the highest confidence mapping with deterministic ordering
-            sorted_mappings = sorted(platform_mappings, key=_mapping_sort_key)
+            # If no primary mappings, return the lowest platform_id mapping for deterministic ordering
+            sorted_mappings = sorted(
+                platform_mappings,
+                key=lambda mapping: mapping.get('platform_id') or 0,
+            )
             best_mapping = sorted_mappings[0]
             return best_mapping['platform_id']
             
@@ -817,7 +813,7 @@ class LibraryIngestionImporter(BaseImporter):
         # Use extension registry to detect archive files
         file_type_info = self.extension_registry.detect_file_type(file_path.name)
         
-        if file_type_info and file_type_info.get('is_archive'):
+        if file_type_info and file_type_info.get('treat_as_archive'):
             return True
         
         # Fallback to supported extensions list
