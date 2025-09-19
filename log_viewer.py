@@ -191,7 +191,11 @@ class LogViewerWindow(QWidget):
 
 
 def main():
-    """Standalone entry point for testing."""
+    """
+    Start and run the LogViewerWindow as a standalone application for manual testing.
+    
+    Creates a QApplication, applies the qdarkstyle stylesheet, loads configuration via ConfigManager, instantiates and shows LogViewerWindow, and enters the Qt main loop. This function terminates the process with the application's exit code.
+    """
     from PyQt5.QtWidgets import QApplication
     import qdarkstyle
     
@@ -199,7 +203,7 @@ def main():
     app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     
     # Load configuration
-    from rom_curator_main import ConfigManager
+    from config_manager import ConfigManager
     config = ConfigManager()
     
     window = LogViewerWindow(config)

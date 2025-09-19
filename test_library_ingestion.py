@@ -20,7 +20,7 @@ import os
 # Add the project root to the path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from rom_curator_main import ConfigManager
+from config_manager import ConfigManager
 from scripts.seeders.library_ingestion import LibraryIngestionImporter
 
 

@@ -9,6 +9,9 @@ qdarkstyle>=3.0.0
 # JSON schema validation for metadata importers
 jsonschema>=4.0.0
 
+# Configuration models
+pydantic>=2.0
+
 # XML processing and XSD validation for DAT file importers
 lxml>=4.6.0
 

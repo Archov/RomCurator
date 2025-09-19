@@ -6,7 +6,6 @@ Provides a unified interface with menu options for all tools and workflows.
 """
 
 import sys
-import json
 import logging
 from pathlib import Path
 from PyQt5.QtWidgets import (
@@ -18,116 +17,13 @@ from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QPixmap, QFont, QIcon
 import qdarkstyle
 
-# Import our modules
+from config_manager import ConfigManager
 from enhanced_importer_gui import ImporterApp
 from curation_gui import CurationMainWindow
 from platform_linking_gui import PlatformLinkingDialog
 from extension_registry_gui import ExtensionRegistryDialog
-
-# Import enhanced logging system (Work Item 2)
 from enhanced_logging import EnhancedLoggingManager
-
-# Import resilient worker components (Work Item 2)
 from resilient_worker import ResilientWorkerThread
-
-
-class ConfigManager:
-    """Centralized configuration management."""
-    
-    def __init__(self, config_file='config.json'):
-        self.config_file = Path(config_file)
-        self.config = self.load_config()
-        
-    def load_config(self):
-        """Load configuration from JSON file."""
-        if not self.config_file.exists():
-            # Create default config
-            default_config = {
-                "database_path": "./database/RomCurator.db",
-                "importer_scripts_directory": "./scripts/seeders/",
-                "log_directory": "./logs/",
-                "log_level": "INFO",
-                "auto_create_directories": True,
-                "progress_update_interval": 100,
-                "gui_settings": {
-                    "window_width": 1200,
-                    "window_height": 800,
-                    "theme": "dark"
-                },
-                "ingestion_settings": {
-                    "library_roots": [],
-                    "batch_size": 100,
-                    "enable_validation": True,
-                    "enable_archive_expansion": True,
-                    "hash_algorithms": ["sha1", "crc32", "md5", "sha256"],
-                    "file_extensions": {
-                        "rom": [".rom", ".bin", ".smd", ".sfc", ".nes", ".gb", ".gba", ".nds", ".iso", ".img"],
-                        "archive": [".zip", ".7z", ".rar", ".tar", ".gz"]
-                    },
-                    "max_file_size_mb": 1024,
-                    "exclude_patterns": ["*.tmp", "*.temp", "*.bak", "*.backup"],
-                    "enable_platform_detection": True,
-                    "enable_metadata_extraction": True
-                }
-            }
-            
-            try:
-                with open(self.config_file, 'w') as f:
-                    json.dump(default_config, f, indent=4)
-                return default_config
-            except IOError as e:
-                raise SystemExit(f"FATAL: Could not create config file: {e}")
-        
-        try:
-            with open(self.config_file, 'r') as f:
-                return json.load(f)
-        except (json.JSONDecodeError, IOError) as e:
-            raise SystemExit(f"FATAL: Could not read config file: {e}")
-    
-    def get(self, key, default=None):
-        """Get configuration value with optional default."""
-        keys = key.split('.')
-        value = self.config
-        
-        for k in keys:
-            if isinstance(value, dict) and k in value:
-                value = value[k]
-            else:
-                return default
-        
-        return value
-    
-    def set(self, key, value):
-        """Set configuration value."""
-        keys = key.split('.')
-        config_ref = self.config
-        
-        for k in keys[:-1]:
-            if k not in config_ref:
-                config_ref[k] = {}
-            config_ref = config_ref[k]
-        
-        config_ref[keys[-1]] = value
-    
-    def save(self):
-        """Save current configuration to file."""
-        try:
-            with open(self.config_file, 'w') as f:
-                json.dump(self.config, f, indent=4)
-        except IOError as e:
-            logging.error(f"Could not save config file: {e}")
-    
-    def ensure_directories(self):
-        """Create required directories if they don't exist."""
-        if self.get('auto_create_directories', True):
-            dirs_to_create = [
-                Path(self.get('database_path')).parent,
-                Path(self.get('log_directory')),
-                Path(self.get('importer_scripts_directory'))
-            ]
-            
-            for directory in dirs_to_create:
-                directory.mkdir(parents=True, exist_ok=True)
 
 
 class LoggingManager:
