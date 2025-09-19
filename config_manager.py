@@ -75,8 +75,8 @@ class RomCuratorConfig(BaseModel):
     @classmethod
     def _validate_log_level(cls, value: Any) -> str:
         level = str(value).upper()
-        if level not in {"DEBUG", "INFO", "WARNING", "ERROR"}:
-            raise ValueError("Log level must be one of DEBUG, INFO, WARNING, ERROR")
+        if level not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
+            raise ValueError("Log level must be one of DEBUG, INFO, WARNING, ERROR, CRITICAL")
         return level
 
     @field_validator("database_path", "importer_scripts_directory", "log_directory", mode="before")
