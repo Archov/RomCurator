@@ -355,15 +355,6 @@ class LibraryIngestionImporter(BaseImporter):
             if file_ext in archive_extensions:
                 return True
         
-        # If not recognized, record as unknown extension
-        if file_ext and file_ext.startswith('.') and file_ext[1:].isalnum():
-            self.extension_registry.record_unknown_extension(file_ext)
-            self.logger.info(
-                "Unknown extension encountered: %s in %s",
-                file_ext,
-                file_path,
-            )
-
         return False
     
     def _process_file_batch(self, file_paths: List[Path], log_id: int, source_id: int) -> int:
