@@ -268,9 +268,9 @@ class ExtensionRegistryDialog(QDialog):
         
         # Extensions table
         self.extensions_table = QTableWidget()
-        self.extensions_table.setColumnCount(8)
+        self.extensions_table.setColumnCount(7)
         self.extensions_table.setHorizontalHeaderLabels([
-            "Extension", "Category", "Description", "Type", "Active", "MIME", "Created", "Actions"
+            "Extension", "Category", "Description", "Type", "Active", "Created", "Actions"
         ])
         self.extensions_table.horizontalHeader().setStretchLastSection(True)
         self.extensions_table.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -479,33 +479,27 @@ class ExtensionRegistryDialog(QDialog):
             
             # Type
             types = []
-            if ext['is_rom']:
-                types.append("ROM")
-            if ext['is_archive']:
+            if ext['treat_as_archive']:
                 types.append("Archive")
-            if ext['is_save']:
-                types.append("Save")
-            if ext['is_patch']:
-                types.append("Patch")
-            type_text = ", ".join(types) if types else "Unknown"
+            if ext['treat_as_disc']:
+                types.append("Disc")
+            if ext['treat_as_auxiliary']:
+                types.append("Auxiliary")
+            type_text = ", ".join(types) if types else "ROM"
             self.extensions_table.setItem(row, 3, QTableWidgetItem(type_text))
             
             # Active
             active_icon = "✅" if ext['is_active'] else "❌"
             self.extensions_table.setItem(row, 4, QTableWidgetItem(active_icon))
             
-            # MIME type
-            mime = ext['mime_type'] or ""
-            self.extensions_table.setItem(row, 5, QTableWidgetItem(mime))
-            
             # Created
             created = ext['created_at'][:10] if ext['created_at'] else ""
-            self.extensions_table.setItem(row, 6, QTableWidgetItem(created))
+            self.extensions_table.setItem(row, 5, QTableWidgetItem(created))
             
             # Actions
             actions_btn = QPushButton("Edit")
-            actions_btn.clicked.connect(lambda checked, ext_id=ext['extension_id']: self.edit_extension(ext_id))
-            self.extensions_table.setCellWidget(row, 7, actions_btn)
+            actions_btn.clicked.connect(lambda checked, ext_id=ext['extension']: self.edit_extension(ext_id))
+            self.extensions_table.setCellWidget(row, 6, actions_btn)
     
     def load_mappings(self):
         """Load platform mappings into the table."""
@@ -666,20 +660,14 @@ class ExtensionRegistryDialog(QDialog):
         description_edit = QLineEdit()
         form_layout.addRow("Description:", description_edit)
         
-        # MIME type
-        mime_edit = QLineEdit()
-        form_layout.addRow("MIME Type:", mime_edit)
-        
         # Type checkboxes
-        is_rom_check = QCheckBox("ROM")
-        is_archive_check = QCheckBox("Archive")
-        is_save_check = QCheckBox("Save")
-        is_patch_check = QCheckBox("Patch")
+        treat_as_archive_check = QCheckBox("Archive")
+        treat_as_disc_check = QCheckBox("Disc")
+        treat_as_auxiliary_check = QCheckBox("Auxiliary")
         
-        form_layout.addRow("Types:", is_rom_check)
-        form_layout.addRow("", is_archive_check)
-        form_layout.addRow("", is_save_check)
-        form_layout.addRow("", is_patch_check)
+        form_layout.addRow("Types:", treat_as_archive_check)
+        form_layout.addRow("", treat_as_disc_check)
+        form_layout.addRow("", treat_as_auxiliary_check)
         
         layout.addLayout(form_layout)
         
@@ -696,18 +684,16 @@ class ExtensionRegistryDialog(QDialog):
             
             category_id = category_combo.currentData()
             description = description_edit.text().strip() or None
-            mime_type = mime_edit.text().strip() or None
             
             try:
                 self.manager.create_extension(
                     extension=extension,
                     category_id=category_id,
                     description=description,
-                    mime_type=mime_type,
-                    is_rom=is_rom_check.isChecked(),
-                    is_archive=is_archive_check.isChecked(),
-                    is_save=is_save_check.isChecked(),
-                    is_patch=is_patch_check.isChecked()
+                    is_active=True,
+                    treat_as_archive=treat_as_archive_check.isChecked(),
+                    treat_as_disc=treat_as_disc_check.isChecked(),
+                    treat_as_auxiliary=treat_as_auxiliary_check.isChecked()
                 )
                 self.load_extensions()
                 QMessageBox.information(self, "Success", f"Extension {extension} added successfully.")
@@ -828,6 +814,67 @@ class ExtensionRegistryDialog(QDialog):
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to delete mapping: {e}")
     
+    def filter_extensions(self):
+        """Filter extensions based on search text and category."""
+        search_text = self.extension_search.text().lower()
+        category_filter = self.category_filter.currentText()
+        
+        # Get all extensions
+        extensions = self.manager.get_extensions()
+        
+        # Filter based on search text
+        if search_text:
+            extensions = [ext for ext in extensions if 
+                         search_text in ext['extension'].lower() or 
+                         (ext['description'] and search_text in ext['description'].lower())]
+        
+        # Filter based on category
+        if category_filter != "All Categories":
+            extensions = [ext for ext in extensions if ext['category_name'] == category_filter]
+        
+        self.populate_extensions_table(extensions)
+    
+    def add_extension(self):
+        """Show dialog to add a new extension."""
+        dialog = ExtensionDialog(self.manager)
+        if dialog.exec_() == QDialog.Accepted:
+            self.refresh_extensions()
+    
+    def on_extension_selected(self):
+        """Handle extension selection in the table."""
+        current_row = self.extensions_table.currentRow()
+        if current_row >= 0:
+            extension_item = self.extensions_table.item(current_row, 0)
+            if extension_item:
+                extension = extension_item.text()
+                # Update details panel if it exists
+                self.update_extension_details(extension)
+    
+    def add_mapping(self):
+        """Show dialog to add a new platform-extension mapping."""
+        dialog = PlatformMappingDialog(self.manager)
+        if dialog.exec_() == QDialog.Accepted:
+            self.refresh_mappings()
+    
+    def on_mapping_selected(self):
+        """Handle mapping selection in the table."""
+        current_row = self.mappings_table.currentRow()
+        if current_row >= 0:
+            # Update details panel if it exists
+            pass
+    
+    def on_unknown_selected(self):
+        """Handle unknown extension selection in the table."""
+        current_row = self.unknown_table.currentRow()
+        if current_row >= 0:
+            # Update details panel if it exists
+            pass
+    
+    def update_extension_details(self, extension: str):
+        """Update the extension details panel."""
+        # This would update a details panel if one exists
+        pass
+
     def approve_unknown(self, unknown_id: int):
         """Approve an unknown extension."""
         from PyQt5.QtWidgets import QDialog, QVBoxLayout, QFormLayout, QComboBox, QLineEdit, QDialogButtonBox

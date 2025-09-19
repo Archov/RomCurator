@@ -843,29 +843,23 @@ CREATE TABLE IF NOT EXISTS file_type_category (
 
 -- File extensions with their categories and metadata
 CREATE TABLE IF NOT EXISTS file_extension (
-    extension_id INTEGER PRIMARY KEY,
-    extension TEXT NOT NULL UNIQUE,
-    category_id INTEGER NOT NULL REFERENCES file_type_category(category_id),
+    extension TEXT PRIMARY KEY,
+    category_id INTEGER REFERENCES file_type_category(category_id),
     description TEXT,
-    mime_type TEXT,
-    is_active BOOLEAN NOT NULL DEFAULT 1,
-    is_archive BOOLEAN NOT NULL DEFAULT 0,
-    is_rom BOOLEAN NOT NULL DEFAULT 0,
-    is_save BOOLEAN NOT NULL DEFAULT 0,
-    is_patch BOOLEAN NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    is_active INTEGER DEFAULT 1,
+    treat_as_archive INTEGER DEFAULT 0,
+    treat_as_disc INTEGER DEFAULT 0,
+    treat_as_auxiliary INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
 );
 
 -- Platform-specific extension mappings
 CREATE TABLE IF NOT EXISTS platform_extension (
-    platform_extension_id INTEGER PRIMARY KEY,
-    platform_id INTEGER NOT NULL REFERENCES platform(platform_id),
-    extension_id INTEGER NOT NULL REFERENCES file_extension(extension_id),
-    is_primary BOOLEAN NOT NULL DEFAULT 0,
-    confidence REAL DEFAULT 1.0 CHECK (confidence >= 0.0 AND confidence <= 1.0),
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    UNIQUE(platform_id, extension_id)
+    platform_id INTEGER REFERENCES platform(platform_id),
+    extension TEXT REFERENCES file_extension(extension),
+    is_primary INTEGER DEFAULT 0,
+    PRIMARY KEY (platform_id, extension)
 );
 
 -- Unknown extensions discovered during file scanning
@@ -976,15 +970,12 @@ GROUP BY rf.rom_id, rf.filename, rf.sha1, rf.size_bytes, rf.content_role;
 -- View to show extensions with their categories and platform mappings
 CREATE VIEW v_extension_registry AS
 SELECT
-    fe.extension_id,
     fe.extension,
     fe.description,
-    fe.mime_type,
     fe.is_active,
-    fe.is_archive,
-    fe.is_rom,
-    fe.is_save,
-    fe.is_patch,
+    fe.treat_as_archive,
+    fe.treat_as_disc,
+    fe.treat_as_auxiliary,
     fe.created_at,
     fe.updated_at,
     ftc.category_id,
@@ -995,11 +986,11 @@ SELECT
     COUNT(DISTINCT pe.platform_id) as platform_count
 FROM file_extension fe
 JOIN file_type_category ftc ON fe.category_id = ftc.category_id
-LEFT JOIN platform_extension pe ON fe.extension_id = pe.extension_id
+LEFT JOIN platform_extension pe ON fe.extension = pe.extension
 LEFT JOIN platform p ON pe.platform_id = p.platform_id
-GROUP BY fe.extension_id, fe.extension, fe.description, fe.mime_type, 
-         fe.is_active, fe.is_archive, fe.is_rom, fe.is_save, fe.is_patch,
-         fe.created_at, fe.updated_at, ftc.category_id, ftc.name, ftc.description;
+GROUP BY fe.extension, fe.description, fe.is_active, fe.treat_as_archive, 
+         fe.treat_as_disc, fe.treat_as_auxiliary, fe.created_at, fe.updated_at, 
+         ftc.category_id, ftc.name, ftc.description;
 
 -- View to show unknown extensions with suggestions
 CREATE VIEW v_unknown_extensions AS

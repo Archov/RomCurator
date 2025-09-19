@@ -68,18 +68,15 @@ class TestExtensionRegistryCRUD(unittest.TestCase):
         # Create file_extension table
         conn.execute("""
             CREATE TABLE IF NOT EXISTS file_extension (
-                extension_id INTEGER PRIMARY KEY,
-                extension TEXT NOT NULL UNIQUE,
-                category_id INTEGER NOT NULL REFERENCES file_type_category(category_id),
+                extension TEXT PRIMARY KEY,
+                category_id INTEGER REFERENCES file_type_category(category_id),
                 description TEXT,
-                mime_type TEXT,
-                is_active BOOLEAN NOT NULL DEFAULT 1,
-                is_archive BOOLEAN NOT NULL DEFAULT 0,
-                is_rom BOOLEAN NOT NULL DEFAULT 0,
-                is_save BOOLEAN NOT NULL DEFAULT 0,
-                is_patch BOOLEAN NOT NULL DEFAULT 0,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                is_active INTEGER DEFAULT 1,
+                treat_as_archive INTEGER DEFAULT 0,
+                treat_as_disc INTEGER DEFAULT 0,
+                treat_as_auxiliary INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT (datetime('now')),
+                updated_at TEXT DEFAULT (datetime('now'))
             )
         """)
         
@@ -94,13 +91,10 @@ class TestExtensionRegistryCRUD(unittest.TestCase):
         # Create platform_extension table
         conn.execute("""
             CREATE TABLE IF NOT EXISTS platform_extension (
-                platform_extension_id INTEGER PRIMARY KEY,
-                platform_id INTEGER NOT NULL REFERENCES platform(platform_id),
-                extension_id INTEGER NOT NULL REFERENCES file_extension(extension_id),
-                is_primary BOOLEAN NOT NULL DEFAULT 0,
-                confidence REAL NOT NULL DEFAULT 1.0,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(platform_id, extension_id)
+                platform_id INTEGER REFERENCES platform(platform_id),
+                extension TEXT REFERENCES file_extension(extension),
+                is_primary INTEGER DEFAULT 0,
+                PRIMARY KEY (platform_id, extension)
             )
         """)
         
@@ -177,18 +171,19 @@ class TestExtensionRegistryCRUD(unittest.TestCase):
         # Create extension
         ext_id = self.manager.create_extension(
             ".nes", cat_id, "Nintendo Entertainment System ROM",
-            "application/octet-stream", True, False, True, False, False
+            True, False, False, False
         )
-        self.assertIsInstance(ext_id, int)
-        self.assertGreater(ext_id, 0)
+        self.assertIsInstance(ext_id, str)
+        self.assertEqual(ext_id, ".nes")
         
         # Read
         extension = self.manager.get_extension(ext_id)
         self.assertIsNotNone(extension)
         self.assertEqual(extension['extension'], ".nes")
         self.assertEqual(extension['category_id'], cat_id)
-        self.assertTrue(extension['is_rom'])
-        self.assertFalse(extension['is_archive'])
+        self.assertFalse(extension['treat_as_archive'])
+        self.assertFalse(extension['treat_as_disc'])
+        self.assertFalse(extension['treat_as_auxiliary'])
         
         # Update
         success = self.manager.update_extension(ext_id, description="Updated NES ROM")
@@ -208,7 +203,7 @@ class TestExtensionRegistryCRUD(unittest.TestCase):
         """Test complete platform-extension mapping CRUD operations."""
         # Create category and extension
         cat_id = self.manager.create_category("ROM Files", "Game ROM files", 1, True)
-        ext_id = self.manager.create_extension(".nes", cat_id, "NES ROM", None, True, False, True, False, False)
+        ext_id = self.manager.create_extension(".nes", cat_id, "NES ROM", True, False, False, False)
         
         # Create platform
         platform_id = self._create_test_platform("Nintendo Entertainment System")
@@ -1388,7 +1383,7 @@ class TestPlatformDetectionIntegration(unittest.TestCase):
         """Test file type detection using extension registry."""
         # Create test data
         cat_id = self.manager.create_category("ROM Files", "Game ROM files", 1, True)
-        ext_id = self.manager.create_extension(".nes", cat_id, "NES ROM", None, True, False, True, False, False)
+        ext_id = self.manager.create_extension(".nes", cat_id, "NES ROM", True, False, False, False)
         
         # Test detection
         file_info = self.manager.detect_file_type("test.nes")
@@ -1410,7 +1405,7 @@ class TestPlatformDetectionIntegration(unittest.TestCase):
         """Test file type detection is case-insensitive for extensions."""
         # Create test data
         cat_id = self.manager.create_category("ROM Files", "Game ROM files", 1, True)
-        ext_id = self.manager.create_extension(".nes", cat_id, "NES ROM", None, True, False, True, False, False)
+        ext_id = self.manager.create_extension(".nes", cat_id, "NES ROM", True, False, False, False)
         
         # Test various case combinations
         expected_type = 'NES ROM'
@@ -1424,7 +1419,7 @@ class TestPlatformDetectionIntegration(unittest.TestCase):
         """Test platform detection using extension registry data."""
         # Create test data
         cat_id = self.manager.create_category("ROM Files", "Game ROM files", 1, True)
-        ext_id = self.manager.create_extension(".nes", cat_id, "NES ROM", None, True, False, True, False, False)
+        ext_id = self.manager.create_extension(".nes", cat_id, "NES ROM", True, False, False, False)
         platform_id = self._create_test_platform("Nintendo Entertainment System")
         
         # Create platform mapping
@@ -1587,7 +1582,7 @@ class TestPlatformDetectionIntegration(unittest.TestCase):
         """Test extension registry summary functionality."""
         # Create test data
         cat_id = self.manager.create_category("ROM Files", "Game ROM files", 1, True)
-        ext_id = self.manager.create_extension(".nes", cat_id, "NES ROM", None, True, False, True, False, False)
+        ext_id = self.manager.create_extension(".nes", cat_id, "NES ROM", True, False, False, False)
         platform_id = self._create_test_platform("Nintendo Entertainment System")
         mapping_id = self.manager.create_platform_extension(platform_id, ext_id, True, 1.0)
         unknown_id = self.manager.record_unknown_extension(".unknown", 5)

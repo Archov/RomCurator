@@ -107,22 +107,21 @@ class ExtensionRegistryManager:
     # =============================================================================
     
     def create_extension(self, extension: str, category_id: int, description: str = None, 
-                        mime_type: str = None, is_active: bool = True, is_archive: bool = False,
-                        is_rom: bool = False, is_save: bool = False, is_patch: bool = False) -> int:
+                        is_active: bool = True, treat_as_archive: bool = False,
+                        treat_as_disc: bool = False, treat_as_auxiliary: bool = False) -> str:
         """Create a new file extension."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 INSERT INTO file_extension 
-                (extension, category_id, description, mime_type, is_active, is_archive, is_rom, is_save, is_patch)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (extension, category_id, description, mime_type, is_active, 
-                  is_archive, is_rom, is_save, is_patch))
-            extension_id = cursor.lastrowid
+                (extension, category_id, description, is_active, treat_as_archive, treat_as_disc, treat_as_auxiliary)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (extension, category_id, description, is_active, 
+                  treat_as_archive, treat_as_disc, treat_as_auxiliary))
             conn.commit()
             
-            self.logger.info(f"Created file extension: {extension} (ID: {extension_id})")
-            return extension_id
+            self.logger.info(f"Created file extension: {extension}")
+            return extension
     
     def get_extensions(self, category_id: int = None, active_only: bool = True, 
                       extension_type: str = None) -> List[Dict]:
@@ -146,21 +145,19 @@ class ExtensionRegistryManager:
                 params.append(category_id)
             
             if extension_type:
-                if extension_type == 'rom':
-                    query += " AND fe.is_rom = 1"
-                elif extension_type == 'archive':
-                    query += " AND fe.is_archive = 1"
-                elif extension_type == 'save':
-                    query += " AND fe.is_save = 1"
-                elif extension_type == 'patch':
-                    query += " AND fe.is_patch = 1"
+                if extension_type == 'archive':
+                    query += " AND fe.treat_as_archive = 1"
+                elif extension_type == 'disc':
+                    query += " AND fe.treat_as_disc = 1"
+                elif extension_type == 'auxiliary':
+                    query += " AND fe.treat_as_auxiliary = 1"
             
             query += " ORDER BY ftc.sort_order, ftc.name, fe.extension"
             
             cursor.execute(query, params)
             return [dict(row) for row in cursor.fetchall()]
     
-    def get_extension(self, extension_id: int) -> Optional[Dict]:
+    def get_extension(self, extension: str) -> Optional[Dict]:
         """Get a specific file extension."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
@@ -168,8 +165,8 @@ class ExtensionRegistryManager:
                 SELECT fe.*, ftc.name as category_name, ftc.description as category_description
                 FROM file_extension fe
                 JOIN file_type_category ftc ON fe.category_id = ftc.category_id
-                WHERE fe.extension_id = ?
-            """, (extension_id,))
+                WHERE fe.extension = ?
+            """, (extension,))
             row = cursor.fetchone()
             return dict(row) if row else None
     
@@ -186,7 +183,7 @@ class ExtensionRegistryManager:
             row = cursor.fetchone()
             return dict(row) if row else None
     
-    def update_extension(self, extension_id: int, **kwargs) -> bool:
+    def update_extension(self, extension: str, **kwargs) -> bool:
         """Update a file extension."""
         if not kwargs:
             return False
@@ -199,8 +196,8 @@ class ExtensionRegistryManager:
             params = []
             
             for key, value in kwargs.items():
-                if key in ['extension', 'category_id', 'description', 'mime_type', 
-                          'is_active', 'is_archive', 'is_rom', 'is_save', 'is_patch']:
+                if key in ['extension', 'category_id', 'description', 
+                          'is_active', 'treat_as_archive', 'treat_as_disc', 'treat_as_auxiliary']:
                     set_clauses.append(f"{key} = ?")
                     params.append(value)
             
@@ -211,40 +208,39 @@ class ExtensionRegistryManager:
             set_clauses.append("updated_at = ?")
             params.append(datetime.now().isoformat())
             
-            params.append(extension_id)
-            query = f"UPDATE file_extension SET {', '.join(set_clauses)} WHERE extension_id = ?"
+            params.append(extension)
+            query = f"UPDATE file_extension SET {', '.join(set_clauses)} WHERE extension = ?"
             
             cursor.execute(query, params)
             conn.commit()
             
-            self.logger.info(f"Updated file extension ID {extension_id}")
+            self.logger.info(f"Updated file extension {extension}")
             return cursor.rowcount > 0
     
-    def delete_extension(self, extension_id: int) -> bool:
+    def delete_extension(self, extension: str) -> bool:
         """Delete a file extension (soft delete by setting is_active = 0)."""
-        return self.update_extension(extension_id, is_active=False)
+        return self.update_extension(extension, is_active=False)
     
     # =============================================================================
     # PLATFORM EXTENSION MAPPING OPERATIONS
     # =============================================================================
     
-    def create_platform_extension(self, platform_id: int, extension_id: int, 
-                                 is_primary: bool = False, confidence: float = 1.0) -> int:
+    def create_platform_extension(self, platform_id: int, extension: str, 
+                                 is_primary: bool = False) -> bool:
         """Create a platform-extension mapping."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 INSERT OR REPLACE INTO platform_extension 
-                (platform_id, extension_id, is_primary, confidence)
-                VALUES (?, ?, ?, ?)
-            """, (platform_id, extension_id, is_primary, confidence))
-            mapping_id = cursor.lastrowid
+                (platform_id, extension, is_primary)
+                VALUES (?, ?, ?)
+            """, (platform_id, extension, is_primary))
             conn.commit()
             
-            self.logger.info(f"Created platform-extension mapping: Platform {platform_id} -> Extension {extension_id}")
-            return mapping_id
+            self.logger.info(f"Created platform-extension mapping: Platform {platform_id} -> Extension {extension}")
+            return True
     
-    def get_platform_extensions(self, platform_id: int = None, extension_id: int = None) -> List[Dict]:
+    def get_platform_extensions(self, platform_id: int = None, extension: str = None) -> List[Dict]:
         """Get platform-extension mappings."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
@@ -254,7 +250,7 @@ class ExtensionRegistryManager:
                        ftc.name as category_name
                 FROM platform_extension pe
                 JOIN platform p ON pe.platform_id = p.platform_id
-                JOIN file_extension fe ON pe.extension_id = fe.extension_id
+                JOIN file_extension fe ON pe.extension = fe.extension
                 JOIN file_type_category ftc ON fe.category_id = ftc.category_id
                 WHERE 1=1
             """
@@ -264,16 +260,16 @@ class ExtensionRegistryManager:
                 query += " AND pe.platform_id = ?"
                 params.append(platform_id)
             
-            if extension_id:
-                query += " AND pe.extension_id = ?"
-                params.append(extension_id)
+            if extension:
+                query += " AND pe.extension = ?"
+                params.append(extension)
             
             query += " ORDER BY p.name, pe.is_primary DESC, fe.extension"
             
             cursor.execute(query, params)
             return [dict(row) for row in cursor.fetchall()]
     
-    def update_platform_extension(self, platform_extension_id: int, **kwargs) -> bool:
+    def update_platform_extension(self, platform_id: int, extension: str, **kwargs) -> bool:
         """Update a platform-extension mapping."""
         if not kwargs:
             return False
@@ -286,31 +282,31 @@ class ExtensionRegistryManager:
             params = []
             
             for key, value in kwargs.items():
-                if key in ['is_primary', 'confidence']:
+                if key in ['is_primary']:
                     set_clauses.append(f"{key} = ?")
                     params.append(value)
             
             if not set_clauses:
                 return False
             
-            params.append(platform_extension_id)
-            query = f"UPDATE platform_extension SET {', '.join(set_clauses)} WHERE platform_extension_id = ?"
+            params.extend([platform_id, extension])
+            query = f"UPDATE platform_extension SET {', '.join(set_clauses)} WHERE platform_id = ? AND extension = ?"
             
             cursor.execute(query, params)
             conn.commit()
             
-            self.logger.info(f"Updated platform-extension mapping ID {platform_extension_id}")
+            self.logger.info(f"Updated platform-extension mapping: Platform {platform_id} -> Extension {extension}")
             return cursor.rowcount > 0
     
-    def delete_platform_extension(self, platform_extension_id: int) -> bool:
+    def delete_platform_extension(self, platform_id: int, extension: str) -> bool:
         """Delete a platform-extension mapping."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM platform_extension WHERE platform_extension_id = ?", 
-                         (platform_extension_id,))
+            cursor.execute("DELETE FROM platform_extension WHERE platform_id = ? AND extension = ?", 
+                         (platform_id, extension))
             conn.commit()
             
-            self.logger.info(f"Deleted platform-extension mapping ID {platform_extension_id}")
+            self.logger.info(f"Deleted platform-extension mapping: Platform {platform_id} -> Extension {extension}")
             return cursor.rowcount > 0
     
     # =============================================================================
