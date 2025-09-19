@@ -222,8 +222,8 @@ class ConfigManager:
         Key is a dot-separated path (e.g., "gui_settings.theme"). The method traverses nested mappings stored in the manager's internal config and returns the found value. If any path segment is missing or a non-mapping is encountered before the final segment, returns `default`.
         
         Parameters:
-            key: Dot-separated path to the configuration value.
-            default: Value to return if the path does not exist.
+            key (str): Dot-separated path to the configuration value.
+            default (Any, optional): Value to return if the path does not exist. Defaults to None.
         
         Returns:
             The value at the specified path or `default` if not found.
