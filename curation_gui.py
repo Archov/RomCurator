@@ -53,6 +53,18 @@ class CurationMainWindow(QMainWindow):
     """Main window for the curation interface."""
     
     def __init__(self, db_path, config_manager=None):
+        """
+        Initialize the curation main window.
+        
+        Creates a GameMatcher for the given SQLite database path, prepares internal state for the manual curation queue, loads or creates a ConfigManager if one is not provided, builds the user interface, and begins loading the curation queue.
+        
+        Parameters:
+            db_path (str | pathlib.Path): Path to the SQLite database file used by GameMatcher.
+            config_manager (ConfigManager, optional): Preconstructed configuration manager instance. If omitted, a ConfigManager is imported and instantiated.
+        
+        Side effects:
+            - Constructs UI widgets and starts loading the curation queue (which will spawn a background worker).
+        """
         super().__init__()
         self.db_path = db_path
         self.matcher = GameMatcher(db_path)
