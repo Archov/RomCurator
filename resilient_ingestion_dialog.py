@@ -711,7 +711,7 @@ class ResilientIngestionDialog(QDialog):
 
 # Test function for standalone execution
 if __name__ == "__main__":
-    from rom_curator_main import ConfigManager
+    from config_manager import ConfigManager
 
     app = QApplication(sys.argv)
     app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())

@@ -967,7 +967,7 @@ class ImporterApp(EnhancedImporterWidget):
     
     def __init__(self, config_manager=None):
         if not config_manager:
-            from rom_curator_main import ConfigManager
+            from config_manager import ConfigManager
             config_manager = ConfigManager()
         
         super().__init__(config_manager)
@@ -980,7 +980,7 @@ def main():
     app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     
     # Load configuration
-    from rom_curator_main import ConfigManager
+    from config_manager import ConfigManager
     config = ConfigManager()
     
     window = ImporterApp(config)

@@ -226,7 +226,7 @@ class ImporterApp(QWidget):
         if config_manager:
             self.config = config_manager
         else:
-            from rom_curator_main import ConfigManager
+            from config_manager import ConfigManager
             self.config = ConfigManager()
         
         # Get paths from config

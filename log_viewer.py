@@ -199,7 +199,7 @@ def main():
     app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     
     # Load configuration
-    from rom_curator_main import ConfigManager
+    from config_manager import ConfigManager
     config = ConfigManager()
     
     window = LogViewerWindow(config)
