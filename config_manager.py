@@ -166,7 +166,7 @@ class RomCuratorConfig(BaseModel):
         
         Parameters:
             value (Path): The directory path being validated.
-            info: Pydantic validation context (used to read `auto_create_directories`).
+            info (ValidationInfo): Pydantic validation context (used to read `auto_create_directories`).
         """
         auto_create = info.data.get("auto_create_directories", True)
         if not auto_create and not value.exists():
