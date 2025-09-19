@@ -16,6 +16,7 @@ Features:
 
 import argparse
 import hashlib
+import logging
 import os
 import sqlite3
 import time
@@ -29,12 +30,17 @@ try:
 except ImportError:
     from base_importer import BaseImporter, DatabaseHandler
 
+from extension_registry_manager import ExtensionRegistryManager
+
 
 class LibraryIngestionImporter(BaseImporter):
     """Library file ingestion importer that processes files from configured directories."""
     
     def __init__(self, db_path: str, config: Dict[str, Any] = None):
         super().__init__(db_path)
+        
+        # Initialize logger
+        self.logger = logging.getLogger(__name__)
         
         # Load config if not provided
         if config is None:
@@ -48,11 +54,16 @@ class LibraryIngestionImporter(BaseImporter):
         self.enable_archive_expansion = self.ingestion_settings.get('enable_archive_expansion', True)
         # Only use hash algorithms that exist in the current database schema
         self.hash_algorithms = self.ingestion_settings.get('hash_algorithms', ['sha1', 'crc32', 'md5'])
-        self.file_extensions = self.ingestion_settings.get('file_extensions', {})
         self.max_file_size_mb = self.ingestion_settings.get('max_file_size_mb', 1024)
         self.exclude_patterns = self.ingestion_settings.get('exclude_patterns', [])
         self.enable_platform_detection = self.ingestion_settings.get('enable_platform_detection', True)
         self.enable_metadata_extraction = self.ingestion_settings.get('enable_metadata_extraction', True)
+        
+        # Initialize extension registry manager
+        self.extension_registry = ExtensionRegistryManager(db_path)
+        
+        # Load supported file extensions from registry
+        self.supported_extensions = self._load_supported_extensions()
         
         # Statistics tracking
         self.stats = {
@@ -81,13 +92,57 @@ class LibraryIngestionImporter(BaseImporter):
                 with open(config_file, 'r') as f:
                     config = json.load(f)
             except (json.JSONDecodeError, IOError) as e:
-                print(f"Warning: Could not load config file {config_file}: {e}")
-                print("Using default configuration values.")
+                self.logger.warning(
+                    "Could not load config file %s: %s. Using default configuration values.",
+                    config_file,
+                    e,
+                )
         else:
-            print(f"Warning: Config file not found at {config_file}")
-            print("Using default configuration values.")
-        
+            self.logger.warning(
+                "Config file not found at %s. Using default configuration values.",
+                config_file,
+            )
+
         return config
+    
+    def _load_supported_extensions(self) -> Dict[str, List[str]]:
+        """Load supported file extensions from the extension registry."""
+        try:
+            # Get all active extensions
+            extensions = self.extension_registry.get_extensions(active_only=True)
+            
+            # Group by type
+            supported = {
+                'rom': [],
+                'archive': [],
+                'save': [],
+                'patch': []
+            }
+            
+            for ext in extensions:
+                ext_name = ext['extension']
+                
+                if ext['is_rom']:
+                    supported['rom'].append(ext_name)
+                if ext['is_archive']:
+                    supported['archive'].append(ext_name)
+                if ext['is_save']:
+                    supported['save'].append(ext_name)
+                if ext['is_patch']:
+                    supported['patch'].append(ext_name)
+            
+            self.logger.info(f"Loaded {len(extensions)} supported extensions from registry")
+            return supported
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to load extensions from registry: {e}")
+            # Fallback to config-based extensions
+            return self.ingestion_settings.get('file_extensions', {
+                'rom': ['.rom', '.bin', '.nes', '.sfc', '.smd', '.gb', '.gba', '.nds'],
+                'archive': ['.zip', '.7z', '.rar', '.tar', '.gz'],
+                'save': ['.sav', '.srm', '.state'],
+                'patch': ['.ips', '.ups', '.bps', '.xdelta']
+            })
     
     def get_file_type_description(self):
         return "Library File Ingestion"
@@ -108,7 +163,11 @@ class LibraryIngestionImporter(BaseImporter):
         """
         for file_path_str in file_paths:
             file_path = Path(file_path_str)
-            print(f"\n--- Processing {self.get_file_type_description()} directory: {file_path.name} ---")
+            self.logger.info(
+                "Processing %s directory: %s",
+                self.get_file_type_description(),
+                file_path.name,
+            )
 
             # For library ingestion, we create a custom import log entry
             log_id = self._start_library_import_log(source_id, file_path)
@@ -118,14 +177,14 @@ class LibraryIngestionImporter(BaseImporter):
                 records_processed, notes = self.process_single_file(file_path, log_id, source_id)
                 
                 self.db.finish_import_log(log_id, 'completed', records_processed, notes)
-                print(f"--- Finished processing {file_path.name} ---")
-                
+                self.logger.info("Finished processing directory %s", file_path.name)
+
             except Exception as e:
                 error_message = f"Critical error: {e}. All changes for this file have been rolled back."
-                print(error_message)
+                self.logger.error(error_message)
                 self.db.finish_import_log(log_id, 'failed', 0, error_message)
 
-        print(f"\nAll {self.get_file_type_description()} directories processed.")
+        self.logger.info("All %s directories processed.", self.get_file_type_description())
     
     def _start_library_import_log(self, source_id: int, file_path: Path) -> int:
         """Create a custom import log entry for library ingestion."""
@@ -143,7 +202,7 @@ class LibraryIngestionImporter(BaseImporter):
             self.db.conn.commit()
             return cursor.lastrowid
         except Exception as e:
-            print(f"Error creating import log entry: {e}")
+            self.logger.error("Error creating import log entry: %s", e)
             raise
     
     def create_argument_parser(self):
@@ -184,7 +243,10 @@ class LibraryIngestionImporter(BaseImporter):
                 if root_path.exists() and root_path.is_dir():
                     valid_roots.append(root_path)
                 else:
-                    print(f"Warning: Library root does not exist or is not a directory: {root_path}")
+                    self.logger.warning(
+                        "Library root does not exist or is not a directory: %s",
+                        root_path,
+                    )
             
             if not valid_roots:
                 return 0, "No valid library roots found"
@@ -216,7 +278,11 @@ class LibraryIngestionImporter(BaseImporter):
                     total_processed += batch_processed
                     
                     # Report progress
-                    print(f"Processed batch {i//self.batch_size + 1}: {batch_processed} files")
+                    self.logger.info(
+                        "Processed batch %d: %d files",
+                        i // self.batch_size + 1,
+                        batch_processed,
+                    )
             
             # Generate summary
             summary = self._generate_summary()
@@ -226,7 +292,7 @@ class LibraryIngestionImporter(BaseImporter):
             
         except Exception as e:
             error_msg = f"Error processing library ingestion: {e}"
-            print(error_msg)
+            self.logger.error(error_msg)
             return 0, error_msg
     
     def _discover_files(self, root_path: Path) -> List[Path]:
@@ -239,7 +305,11 @@ class LibraryIngestionImporter(BaseImporter):
                     # Check file size
                     file_size_mb = file_path.stat().st_size / (1024 * 1024)
                     if file_size_mb > self.max_file_size_mb:
-                        print(f"Skipping large file: {file_path} ({file_size_mb:.1f} MB)")
+                        self.logger.info(
+                            "Skipping large file %s (%.1f MB)",
+                            file_path,
+                            file_size_mb,
+                        )
                         continue
                     
                     # Check exclude patterns
@@ -251,9 +321,9 @@ class LibraryIngestionImporter(BaseImporter):
                         discovered_files.append(file_path)
         
         except PermissionError as e:
-            print(f"Permission denied accessing {root_path}: {e}")
+            self.logger.warning("Permission denied accessing %s: %s", root_path, e)
         except Exception as e:
-            print(f"Error discovering files in {root_path}: {e}")
+            self.logger.error("Error discovering files in %s: %s", root_path, e)
         
         return discovered_files
     
@@ -268,17 +338,33 @@ class LibraryIngestionImporter(BaseImporter):
         """Check if file is supported based on extensions."""
         file_ext = file_path.suffix.lower()
         
+        # Use extension registry to detect file type
+        if file_type_info := self.extension_registry.detect_file_type(file_path.name):
+            # Only return True if it's a ROM or archive file (not save/patch files)
+            if file_type_info.get('is_rom') or (self.enable_archive_expansion and file_type_info.get('is_archive')):
+                return True
+        
+        # Check if extension is in our supported lists (fallback)
         # Check ROM extensions
-        rom_extensions = self.file_extensions.get('rom', [])
+        rom_extensions = self.supported_extensions.get('rom', [])
         if file_ext in rom_extensions:
             return True
         
         # Check archive extensions
         if self.enable_archive_expansion:
-            archive_extensions = self.file_extensions.get('archive', [])
+            archive_extensions = self.supported_extensions.get('archive', [])
             if file_ext in archive_extensions:
                 return True
         
+        # If not recognized, record as unknown extension
+        if file_ext and file_ext.startswith('.') and file_ext[1:].isalnum():
+            self.extension_registry.record_unknown_extension(file_ext)
+            self.logger.info(
+                "Unknown extension encountered: %s in %s",
+                file_ext,
+                file_path,
+            )
+
         return False
     
     def _process_file_batch(self, file_paths: List[Path], log_id: int, source_id: int) -> int:
@@ -317,7 +403,7 @@ class LibraryIngestionImporter(BaseImporter):
                 self.stats['files_processed'] += 1
                 
             except Exception as e:
-                print(f"Error processing file {file_path}: {e}")
+                self.logger.error("Error processing file %s: %s", file_path, e)
                 self.stats['errors'] += 1
         
         return processed_count
@@ -329,17 +415,17 @@ class LibraryIngestionImporter(BaseImporter):
         try:
             # Check if file exists and is readable
             if not file_path.exists():
-                print(f"File does not exist: {file_path}")
+                self.logger.warning("File does not exist: %s", file_path)
                 return {}
-            
+
             if not file_path.is_file():
-                print(f"Path is not a file: {file_path}")
+                self.logger.warning("Path is not a file: %s", file_path)
                 return {}
-            
+
             # Check file size before processing
             file_size = file_path.stat().st_size
             if file_size == 0:
-                print(f"File is empty: {file_path}")
+                self.logger.warning("File is empty: %s", file_path)
                 return {}
             
             with open(file_path, 'rb') as f:
@@ -371,7 +457,12 @@ class LibraryIngestionImporter(BaseImporter):
                 
                 # Verify we read the entire file
                 if bytes_read != file_size:
-                    print(f"Warning: Only read {bytes_read} of {file_size} bytes from {file_path}")
+                    self.logger.warning(
+                        "Only read %d of %d bytes from %s",
+                        bytes_read,
+                        file_size,
+                        file_path,
+                    )
                 
                 # Get final hash values
                 for algo, hash_obj in hash_objects.items():
@@ -381,13 +472,13 @@ class LibraryIngestionImporter(BaseImporter):
                         hashes[algo] = hash_obj.hexdigest()
         
         except PermissionError as e:
-            print(f"Permission denied reading file {file_path}: {e}")
+            self.logger.warning("Permission denied reading file %s: %s", file_path, e)
             return {}
         except OSError as e:
-            print(f"OS error reading file {file_path}: {e}")
+            self.logger.error("OS error reading file %s: %s", file_path, e)
             return {}
         except Exception as e:
-            print(f"Error calculating hashes for {file_path}: {e}")
+            self.logger.error("Error calculating hashes for %s: %s", file_path, e)
             return {}
         
         return hashes
@@ -419,7 +510,7 @@ class LibraryIngestionImporter(BaseImporter):
             return None
             
         except Exception as e:
-            print(f"Error finding existing ROM file: {e}")
+            self.logger.error("Error finding existing ROM file: %s", e)
             return None
     
     def _create_rom_file_record(self, file_path: Path, hashes: Dict[str, str], log_id: int) -> Optional[int]:
@@ -434,7 +525,7 @@ class LibraryIngestionImporter(BaseImporter):
             
             # Validate required hashes
             if not hashes.get('sha1'):
-                print(f"Warning: No SHA1 hash available for {file_path}")
+                self.logger.warning("No SHA1 hash available for %s", file_path)
                 return None
             
             # Detect platform if enabled
@@ -461,22 +552,32 @@ class LibraryIngestionImporter(BaseImporter):
             return rom_id
             
         except sqlite3.IntegrityError as e:
-            print(f"Database integrity error creating ROM file record for {file_path}: {e}")
+            self.logger.error(
+                "Database integrity error creating ROM file record for %s: %s",
+                file_path,
+                e,
+            )
             self.db.conn.rollback()
             return None
         except Exception as e:
-            print(f"Error creating ROM file record for {file_path}: {e}")
+            self.logger.error("Error creating ROM file record for %s: %s", file_path, e)
             self.db.conn.rollback()
             return None
     
     def _detect_platform(self, file_path: Path) -> Optional[int]:
-        """Detect platform from file path and extension."""
+        """Detect platform from file path and extension using extension registry."""
         try:
-            # Simple platform detection based on directory structure and file extensions
-            path_parts = [part.lower() for part in file_path.parts]
             file_ext = file_path.suffix.lower()
             
-            # Platform detection rules
+            # PRIMARY: Try to get platform from extension registry first
+            if file_ext and (platform_id := self._get_platform_from_extension_registry(file_ext)):
+                self.logger.debug(f"Platform detected from extension registry: {file_ext} -> Platform ID {platform_id}")
+                return platform_id
+            
+            # SECONDARY: Fallback to path-based detection for unmapped extensions
+            path_parts = [part.lower() for part in file_path.parts]
+            
+            # Platform detection rules for path-based detection
             platform_rules = {
                 'nintendo': {
                     'nes': 'Nintendo Entertainment System',
@@ -510,9 +611,11 @@ class LibraryIngestionImporter(BaseImporter):
                 if manufacturer in ' '.join(path_parts):
                     for platform_key, platform_name in platforms.items():
                         if platform_key in ' '.join(path_parts):
-                            return self._get_or_create_platform(platform_name)
+                            platform_id = self._get_or_create_platform(platform_name)
+                            self.logger.debug(f"Platform detected from path: {platform_name} -> Platform ID {platform_id}")
+                            return platform_id
             
-            # Check file extensions for platform hints
+            # TERTIARY: Final fallback to hardcoded extension mapping
             ext_platform_map = {
                 '.nes': 'Nintendo Entertainment System',
                 '.sfc': 'Super Nintendo Entertainment System',
@@ -525,12 +628,61 @@ class LibraryIngestionImporter(BaseImporter):
             }
             
             if file_ext in ext_platform_map:
-                return self._get_or_create_platform(ext_platform_map[file_ext])
+                platform_id = self._get_or_create_platform(ext_platform_map[file_ext])
+                self.logger.debug(f"Platform detected from hardcoded mapping: {file_ext} -> {ext_platform_map[file_ext]} -> Platform ID {platform_id}")
+                return platform_id
+            
+            self.logger.debug(f"No platform detected for {file_path} (extension: {file_ext})")
             
         except Exception as e:
-            print(f"Error detecting platform for {file_path}: {e}")
+            self.logger.error(f"Error detecting platform for {file_path}: {e}")
         
         return None
+    
+    def _get_platform_from_extension_registry(self, file_ext: str) -> Optional[int]:
+        """Get platform ID from extension registry for the given file extension."""
+        try:
+            # Get the extension info from registry
+            if not (extension_info := self.extension_registry.get_extension_by_name(file_ext)):
+                return None
+
+            # Get platform mappings for this extension
+            if not (platform_mappings := self.extension_registry.get_platforms_for_extension(extension_info['extension_id'])):
+                return None
+            
+            # Prefer primary mappings, using confidence and platform ID for deterministic ordering
+            def _mapping_sort_key(mapping: Dict[str, Any]) -> Tuple[float, int]:
+                confidence = mapping.get('confidence')
+                try:
+                    numeric_confidence = float(confidence) if confidence is not None else 0.0
+                except (TypeError, ValueError):
+                    numeric_confidence = 0.0
+                platform_id = mapping.get('platform_id') or 0
+                return (-numeric_confidence, platform_id)
+
+            primary_mappings = sorted(
+                (m for m in platform_mappings if m.get('is_primary', False)),
+                key=_mapping_sort_key,
+            )
+
+            if primary_mappings:
+                if len(primary_mappings) > 1:
+                    self.logger.warning(
+                        "Multiple primary platform mappings found for %s. Selecting %s (platform_id=%s).",
+                        file_ext,
+                        primary_mappings[0].get('platform_name') or primary_mappings[0].get('platform_id'),
+                        primary_mappings[0].get('platform_id'),
+                    )
+                return primary_mappings[0]['platform_id']
+
+            # If no primary mappings, return the highest confidence mapping with deterministic ordering
+            sorted_mappings = sorted(platform_mappings, key=_mapping_sort_key)
+            best_mapping = sorted_mappings[0]
+            return best_mapping['platform_id']
+            
+        except Exception as e:
+            self.logger.error(f"Error getting platform from extension registry for {file_ext}: {e}")
+            return None
     
     def _get_or_create_platform(self, platform_name: str) -> Optional[int]:
         """Get or create platform in database."""
@@ -547,8 +699,8 @@ class LibraryIngestionImporter(BaseImporter):
                 return cursor.lastrowid
                 
         except Exception as e:
-            print(f"Error getting/creating platform {platform_name}: {e}")
-            return None
+            self.logger.error(f"Error getting/creating platform {platform_name}: {e}")
+            raise
     
     def _get_or_create_library_root(self, file_path: Path) -> int:
         """Get or create library root record for the given file path."""
@@ -605,7 +757,7 @@ class LibraryIngestionImporter(BaseImporter):
             return default_root_id
             
         except Exception as e:
-            print(f"Error getting/creating library root for {file_path}: {e}")
+            self.logger.error(f"Error getting/creating library root for {file_path}: {e}")
             # Return default root_id as fallback
             return 1
     
@@ -638,7 +790,7 @@ class LibraryIngestionImporter(BaseImporter):
             self.db.conn.commit()
             
         except Exception as e:
-            print(f"Error creating file discovery record for {file_path}: {e}")
+            self.logger.error(f"Error creating file discovery record for {file_path}: {e}")
     
     def _update_file_discovery(self, file_path: Path, rom_id: int, log_id: int):
         """Update existing file discovery record."""
@@ -652,17 +804,24 @@ class LibraryIngestionImporter(BaseImporter):
             """, (rom_id, datetime.now().isoformat(), str(file_path.absolute())))
             
             if cursor.rowcount == 0:
-                print(f"Warning: No file discovery record found to update for {file_path}")
+                self.logger.warning(f"No file discovery record found to update for {file_path}")
             
             self.db.conn.commit()
             
         except Exception as e:
-            print(f"Error updating file discovery record for {file_path}: {e}")
+            self.logger.error(f"Error updating file discovery record for {file_path}: {e}")
             self.stats['errors'] += 1
     
     def _is_archive_file(self, file_path: Path) -> bool:
         """Check if file is an archive."""
-        archive_extensions = self.file_extensions.get('archive', [])
+        # Use extension registry to detect archive files
+        file_type_info = self.extension_registry.detect_file_type(file_path.name)
+        
+        if file_type_info and file_type_info.get('is_archive'):
+            return True
+        
+        # Fallback to supported extensions list
+        archive_extensions = self.supported_extensions.get('archive', [])
         return file_path.suffix.lower() in archive_extensions
     
     def _expand_archive(self, file_path: Path, log_id: int, source_id: int):
@@ -671,7 +830,7 @@ class LibraryIngestionImporter(BaseImporter):
             # This is a placeholder for archive expansion
             # In a real implementation, this would use libraries like zipfile, py7zr, etc.
             # For now, we just log that archive expansion is not implemented
-            print(f"Archive expansion not yet implemented for {file_path}")
+            self.logger.info("Archive expansion not yet implemented for %s", file_path)
             
             # TODO: Implement actual archive expansion
             # - Use zipfile for .zip files
@@ -683,7 +842,7 @@ class LibraryIngestionImporter(BaseImporter):
             # - Clean up temporary files
             
         except Exception as e:
-            print(f"Error expanding archive {file_path}: {e}")
+            self.logger.error("Error expanding archive %s: %s", file_path, e)
             self.stats['errors'] += 1
     
     def _generate_summary(self) -> str:
@@ -701,7 +860,9 @@ def main():
     """Main entry point for CLI usage."""
     import json
     from pathlib import Path
-    
+
+    logger = logging.getLogger(__name__)
+
     # Load configuration from project root
     # Look for config.json in the project root (two levels up from this script)
     script_dir = Path(__file__).parent
@@ -713,8 +874,7 @@ def main():
         with open(config_file, 'r') as f:
             config = json.load(f)
     else:
-        print(f"Warning: Config file not found at {config_file}")
-        print("Using default configuration values.")
+        logger.warning("Config file not found at %s. Using default configuration values.", config_file)
     
     # Create importer
     importer = LibraryIngestionImporter(config.get('database_path', './database/RomCurator.db'), config)

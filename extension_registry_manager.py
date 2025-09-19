@@ -540,3 +540,573 @@ class ExtensionRegistryManager:
     def get_platforms_for_extension(self, extension_id: int) -> List[Dict]:
         """Get all platforms associated with an extension."""
         return self.get_platform_extensions(extension_id=extension_id)
+    
+    # =============================================================================
+    # IMPORT/EXPORT FUNCTIONALITY
+    # =============================================================================
+    
+    def export_extensions(self, file_path: str, format: str = 'json') -> bool:
+        """Export extension registry data to file."""
+        try:
+            # Get all data
+            categories = self.get_categories(active_only=False)
+            extensions = self.get_extensions(active_only=False)
+            mappings = self.get_platform_extensions()
+            unknown_extensions = self.get_unknown_extensions()
+            
+            # Prepare export data
+            export_data = {
+                'metadata': {
+                    'export_date': datetime.now().isoformat(),
+                    'version': '1.0',
+                    'format': format
+                },
+                'categories': categories,
+                'extensions': extensions,
+                'mappings': mappings,
+                'unknown_extensions': unknown_extensions
+            }
+            
+            if format.lower() == 'json':
+                import json
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    json.dump(export_data, f, indent=2, ensure_ascii=False)
+            
+            elif format.lower() == 'csv':
+                import csv
+                with open(file_path, 'w', newline='', encoding='utf-8') as f:
+                    writer = csv.writer(f)
+                    
+                    # Write categories
+                    writer.writerow(['CATEGORIES'])
+                    writer.writerow(['category_id', 'name', 'description', 'sort_order', 'is_active'])
+                    for cat in categories:
+                        writer.writerow([
+                            cat['category_id'], cat['name'], cat['description'] or '',
+                            cat['sort_order'], cat['is_active']
+                        ])
+                    
+                    writer.writerow([])  # Empty row
+                    
+                    # Write extensions
+                    writer.writerow(['EXTENSIONS'])
+                    writer.writerow(['extension_id', 'extension', 'category_id', 'description', 
+                                   'mime_type', 'is_active', 'is_rom', 'is_archive', 'is_save', 'is_patch'])
+                    for ext in extensions:
+                        writer.writerow([
+                            ext['extension_id'], ext['extension'], ext['category_id'],
+                            ext['description'] or '', ext['mime_type'] or '', ext['is_active'],
+                            ext['is_rom'], ext['is_archive'], ext['is_save'], ext['is_patch']
+                        ])
+                    
+                    writer.writerow([])  # Empty row
+                    
+                    # Write mappings
+                    writer.writerow(['PLATFORM MAPPINGS'])
+                    writer.writerow(['platform_extension_id', 'platform_id', 'platform_name', 
+                                   'extension_id', 'extension', 'is_primary', 'confidence'])
+                    for mapping in mappings:
+                        writer.writerow([
+                            mapping['platform_extension_id'], mapping['platform_id'], mapping['platform_name'],
+                            mapping['extension_id'], mapping['extension'], mapping['is_primary'], mapping['confidence']
+                        ])
+                    
+                    writer.writerow([])  # Empty row
+                    
+                    # Write unknown extensions
+                    writer.writerow(['UNKNOWN EXTENSIONS'])
+                    writer.writerow(['unknown_extension_id', 'extension', 'file_count', 'status', 
+                                   'suggested_category_id', 'suggested_platform_id', 'notes', 
+                                   'first_seen', 'last_seen'])
+                    for unknown in unknown_extensions:
+                        writer.writerow([
+                            unknown['unknown_extension_id'], unknown['extension'], unknown['file_count'],
+                            unknown['status'], unknown.get('suggested_category_id') or '', 
+                            unknown.get('suggested_platform_id') or '', unknown.get('notes') or '',
+                            unknown.get('first_seen') or '', unknown.get('last_seen') or ''
+                        ])
+            
+            else:
+                raise ValueError(f"Unsupported export format: {format}")
+            
+            self.logger.info(f"Exported extension registry to {file_path}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to export extension registry: {e}")
+            return False
+    
+    def import_extensions(self, file_path: str, format: str = 'json', overwrite: bool = False) -> Dict[str, Any]:
+        """Import extension registry data from file."""
+        import_results = {
+            'success': False,
+            'categories_imported': 0,
+            'extensions_imported': 0,
+            'mappings_imported': 0,
+            'unknown_imported': 0,
+            'errors': []
+        }
+        
+        try:
+            import_data = self._load_import_data(file_path, format)
+            
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+
+                try:
+                    self._import_categories(cursor, import_data, overwrite, import_results)
+                    self._import_extensions(cursor, import_data, overwrite, import_results)
+                    self._import_mappings(cursor, import_data, overwrite, import_results)
+                    self._import_unknown_extensions(cursor, import_data, overwrite, import_results)
+
+                    if import_results['errors']:
+                        conn.rollback()
+                        self.logger.warning(
+                            "Import failed; rolling back transaction due to errors: %s",
+                            import_results['errors'],
+                        )
+                    else:
+                        conn.commit()
+                        import_results['success'] = True
+                        self.logger.info(f"Imported extension registry from {file_path}")
+
+                except Exception as e:
+                    conn.rollback()
+                    import_results['errors'].append(f"Transaction failed: {e}")
+                    raise
+
+        except Exception as e:
+            import_results['errors'].append(f"Import failed: {e}")
+            self.logger.error(f"Failed to import extension registry: {e}")
+
+        return import_results
+    
+    def _load_import_data(self, file_path: str, format: str) -> Dict[str, Any]:
+        """Load import data from file."""
+        if format.lower() != 'json':
+            raise ValueError(f"Unsupported import format: {format}. Only 'json' is currently supported.")
+
+        import json
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+
+    def _get_category_id_by_name(self, cursor, category_name: Optional[str]) -> Optional[int]:
+        """Resolve a category ID from its name."""
+        if not category_name:
+            return None
+
+        cursor.execute("SELECT category_id FROM file_type_category WHERE name = ?", (category_name,))
+        row = cursor.fetchone()
+        return row['category_id'] if row else None
+
+    def _get_extension_id_by_name(self, cursor, extension_name: Optional[str]) -> Optional[int]:
+        """Resolve an extension ID from its extension string."""
+        if not extension_name:
+            return None
+
+        cursor.execute("SELECT extension_id FROM file_extension WHERE extension = ?", (extension_name,))
+        row = cursor.fetchone()
+        return row['extension_id'] if row else None
+
+    def _get_platform_id_by_name(self, cursor, platform_name: Optional[str], create_if_missing: bool = False) -> Optional[int]:
+        """Resolve a platform ID from its name, optionally creating it."""
+        if not platform_name:
+            return None
+
+        cursor.execute("SELECT platform_id FROM platform WHERE name = ?", (platform_name,))
+        if row := cursor.fetchone():
+            return row['platform_id']
+
+        if create_if_missing:
+            cursor.execute("INSERT INTO platform (name) VALUES (?)", (platform_name,))
+            return cursor.lastrowid
+
+        return None
+
+    @staticmethod
+    def _normalize_optional_id(value: Any) -> Optional[int]:
+        """Normalize optional identifier values from import data."""
+        return None if isinstance(value, str) and not value.strip() else value
+
+    def _category_exists(self, cursor, category_id: Optional[int]) -> bool:
+        """Check if a category with the given ID exists."""
+        if not category_id:
+            return False
+
+        cursor.execute(
+            "SELECT 1 FROM file_type_category WHERE category_id = ?",
+            (category_id,),
+        )
+        return cursor.fetchone() is not None
+
+    def _extension_exists(self, cursor, extension_id: Optional[int]) -> bool:
+        """Check if an extension with the given ID exists."""
+        if not extension_id:
+            return False
+
+        cursor.execute(
+            "SELECT 1 FROM file_extension WHERE extension_id = ?",
+            (extension_id,),
+        )
+        return cursor.fetchone() is not None
+
+    def _platform_exists(self, cursor, platform_id: Optional[int]) -> bool:
+        """Check if a platform with the given ID exists."""
+        if not platform_id:
+            return False
+
+        cursor.execute(
+            "SELECT 1 FROM platform WHERE platform_id = ?",
+            (platform_id,),
+        )
+        return cursor.fetchone() is not None
+
+    def _resolve_category_reference(
+        self,
+        cursor,
+        data: Dict[str, Any],
+        import_results: Dict[str, Any],
+        context: str,
+    ) -> Optional[int]:
+        """Resolve category ID using natural keys, logging errors when unresolved."""
+
+        category_name = (data.get('category_name') or data.get('category') or '').strip()
+        if category_name:
+            resolved_category_id = self._get_category_id_by_name(cursor, category_name)
+            if resolved_category_id is not None:
+                return resolved_category_id
+
+            error = (
+                f"Category '{category_name}' not found while importing {context}."
+            )
+            import_results['errors'].append(error)
+            self.logger.error(error)
+            return None
+
+        category_id = self._normalize_optional_id(data.get('category_id'))
+        if category_id and self._category_exists(cursor, category_id):
+            return category_id
+
+        if category_id:
+            error = (
+                f"Category ID {category_id} not found while importing {context}."
+            )
+        else:
+            error = f"No category reference provided while importing {context}."
+
+        import_results['errors'].append(error)
+        self.logger.error(error)
+        return None
+
+    def _resolve_extension_reference(
+        self,
+        cursor,
+        data: Dict[str, Any],
+        import_results: Dict[str, Any],
+        context: str,
+    ) -> Optional[int]:
+        """Resolve extension ID using natural keys."""
+
+        extension_name = (data.get('extension') or '').strip()
+        if extension_name:
+            extension_id = self._get_extension_id_by_name(cursor, extension_name)
+            if extension_id is not None:
+                return extension_id
+
+            error = (
+                f"Extension '{extension_name}' not found while importing {context}."
+            )
+            import_results['errors'].append(error)
+            self.logger.error(error)
+            return None
+
+        extension_id = self._normalize_optional_id(data.get('extension_id'))
+        if extension_id and self._extension_exists(cursor, extension_id):
+            return extension_id
+
+        if extension_id:
+            error = (
+                f"Extension ID {extension_id} not found while importing {context}."
+            )
+        else:
+            error = f"Extension reference missing while importing {context}."
+
+        import_results['errors'].append(error)
+        self.logger.error(error)
+        return None
+
+    def _resolve_platform_reference(
+        self,
+        cursor,
+        data: Dict[str, Any],
+        import_results: Dict[str, Any],
+        context: str,
+        create_if_missing: bool = False,
+    ) -> Optional[int]:
+        """Resolve platform ID using natural keys, optionally creating missing platforms."""
+
+        platform_name = (
+            data.get('platform_name')
+            or data.get('platform')
+            or data.get('suggested_platform')
+            or ''
+        ).strip()
+
+        if platform_name:
+            platform_id = self._get_platform_id_by_name(
+                cursor,
+                platform_name,
+                create_if_missing=create_if_missing,
+            )
+            if platform_id is not None:
+                return platform_id
+
+            error = (
+                f"Platform '{platform_name}' could not be resolved while importing {context}."
+            )
+            import_results['errors'].append(error)
+            self.logger.error(error)
+            return None
+
+        platform_id = self._normalize_optional_id(
+            data.get('platform_id') or data.get('suggested_platform_id')
+        )
+        if platform_id and self._platform_exists(cursor, platform_id):
+            return platform_id
+
+        if platform_id:
+            error = (
+                f"Platform ID {platform_id} not found while importing {context}."
+            )
+        else:
+            error = f"Platform reference missing while importing {context}."
+
+        import_results['errors'].append(error)
+        self.logger.error(error)
+        return None
+    
+    def _import_categories(self, cursor, import_data: Dict[str, Any], overwrite: bool, import_results: Dict[str, Any]):
+        """Import categories from import data."""
+        if 'categories' not in import_data:
+            return
+            
+        for cat_data in import_data['categories']:
+            try:
+                self._import_single_category(cursor, cat_data, overwrite, import_results)
+            except Exception as e:
+                import_results['errors'].append(f"Error importing category {cat_data.get('name', 'unknown')}: {e}")
+    
+    def _import_single_category(self, cursor, cat_data: Dict[str, Any], overwrite: bool, import_results: Dict[str, Any]):
+        """Import a single category."""
+        cursor.execute("SELECT category_id FROM file_type_category WHERE name = ?", (cat_data['name'],))
+        existing = cursor.fetchone()
+
+        if existing:
+            if not overwrite:
+                return
+
+            cursor.execute("""
+                UPDATE file_type_category
+                SET description = ?, sort_order = ?, is_active = ?
+                WHERE category_id = ?
+            """, (cat_data.get('description'), cat_data.get('sort_order', 0),
+                 cat_data.get('is_active', True), existing['category_id']))
+        else:
+            cursor.execute("""
+                INSERT INTO file_type_category (name, description, sort_order, is_active)
+                VALUES (?, ?, ?, ?)
+            """, (cat_data['name'], cat_data.get('description'),
+                 cat_data.get('sort_order', 0), cat_data.get('is_active', True)))
+
+        import_results['categories_imported'] += 1
+    
+    def _import_extensions(self, cursor, import_data: Dict[str, Any], overwrite: bool, import_results: Dict[str, Any]):
+        """Import extensions from import data."""
+        if 'extensions' not in import_data:
+            return
+            
+        for ext_data in import_data['extensions']:
+            try:
+                self._import_single_extension(cursor, ext_data, overwrite, import_results)
+            except Exception as e:
+                import_results['errors'].append(f"Error importing extension {ext_data.get('extension', 'unknown')}: {e}")
+    
+    def _import_single_extension(self, cursor, ext_data: Dict[str, Any], overwrite: bool, import_results: Dict[str, Any]):
+        """Import a single extension."""
+        extension_name = ext_data['extension']
+        cursor.execute("SELECT extension_id FROM file_extension WHERE extension = ?", (extension_name,))
+        existing = cursor.fetchone()
+
+        category_id = self._resolve_category_reference(
+            cursor,
+            ext_data,
+            import_results,
+            f"extension {extension_name}",
+        )
+        if not category_id:
+            return
+
+        if existing:
+            if not overwrite:
+                return
+
+            cursor.execute("""
+                UPDATE file_extension
+                SET category_id = ?, description = ?, mime_type = ?,
+                    is_active = ?, is_rom = ?, is_archive = ?, is_save = ?, is_patch = ?
+                WHERE extension_id = ?
+            """, (category_id, ext_data.get('description'),
+                 ext_data.get('mime_type'), ext_data.get('is_active', True),
+                 ext_data.get('is_rom', False), ext_data.get('is_archive', False),
+                 ext_data.get('is_save', False), ext_data.get('is_patch', False),
+                 existing['extension_id']))
+        else:
+            cursor.execute("""
+                INSERT INTO file_extension
+                (extension, category_id, description, mime_type, is_active,
+                 is_rom, is_archive, is_save, is_patch)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (extension_name, category_id,
+                 ext_data.get('description'), ext_data.get('mime_type'),
+                 ext_data.get('is_active', True), ext_data.get('is_rom', False),
+                 ext_data.get('is_archive', False), ext_data.get('is_save', False),
+                 ext_data.get('is_patch', False)))
+
+        import_results['extensions_imported'] += 1
+    
+    def _import_mappings(self, cursor, import_data: Dict[str, Any], overwrite: bool, import_results: Dict[str, Any]):
+        """Import platform mappings from import data."""
+        if 'mappings' not in import_data:
+            return
+            
+        for mapping_data in import_data['mappings']:
+            try:
+                self._import_single_mapping(cursor, mapping_data, overwrite, import_results)
+            except Exception as e:
+                import_results['errors'].append(f"Error importing mapping: {e}")
+    
+    def _import_single_mapping(self, cursor, mapping_data: Dict[str, Any], overwrite: bool, import_results: Dict[str, Any]):
+        """Import a single platform mapping."""
+        platform_id = self._resolve_platform_reference(
+            cursor,
+            mapping_data,
+            import_results,
+            f"mapping for extension {mapping_data.get('extension') or mapping_data.get('extension_id')}",
+            create_if_missing=True,
+        )
+        if not platform_id:
+            return
+
+        extension_id = self._resolve_extension_reference(
+            cursor,
+            mapping_data,
+            import_results,
+            f"mapping for platform {mapping_data.get('platform_name') or platform_id}",
+        )
+        if not extension_id:
+            return
+
+        cursor.execute("""
+            SELECT platform_extension_id FROM platform_extension
+            WHERE platform_id = ? AND extension_id = ?
+        """, (platform_id, extension_id))
+        existing = cursor.fetchone()
+
+        if existing:
+            if not overwrite:
+                return
+
+            cursor.execute("""
+                UPDATE platform_extension
+                SET is_primary = ?, confidence = ?
+                WHERE platform_extension_id = ?
+            """, (mapping_data.get('is_primary', False),
+                 mapping_data.get('confidence', 1.0), existing['platform_extension_id']))
+        else:
+            cursor.execute("""
+                INSERT INTO platform_extension (platform_id, extension_id, is_primary, confidence)
+                VALUES (?, ?, ?, ?)
+            """, (platform_id, extension_id,
+                 mapping_data.get('is_primary', False), mapping_data.get('confidence', 1.0)))
+
+        import_results['mappings_imported'] += 1
+    
+    def _import_unknown_extensions(self, cursor, import_data: Dict[str, Any], overwrite: bool, import_results: Dict[str, Any]):
+        """Import unknown extensions from import data."""
+        if 'unknown_extensions' not in import_data:
+            return
+            
+        for unknown_data in import_data['unknown_extensions']:
+            try:
+                self._import_single_unknown_extension(cursor, unknown_data, overwrite, import_results)
+            except Exception as e:
+                import_results['errors'].append(f"Error importing unknown extension {unknown_data.get('extension', 'unknown')}: {e}")
+    
+    def _import_single_unknown_extension(self, cursor, unknown_data: Dict[str, Any], overwrite: bool, import_results: Dict[str, Any]):
+        """Import a single unknown extension."""
+        cursor.execute("SELECT unknown_extension_id FROM unknown_extension WHERE extension = ?", (unknown_data['extension'],))
+        existing = cursor.fetchone()
+
+        suggested_category_id = self._normalize_optional_id(unknown_data.get('suggested_category_id'))
+        if category_name := (unknown_data.get('suggested_category') or '').strip():
+            resolved_category_id = self._get_category_id_by_name(cursor, category_name)
+            if resolved_category_id is None:
+                error = (
+                    f"Could not resolve suggested category '{category_name}' for unknown extension "
+                    f"{unknown_data['extension']}. Skipping import."
+                )
+                import_results['errors'].append(error)
+                self.logger.error(error)
+                return
+            suggested_category_id = resolved_category_id
+        elif suggested_category_id and not self._category_exists(cursor, suggested_category_id):
+            error = (
+                f"Suggested category ID {suggested_category_id} could not be resolved for unknown extension "
+                f"{unknown_data['extension']}. Skipping import."
+            )
+            import_results['errors'].append(error)
+            self.logger.error(error)
+            return
+
+        suggested_platform_id = self._normalize_optional_id(unknown_data.get('suggested_platform_id'))
+        if platform_name := (unknown_data.get('suggested_platform') or '').strip():
+            suggested_platform_id = self._get_platform_id_by_name(cursor, platform_name, create_if_missing=True)
+            if suggested_platform_id is None:
+                error = (
+                    f"Could not resolve suggested platform '{platform_name}' for unknown extension "
+                    f"{unknown_data['extension']}. Skipping import."
+                )
+                import_results['errors'].append(error)
+                self.logger.error(error)
+                return
+        elif suggested_platform_id and not self._platform_exists(cursor, suggested_platform_id):
+            error = (
+                f"Suggested platform ID {suggested_platform_id} could not be resolved for unknown extension "
+                f"{unknown_data['extension']}. Skipping import."
+            )
+            import_results['errors'].append(error)
+            self.logger.error(error)
+            return
+
+        if existing:
+            if not overwrite:
+                return
+
+            cursor.execute("""
+                UPDATE unknown_extension
+                SET file_count = ?, status = ?, suggested_category_id = ?,
+                    suggested_platform_id = ?, notes = ?
+                WHERE unknown_extension_id = ?
+            """, (unknown_data.get('file_count', 1), unknown_data.get('status', 'pending'),
+                 suggested_category_id, suggested_platform_id,
+                 unknown_data.get('notes'), existing['unknown_extension_id']))
+        else:
+            cursor.execute("""
+                INSERT INTO unknown_extension
+                (extension, file_count, status, suggested_category_id, suggested_platform_id, notes)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (unknown_data['extension'], unknown_data.get('file_count', 1),
+                 unknown_data.get('status', 'pending'), suggested_category_id,
+                 suggested_platform_id, unknown_data.get('notes')))
+
+        import_results['unknown_imported'] += 1

@@ -108,6 +108,10 @@ class ExtensionRegistryDialog(QDialog):
         stats_tab = self.create_statistics_tab()
         tab_widget.addTab(stats_tab, "📊 Statistics")
         
+        # Import/Export tab
+        import_export_tab = self.create_import_export_tab()
+        tab_widget.addTab(import_export_tab, "📤 Import/Export")
+        
         # Bottom buttons
         button_layout = QHBoxLayout()
         button_layout.addStretch()
@@ -358,6 +362,74 @@ class ExtensionRegistryDialog(QDialog):
         
         return tab
     
+    def create_import_export_tab(self):
+        """Create the import/export tab."""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        
+        # Export section
+        export_group = self._create_button_group("Export Extension Registry", [
+            ("📄 Export JSON", lambda: self.export_data('json')),
+            ("📊 Export CSV", lambda: self.export_data('csv'))
+        ])
+        layout.addWidget(export_group)
+        
+        # Import section
+        import_group = QGroupBox("Import Extension Registry")
+        import_layout = QVBoxLayout(import_group)
+        
+        import_buttons_layout = self._create_button_layout([
+            ("📄 Import JSON", lambda: self.import_data('json'))
+        ])
+        import_layout.addLayout(import_buttons_layout)
+        
+        # Import options
+        options_layout = QHBoxLayout()
+        
+        self.overwrite_check = QCheckBox("Overwrite existing entries")
+        options_layout.addWidget(self.overwrite_check)
+        
+        options_layout.addStretch()
+        import_layout.addLayout(options_layout)
+        
+        layout.addWidget(import_group)
+        
+        # Status area
+        status_group = QGroupBox("Import/Export Status")
+        status_layout = QVBoxLayout(status_group)
+        
+        self.status_text = QTextEdit()
+        self.status_text.setReadOnly(True)
+        self.status_text.setMaximumHeight(150)
+        self.status_text.setFont(QFont("Consolas", 9))
+        status_layout.addWidget(self.status_text)
+        
+        layout.addWidget(status_group)
+        
+        return tab
+    
+    def _create_button_group(self, title: str, buttons: List[Tuple[str, callable]]) -> QGroupBox:
+        """Create a group box with buttons."""
+        group = QGroupBox(title)
+        layout = QVBoxLayout(group)
+        
+        button_layout = self._create_button_layout(buttons)
+        layout.addLayout(button_layout)
+        
+        return group
+    
+    def _create_button_layout(self, buttons: List[Tuple[str, callable]]) -> QHBoxLayout:
+        """Create a horizontal layout with buttons."""
+        layout = QHBoxLayout()
+        
+        for text, callback in buttons:
+            button = QPushButton(text)
+            button.clicked.connect(callback)
+            layout.addWidget(button)
+        
+        layout.addStretch()
+        return layout
+    
     def load_data(self):
         """Load all data from the database."""
         self.load_categories()
@@ -562,6 +634,675 @@ class ExtensionRegistryDialog(QDialog):
         self.load_data()
         QMessageBox.information(self, "Refresh Complete", "All data has been refreshed.")
     
+    # =============================================================================
+    # MISSING GUI METHODS - IMPLEMENTATION
+    # =============================================================================
+    
+    def add_extension(self):
+        """Add a new file extension."""
+        from PyQt5.QtWidgets import QDialog, QVBoxLayout, QFormLayout, QLineEdit, QComboBox, QCheckBox, QPushButton, QDialogButtonBox
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Add Extension")
+        dialog.setModal(True)
+        dialog.resize(400, 300)
+        
+        layout = QVBoxLayout(dialog)
+        form_layout = QFormLayout()
+        
+        # Extension input
+        extension_edit = QLineEdit()
+        extension_edit.setPlaceholderText("e.g., .rom")
+        form_layout.addRow("Extension:", extension_edit)
+        
+        # Category selection
+        category_combo = QComboBox()
+        categories = self.manager.get_categories(active_only=True)
+        for category in categories:
+            category_combo.addItem(category['name'], category['category_id'])
+        form_layout.addRow("Category:", category_combo)
+        
+        # Description
+        description_edit = QLineEdit()
+        form_layout.addRow("Description:", description_edit)
+        
+        # MIME type
+        mime_edit = QLineEdit()
+        form_layout.addRow("MIME Type:", mime_edit)
+        
+        # Type checkboxes
+        is_rom_check = QCheckBox("ROM")
+        is_archive_check = QCheckBox("Archive")
+        is_save_check = QCheckBox("Save")
+        is_patch_check = QCheckBox("Patch")
+        
+        form_layout.addRow("Types:", is_rom_check)
+        form_layout.addRow("", is_archive_check)
+        form_layout.addRow("", is_save_check)
+        form_layout.addRow("", is_patch_check)
+        
+        layout.addLayout(form_layout)
+        
+        # Buttons
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+        
+        if dialog.exec_() == QDialog.Accepted:
+            extension = extension_edit.text().strip()
+            if not extension.startswith('.'):
+                extension = f'.{extension}'
+            
+            category_id = category_combo.currentData()
+            description = description_edit.text().strip() or None
+            mime_type = mime_edit.text().strip() or None
+            
+            try:
+                self.manager.create_extension(
+                    extension=extension,
+                    category_id=category_id,
+                    description=description,
+                    mime_type=mime_type,
+                    is_rom=is_rom_check.isChecked(),
+                    is_archive=is_archive_check.isChecked(),
+                    is_save=is_save_check.isChecked(),
+                    is_patch=is_patch_check.isChecked()
+                )
+                self.load_extensions()
+                QMessageBox.information(self, "Success", f"Extension {extension} added successfully.")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to add extension: {e}")
+    
+    def filter_extensions(self):
+        """Filter extensions based on search and category."""
+        search_text = self.extension_search.text().lower()
+        category_filter = self.category_filter.currentText()
+        
+        for row in range(self.extensions_table.rowCount()):
+            should_show = True
+            
+            # Check search text
+            if search_text:
+                extension = self.extensions_table.item(row, 0).text().lower()
+                description = self.extensions_table.item(row, 2).text().lower()
+                if search_text not in extension and search_text not in description:
+                    should_show = False
+            
+            # Check category filter
+            if category_filter != "All Categories":
+                category = self.extensions_table.item(row, 1).text()
+                if category != category_filter:
+                    should_show = False
+            
+            self.extensions_table.setRowHidden(row, not should_show)
+    
+    def add_mapping(self):
+        """Add a new platform-extension mapping."""
+        from PyQt5.QtWidgets import QDialog, QVBoxLayout, QFormLayout, QComboBox, QDoubleSpinBox, QCheckBox, QDialogButtonBox
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Add Platform Mapping")
+        dialog.setModal(True)
+        dialog.resize(400, 200)
+        
+        layout = QVBoxLayout(dialog)
+        form_layout = QFormLayout()
+        
+        # Platform selection
+        platform_combo = QComboBox()
+        with self.manager._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT platform_id, name FROM platform ORDER BY name")
+            platforms = cursor.fetchall()
+            for platform in platforms:
+                platform_combo.addItem(platform['name'], platform['platform_id'])
+        form_layout.addRow("Platform:", platform_combo)
+        
+        # Extension selection
+        extension_combo = QComboBox()
+        extensions = self.manager.get_extensions(active_only=True)
+        for ext in extensions:
+            display_text = f"{ext['extension']} ({ext['category_name']})"
+            extension_combo.addItem(display_text, ext['extension_id'])
+        form_layout.addRow("Extension:", extension_combo)
+        
+        # Primary checkbox
+        is_primary_check = QCheckBox("Primary")
+        form_layout.addRow("", is_primary_check)
+        
+        # Confidence
+        confidence_spin = QDoubleSpinBox()
+        confidence_spin.setRange(0.0, 1.0)
+        confidence_spin.setSingleStep(0.1)
+        confidence_spin.setValue(1.0)
+        form_layout.addRow("Confidence:", confidence_spin)
+        
+        layout.addLayout(form_layout)
+        
+        # Buttons
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+        
+        if dialog.exec_() == QDialog.Accepted:
+            platform_id = platform_combo.currentData()
+            extension_id = extension_combo.currentData()
+            is_primary = is_primary_check.isChecked()
+            confidence = confidence_spin.value()
+            
+            try:
+                self.manager.create_platform_extension(
+                    platform_id=platform_id,
+                    extension_id=extension_id,
+                    is_primary=is_primary,
+                    confidence=confidence
+                )
+                self.load_mappings()
+                QMessageBox.information(self, "Success", "Platform mapping added successfully.")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to add mapping: {e}")
+    
+    def on_extension_selected(self):
+        """Handle extension selection in the table."""
+        current_row = self.extensions_table.currentRow()
+        # Enable/disable action buttons based on selection
+        # Implementation can be added here if needed
+    
+    def delete_mapping(self, mapping_id: int):
+        """Delete a platform-extension mapping."""
+        reply = QMessageBox.question(
+            self, "Confirm Delete", 
+            "Are you sure you want to delete this platform mapping?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            try:
+                if self.manager.delete_platform_extension(mapping_id):
+                    self.load_mappings()
+                    QMessageBox.information(self, "Success", "Platform mapping deleted successfully.")
+                else:
+                    QMessageBox.warning(self, "Warning", "Failed to delete platform mapping.")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to delete mapping: {e}")
+    
+    def approve_unknown(self, unknown_id: int):
+        """Approve an unknown extension."""
+        from PyQt5.QtWidgets import QDialog, QVBoxLayout, QFormLayout, QComboBox, QLineEdit, QDialogButtonBox
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Approve Unknown Extension")
+        dialog.setModal(True)
+        dialog.resize(400, 200)
+        
+        layout = QVBoxLayout(dialog)
+        form_layout = QFormLayout()
+        
+        # Get unknown extension details
+        unknown_exts = self.manager.get_unknown_extensions()
+        unknown_ext = next((ext for ext in unknown_exts if ext['unknown_extension_id'] == unknown_id), None)
+        
+        if not unknown_ext:
+            QMessageBox.warning(self, "Error", "Unknown extension not found.")
+            return
+        
+        # Show extension name
+        ext_label = QLineEdit(unknown_ext['extension'])
+        ext_label.setReadOnly(True)
+        form_layout.addRow("Extension:", ext_label)
+        
+        # Category selection
+        category_combo = QComboBox()
+        categories = self.manager.get_categories(active_only=True)
+        for category in categories:
+            category_combo.addItem(category['name'], category['category_id'])
+        form_layout.addRow("Category:", category_combo)
+        
+        # Platform selection (optional)
+        platform_combo = QComboBox()
+        platform_combo.addItem("No Platform", None)
+        with self.manager._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT platform_id, name FROM platform ORDER BY name")
+            platforms = cursor.fetchall()
+            for platform in platforms:
+                platform_combo.addItem(platform['name'], platform['platform_id'])
+        form_layout.addRow("Platform (optional):", platform_combo)
+        
+        # Notes
+        notes_edit = QLineEdit()
+        form_layout.addRow("Notes:", notes_edit)
+        
+        layout.addLayout(form_layout)
+        
+        # Buttons
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+        
+        if dialog.exec_() == QDialog.Accepted:
+            category_id = category_combo.currentData()
+            platform_id = platform_combo.currentData()
+            notes = notes_edit.text().strip() or None
+            
+            try:
+                if self.manager.approve_unknown_extension(unknown_id, category_id, platform_id, notes):
+                    self.load_unknown_extensions()
+                    self.load_extensions()
+                    self.load_mappings()
+                    QMessageBox.information(self, "Success", "Unknown extension approved and added to registry.")
+                else:
+                    QMessageBox.warning(self, "Warning", "Failed to approve unknown extension.")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to approve extension: {e}")
+    
+    def reject_unknown(self, unknown_id: int):
+        """Reject an unknown extension."""
+        reply = QMessageBox.question(
+            self, "Confirm Reject", 
+            "Are you sure you want to reject this unknown extension?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            try:
+                if self.manager.reject_unknown_extension(unknown_id, "Rejected by user"):
+                    self.load_unknown_extensions()
+                    QMessageBox.information(self, "Success", "Unknown extension rejected.")
+                else:
+                    QMessageBox.warning(self, "Warning", "Failed to reject unknown extension.")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to reject extension: {e}")
+    
+    def ignore_unknown(self, unknown_id: int):
+        """Ignore an unknown extension."""
+        reply = QMessageBox.question(
+            self, "Confirm Ignore", 
+            "Are you sure you want to ignore this unknown extension?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            try:
+                if self.manager.ignore_unknown_extension(unknown_id, "Ignored by user"):
+                    self.load_unknown_extensions()
+                    QMessageBox.information(self, "Success", "Unknown extension ignored.")
+                else:
+                    QMessageBox.warning(self, "Warning", "Failed to ignore unknown extension.")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to ignore extension: {e}")
+    
+    def filter_categories(self):
+        """Filter categories based on search text."""
+        search_text = self.category_search.text().lower()
+        
+        for i in range(self.categories_list.count()):
+            item = self.categories_list.item(i)
+            item_text = item.text().lower()
+            should_show = search_text in item_text
+            item.setHidden(not should_show)
+    
+    def filter_mappings(self):
+        """Filter platform mappings based on platform selection."""
+        platform_filter = self.platform_filter.currentText()
+        
+        for row in range(self.mappings_table.rowCount()):
+            if platform_filter == "All Platforms":
+                self.mappings_table.setRowHidden(row, False)
+            else:
+                platform = self.mappings_table.item(row, 0).text()
+                should_show = platform == platform_filter
+                self.mappings_table.setRowHidden(row, not should_show)
+    
+    def filter_unknown(self):
+        """Filter unknown extensions based on search and status."""
+        search_text = self.unknown_search.text().lower()
+        status_filter = self.status_filter.currentText()
+        
+        for row in range(self.unknown_table.rowCount()):
+            should_show = True
+            
+            # Check search text
+            if search_text:
+                extension = self.unknown_table.item(row, 0).text().lower()
+                if search_text not in extension:
+                    should_show = False
+            
+            # Check status filter
+            if status_filter != "All Status":
+                status = self.unknown_table.item(row, 2).text()
+                if status_filter.lower() not in status.lower():
+                    should_show = False
+            
+            self.unknown_table.setRowHidden(row, not should_show)
+    
+    def add_category(self):
+        """Add a new file type category."""
+        from PyQt5.QtWidgets import QDialog, QVBoxLayout, QFormLayout, QLineEdit, QTextEdit, QSpinBox, QCheckBox, QDialogButtonBox
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Add Category")
+        dialog.setModal(True)
+        dialog.resize(400, 300)
+        
+        layout = QVBoxLayout(dialog)
+        form_layout = QFormLayout()
+        
+        # Name
+        name_edit = QLineEdit()
+        form_layout.addRow("Name:", name_edit)
+        
+        # Description
+        description_edit = QTextEdit()
+        description_edit.setMaximumHeight(80)
+        form_layout.addRow("Description:", description_edit)
+        
+        # Sort order
+        sort_order_spin = QSpinBox()
+        sort_order_spin.setRange(0, 9999)
+        sort_order_spin.setValue(0)
+        form_layout.addRow("Sort Order:", sort_order_spin)
+        
+        # Active checkbox
+        active_check = QCheckBox("Active")
+        active_check.setChecked(True)
+        form_layout.addRow("", active_check)
+        
+        layout.addLayout(form_layout)
+        
+        # Buttons
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+        
+        if dialog.exec_() == QDialog.Accepted:
+            name = name_edit.text().strip()
+            description = description_edit.toPlainText().strip() or None
+            sort_order = sort_order_spin.value()
+            is_active = active_check.isChecked()
+            
+            if not name:
+                QMessageBox.warning(self, "Warning", "Name is required.")
+                return
+            
+            try:
+                self.manager.create_category(name, description, sort_order, is_active)
+                self.load_categories()
+                QMessageBox.information(self, "Success", f"Category '{name}' added successfully.")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to add category: {e}")
+    
+    def on_category_selected(self, item):
+        """Handle category selection."""
+        if not item:
+            return
+            
+        if not (category_id := item.data(Qt.UserRole)):
+            return
+            
+        if not (category := self.manager.get_category(category_id)):
+            return
+            
+        self._populate_category_form(category_id, category)
+    
+    def _populate_category_form(self, category_id: int, category: Dict[str, Any]):
+        """Populate the category form with data."""
+        self.current_category_id = category_id
+        self.category_name_edit.setText(category['name'])
+        self.category_description_edit.setPlainText(category['description'] or "")
+        self.category_sort_order_edit.setText(str(category['sort_order']))
+        self.category_active_check.setChecked(bool(category['is_active']))
+
+        # Enable update/delete buttons
+        self.update_category_btn.setEnabled(True)
+        self.delete_category_btn.setEnabled(True)
+    
+    def update_category(self):
+        """Update the selected category."""
+        if not self.current_category_id:
+            QMessageBox.warning(self, "Warning", "Please select a category to update.")
+            return
+        
+        name = self.category_name_edit.text().strip()
+        description = self.category_description_edit.toPlainText().strip() or None
+        sort_order = int(self.category_sort_order_edit.text() or 0)
+        is_active = self.category_active_check.isChecked()
+        
+        if not name:
+            QMessageBox.warning(self, "Warning", "Name is required.")
+            return
+        
+        try:
+            if self.manager.update_category(
+                self.current_category_id,
+                name=name,
+                description=description,
+                sort_order=sort_order,
+                is_active=is_active
+            ):
+                self.load_categories()
+                QMessageBox.information(self, "Success", "Category updated successfully.")
+            else:
+                QMessageBox.warning(self, "Warning", "Failed to update category.")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to update category: {e}")
+    
+    def delete_category(self):
+        """Delete the selected category."""
+        if not self.current_category_id:
+            QMessageBox.warning(self, "Warning", "Please select a category to delete.")
+            return
+        
+        reply = QMessageBox.question(
+            self, "Confirm Delete", 
+            "Are you sure you want to delete this category?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            try:
+                if self.manager.delete_category(self.current_category_id):
+                    self.load_categories()
+                    self._clear_category_form()
+                    QMessageBox.information(self, "Success", "Category deleted successfully.")
+                else:
+                    QMessageBox.warning(self, "Warning", "Failed to delete category.")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to delete category: {e}")
+    
+    def _clear_category_form(self):
+        """Clear the category form."""
+        self.category_name_edit.clear()
+        self.category_description_edit.clear()
+        self.category_sort_order_edit.setText("0")
+        self.category_active_check.setChecked(True)
+        self.update_category_btn.setEnabled(False)
+        self.delete_category_btn.setEnabled(False)
+        self.current_category_id = None
+    
+    def edit_extension(self, extension_id: int):
+        """Edit an extension."""
+        extension = self.manager.get_extension(extension_id)
+        if not extension:
+            QMessageBox.warning(self, "Warning", "Extension not found.")
+            return
+        
+        from PyQt5.QtWidgets import QDialog, QVBoxLayout, QFormLayout, QLineEdit, QComboBox, QCheckBox, QDialogButtonBox
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Edit Extension")
+        dialog.setModal(True)
+        dialog.resize(400, 300)
+        
+        layout = QVBoxLayout(dialog)
+        form_layout = QFormLayout()
+        
+        # Extension (read-only)
+        extension_edit = QLineEdit(extension['extension'])
+        extension_edit.setReadOnly(True)
+        form_layout.addRow("Extension:", extension_edit)
+        
+        # Category selection
+        category_combo = QComboBox()
+        categories = self.manager.get_categories(active_only=False)
+        for category in categories:
+            category_combo.addItem(category['name'], category['category_id'])
+            if category['category_id'] == extension['category_id']:
+                category_combo.setCurrentIndex(category_combo.count() - 1)
+        form_layout.addRow("Category:", category_combo)
+        
+        # Description
+        description_edit = QLineEdit(extension['description'] or "")
+        form_layout.addRow("Description:", description_edit)
+        
+        # MIME type
+        mime_edit = QLineEdit(extension['mime_type'] or "")
+        form_layout.addRow("MIME Type:", mime_edit)
+        
+        # Type checkboxes
+        is_rom_check = QCheckBox("ROM")
+        is_rom_check.setChecked(bool(extension['is_rom']))
+        is_archive_check = QCheckBox("Archive")
+        is_archive_check.setChecked(bool(extension['is_archive']))
+        is_save_check = QCheckBox("Save")
+        is_save_check.setChecked(bool(extension['is_save']))
+        is_patch_check = QCheckBox("Patch")
+        is_patch_check.setChecked(bool(extension['is_patch']))
+        
+        form_layout.addRow("Types:", is_rom_check)
+        form_layout.addRow("", is_archive_check)
+        form_layout.addRow("", is_save_check)
+        form_layout.addRow("", is_patch_check)
+        
+        # Active checkbox
+        active_check = QCheckBox("Active")
+        active_check.setChecked(bool(extension['is_active']))
+        form_layout.addRow("", active_check)
+        
+        layout.addLayout(form_layout)
+        
+        # Buttons
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+        
+        if dialog.exec_() == QDialog.Accepted:
+            category_id = category_combo.currentData()
+            description = description_edit.text().strip() or None
+            mime_type = mime_edit.text().strip() or None
+            
+            try:
+                if self.manager.update_extension(
+                    extension_id,
+                    category_id=category_id,
+                    description=description,
+                    mime_type=mime_type,
+                    is_rom=is_rom_check.isChecked(),
+                    is_archive=is_archive_check.isChecked(),
+                    is_save=is_save_check.isChecked(),
+                    is_patch=is_patch_check.isChecked(),
+                    is_active=active_check.isChecked()
+                ):
+                    self.load_extensions()
+                    QMessageBox.information(self, "Success", "Extension updated successfully.")
+                else:
+                    QMessageBox.warning(self, "Warning", "Failed to update extension.")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to update extension: {e}")
+    
+    def export_data(self, format: str):
+        """Export extension registry data."""
+        from PyQt5.QtWidgets import QFileDialog
+        
+        # Get save file path
+        file_filter = "JSON files (*.json)" if format == 'json' else "CSV files (*.csv)"
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, f"Export Extension Registry ({format.upper()})", 
+            f"extension_registry.{format}", file_filter
+        )
+        
+        if not file_path:
+            return
+        
+        try:
+            if success := self.manager.export_extensions(file_path, format):
+                self.status_text.append(f"✅ Export successful: {file_path}")
+                QMessageBox.information(self, "Export Successful", f"Extension registry exported to:\n{file_path}")
+            else:
+                self.status_text.append(f"❌ Export failed: {file_path}")
+                QMessageBox.critical(self, "Export Failed", "Failed to export extension registry.")
+        except Exception as e:
+            self.status_text.append(f"❌ Export error: {e}")
+            QMessageBox.critical(self, "Export Error", f"Export failed: {e}")
+    
+    def import_data(self, format: str):
+        """Import extension registry data."""
+        from PyQt5.QtWidgets import QFileDialog
+        
+        if format != 'json':
+            self.status_text.append("⚠️ Import cancelled: Only JSON imports are supported.")
+            QMessageBox.warning(
+                self,
+                "Unsupported Import Format",
+                "Only JSON import is currently supported."
+            )
+            return
+
+        # Get file path
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Import Extension Registry (JSON)",
+            "", "JSON files (*.json)"
+        )
+        
+        if not file_path:
+            return
+        
+        try:
+            overwrite = self.overwrite_check.isChecked()
+            results = self.manager.import_extensions(file_path, format, overwrite)
+            
+            if results['success']:
+                self._handle_import_success(file_path, results)
+            else:
+                self._handle_import_failure(file_path, results)
+                
+        except Exception as e:
+            self.status_text.append(f"❌ Import error: {e}")
+            QMessageBox.critical(self, "Import Error", f"Import failed: {e}")
+    
+    def _handle_import_success(self, file_path: str, results: Dict[str, Any]):
+        """Handle successful import."""
+        self.status_text.append(f"✅ Import successful: {file_path}")
+        self.status_text.append(f"   Categories: {results['categories_imported']}")
+        self.status_text.append(f"   Extensions: {results['extensions_imported']}")
+        self.status_text.append(f"   Mappings: {results['mappings_imported']}")
+        self.status_text.append(f"   Unknown: {results['unknown_imported']}")
+
+        # Refresh all data
+        self.load_data()
+
+        success_message = (
+            "Import completed successfully!\n\n"
+            f"Categories: {results['categories_imported']}\n"
+            f"Extensions: {results['extensions_imported']}\n"
+            f"Mappings: {results['mappings_imported']}\n"
+            f"Unknown: {results['unknown_imported']}"
+        )
+        QMessageBox.information(self, "Import Successful", success_message)
+    
+    def _handle_import_failure(self, file_path: str, results: Dict[str, Any]):
+        """Handle failed import."""
+        self.status_text.append(f"❌ Import failed: {file_path}")
+        error_msg = "\n".join(results['errors'][:5])  # Show first 5 errors
+        if len(results['errors']) > 5:
+            error_msg += f"\n... and {len(results['errors']) - 5} more errors"
+        QMessageBox.critical(self, "Import Failed", f"Import failed:\n{error_msg}")
+
     def closeEvent(self, event):
         """Handle dialog close event."""
         event.accept()
