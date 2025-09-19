@@ -140,7 +140,7 @@ class RomCuratorConfig(BaseModel):
         
         Parameters:
             value (Path): The database path being validated.
-            info: Pydantic validator info object providing access to other field values.
+            info (ValidationInfo): Pydantic validator info object providing access to other field values.
         
         Returns:
             Path: The validated database path.
