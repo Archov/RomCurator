@@ -115,10 +115,16 @@ class RomCuratorConfig(BaseModel):
     @field_validator("database_path", "importer_scripts_directory", "log_directory", mode="before")
     @classmethod
     def _expand_path(cls, value: Any) -> Path:
-        """
-        Ensure a value is returned as a pathlib.Path with user home expansion.
-        
-        If the input is already a Path it is returned with expanded user (~) resolved; otherwise the value is coerced to a string, converted to Path, and expanded. Always returns a Path instance.
+        """Ensure a value is returned as a pathlib.Path with user home expansion.
+
+        If the input is already a Path, it is returned with the user home (~) resolved.
+        Otherwise, the value is coerced to a string, converted to a Path, and expanded.
+
+        Parameters:
+            value (Any): The input value to be converted to an expanded Path.
+
+        Returns:
+            Path: An expanded and resolved pathlib.Path instance.
         """
         if isinstance(value, Path):
             return value.expanduser()
