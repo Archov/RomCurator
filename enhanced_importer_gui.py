@@ -966,6 +966,11 @@ class ImporterApp(EnhancedImporterWidget):
     """Compatibility wrapper for the main application."""
     
     def __init__(self, config_manager=None):
+        """
+        Initialize the ImporterApp window.
+        
+        If no ConfigManager is provided, lazily imports and instantiates the default ConfigManager, then delegates initialization to EnhancedImporterWidget. Sets the window title to "ROM Curator - Enhanced Data Importer".
+        """
         if not config_manager:
             from config_manager import ConfigManager
             config_manager = ConfigManager()
@@ -975,7 +980,11 @@ class ImporterApp(EnhancedImporterWidget):
 
 
 def main():
-    """Main entry point for standalone testing."""
+    """
+    Start the standalone Enhanced Importer GUI.
+    
+    Initializes a QApplication, applies a dark stylesheet, loads application configuration via ConfigManager, instantiates and shows the ImporterApp window, and runs the Qt event loop. This function terminates the process with the application's exit code.
+    """
     app = QApplication(sys.argv)
     app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     

@@ -220,6 +220,14 @@ class SourceManagerDialog(QDialog):
 # --- Main Application Window ---
 class ImporterApp(QWidget):
     def __init__(self, config_manager=None):
+        """
+        Initialize the importer application window.
+        
+        If a ConfigManager instance is provided it will be used; otherwise a ConfigManager is imported from
+        config_manager and instantiated. The constructor reads the configured database path, creates a
+        DatabaseManager for that path, initializes internal state (selected files, current source id and
+        importer script), builds the UI, and populates the sources dropdown.
+        """
         super().__init__()
         
         # Use provided config or load default
